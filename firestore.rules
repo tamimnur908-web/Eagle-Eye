@@ -1,0 +1,142 @@
+rules_version = '2';
+// 🔴 [ADD FIRESTORE SECURITY RULES HERE] — least-privilege database access.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 🔴 [CONFIGURE AUTHORIZED ADMIN UID OR CUSTOM CLAIM HERE] — trusted admin authorization.
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.uid == "cOpR7FgKjGeBkeWwIysygHvswwv1" ||
+        request.auth.token.admin == true
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Public Collections: services, products, portfolio, caseStudies, banners, reviews, faqs, settings
+    match /services/{serviceId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /serviceCategories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /productCategories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /portfolio/{projectId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /caseStudies/{studyId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /faqs/{faqId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /pages/{pageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Leads & Inquiries: public can submit valid new leads; only Admin can read/update/delete
+    match /leads/{leadId} {
+      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message', 'createdAt']);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Customer User Profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Orders & Payments
+    match /orders/{orderId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Updates (like marking payment status) reserved for admin or trusted server-side function
+      allow update, delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Quotations & Projects
+    match /quotations/{quotationId} {
+      allow read: if isAuthenticated() && (resource.data.clientId == request.auth.uid || resource.data.clientEmail == request.auth.token.email || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isAuthenticated() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Digital Download Entitlements & Logs
+    match /downloadEntitlements/{entitlementId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /downloadLogs/{logId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin();
+    }
+
+    // Coupons
+    match /coupons/{couponId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Audit logs & Notifications
+    match /auditLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+  }
+}

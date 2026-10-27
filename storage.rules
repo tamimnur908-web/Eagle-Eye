@@ -1,0 +1,38 @@
+rules_version = '2';
+// 🔴 [ADD FIREBASE STORAGE RULES HERE] — protected file access and upload restrictions.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 🔴 [CONFIGURE AUTHORIZED ADMIN UID OR CUSTOM CLAIM HERE]
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.uid == "cOpR7FgKjGeBkeWwIysygHvswwv1" ||
+        request.auth.token.admin == true
+      );
+    }
+
+    // Public Assets: Public previews, site banners, portfolio images, logos
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Digital Products: Protected Paid/Private Files
+    // Paid files should NOT be directly publicly readable. Admin can upload.
+    // Client downloads are handled via authorized Cloud Functions or download entitlement verification.
+    match /protected_downloads/{productId}/{fileName} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Customer private uploads (e.g., project brief attachments)
+    match /user_uploads/{userId}/{fileName} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
