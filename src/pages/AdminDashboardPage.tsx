@@ -32,6 +32,9 @@ import {
   ArrowRight,
   Sparkles,
   RotateCcw,
+  Monitor,
+  Tablet,
+  Smartphone,
   X,
   Clipboard,
   ImagePlus,
@@ -459,6 +462,10 @@ export const AdminDashboardPage: React.FC = () => {
   const [siteSettingsSaved, setSiteSettingsSaved] = useState(false);
   const [copiedUid, setCopiedUid] = useState(false);
   const logoFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Full Website Live Preview Modal State
+  const [isLiveWebPreviewOpen, setIsLiveWebPreviewOpen] = useState(false);
+  const [webPreviewDevice, setWebPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
   useEffect(() => {
     if (globalSiteSettings) {
@@ -5681,6 +5688,14 @@ export const AdminDashboardPage: React.FC = () => {
                 )}
                 <button
                   type="button"
+                  onClick={() => setIsLiveWebPreviewOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.01]"
+                >
+                  <Eye className="w-4 h-4 text-amber-400" />
+                  <span>Live Web Preview (ওয়েবসাইট প্রিভিউ)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={handleSaveSiteSettings}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
                 >
@@ -5941,14 +5956,51 @@ export const AdminDashboardPage: React.FC = () => {
                     </a>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleSaveSiteSettings}
-                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save & Publish Settings
-                  </button>
+                  {/* Footer Brand Presentation Mockup */}
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-900 text-white p-4 shadow-sm space-y-3">
+                    <div className="text-[10px] uppercase font-bold text-slate-400">Footer Brand Unit Mockup</div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
+                        {siteForm.logoUrl ? (
+                          <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <span className="text-[10px] font-black text-white">EE</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-black tracking-tight text-white">
+                          {siteForm.brandName || 'Eagle Eye Digital'}
+                        </div>
+                        <div className="text-[9px] font-semibold text-indigo-400 tracking-wider uppercase">
+                          {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                      <span>{siteForm.businessEmail || 'support@eagleeyedigital.com'}</span>
+                      <span className="font-mono text-emerald-400">{siteForm.whatsappNumber || '01836126791'}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsLiveWebPreviewOpen(true)}
+                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+                    >
+                      <Eye className="w-4 h-4 text-amber-400" />
+                      <span>Open Full Website Live Preview</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveSiteSettings}
+                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save & Publish Settings
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -5967,6 +6019,17 @@ export const AdminDashboardPage: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-0.5">
                   Manage social links with placement controls (Header, Footer, Floating Sidebar), announcement banner, and footer navigation.
                 </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsLiveWebPreviewOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.01]"
+                >
+                  <Eye className="w-4 h-4 text-amber-400" />
+                  <span>Live Web Preview (ওয়েবসাইট প্রিভিউ)</span>
+                </button>
               </div>
             </div>
 
@@ -6332,6 +6395,166 @@ export const AdminDashboardPage: React.FC = () => {
                   })}
                 </div>
 
+                {/* Live Social Placements Preview Showcase */}
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6 text-white">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          Live Social Presence Previews (লাইভ সোশ্যাল প্রিভিউ)
+                        </h3>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Real-time visualization of your active social icons across Header, Sticky Floating Dock, and Footer.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsLiveWebPreviewOpen(true)}
+                      className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all self-start sm:self-auto"
+                    >
+                      <Monitor className="w-3.5 h-3.5" />
+                      <span>Full Website Preview</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* 1. Sticky Floating Sidebar Preview */}
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3 relative overflow-hidden">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                          Sticky Floating Sidebar
+                        </span>
+                        <span className="text-[10px] text-indigo-400 font-mono">
+                          {socialList.filter((s) => s.isActive && s.showInFloatingSidebar).length} Active
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        Pinned to the right edge of the user screen with hover animations.
+                      </p>
+
+                      {/* Mock Screen Edge with Floating Dock */}
+                      <div className="h-44 bg-slate-900/90 rounded-xl border border-slate-800 relative flex items-center justify-end p-2 overflow-hidden">
+                        <div className="text-[9px] text-slate-600 absolute left-3 top-3 font-mono">Screen Right Edge</div>
+                        {socialList.filter((s) => s.isActive && s.showInFloatingSidebar).length > 0 ? (
+                          <div className="flex flex-col gap-1.5 p-1.5 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-slate-700/80 shadow-2xl">
+                            {socialList
+                              .filter((s) => s.isActive && s.showInFloatingSidebar)
+                              .map((item) => (
+                                <a
+                                  key={item.id}
+                                  href={item.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={item.platform}
+                                  className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 shadow-sm"
+                                >
+                                  <SocialIcon link={item} className="w-4 h-4" size={16} />
+                                </a>
+                              ))}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-500 italic p-4 text-center w-full">
+                            No channels selected for Floating Sidebar yet. Check 'Sidebar' on any channel above.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 2. Header Social Icons Preview */}
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                          Header Social Bar
+                        </span>
+                        <span className="text-[10px] text-blue-400 font-mono">
+                          {socialList.filter((s) => s.isActive && s.showInHeader).length} Active
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        Rendered in the top navigation bar beside Chat Support.
+                      </p>
+
+                      {/* Mock Navbar Section */}
+                      <div className="h-44 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col justify-center items-center p-4">
+                        <div className="w-full bg-white text-slate-900 rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between gap-2">
+                          <div className="text-[10px] font-bold text-slate-500">Header Nav Right:</div>
+                          <div className="flex items-center gap-1.5">
+                            {socialList.filter((s) => s.isActive && s.showInHeader).length > 0 ? (
+                              socialList
+                                .filter((s) => s.isActive && s.showInHeader)
+                                .map((item) => (
+                                  <span
+                                    key={item.id}
+                                    title={item.platform}
+                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors inline-block"
+                                  >
+                                    <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                                  </span>
+                                ))
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">None selected</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3. Footer Social Icons Preview */}
+                    <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          Footer Social Icons
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-mono">
+                          {socialList.filter((s) => s.isActive && s.showInFooter).length} Active
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        Rendered under the agency bio in the live website footer.
+                      </p>
+
+                      {/* Mock Footer Brand Box */}
+                      <div className="h-44 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col justify-center p-4 space-y-3">
+                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          Follow Official Channels:
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {socialList.filter((s) => s.isActive && s.showInFooter).length > 0 ? (
+                            socialList
+                              .filter((s) => s.isActive && s.showInFooter)
+                              .map((item) => {
+                                const iconOpt = SOCIAL_ICON_OPTIONS.find((o) => o.key === item.iconKey);
+                                return (
+                                  <a
+                                    key={item.id}
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={item.platform}
+                                    className="w-8 h-8 rounded-full bg-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center transition-all hover:scale-110 shadow-sm"
+                                    style={{ borderColor: iconOpt?.color }}
+                                  >
+                                    <SocialIcon link={item} className="w-4 h-4" size={16} />
+                                  </a>
+                                );
+                              })
+                          ) : (
+                            <span className="text-[11px] text-slate-500 italic">
+                              No footer icons enabled. Check 'Footer' on any channel.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Bottom Save Bar */}
                 <div className="flex items-center justify-between p-4 bg-white border border-slate-200/90 rounded-2xl shadow-sm">
                   <span className="text-xs text-slate-500">
@@ -6548,6 +6771,126 @@ export const AdminDashboardPage: React.FC = () => {
                       <Plus className="w-4 h-4" />
                       Add Link
                     </button>
+                  </div>
+                </div>
+
+                {/* Live Header & Navbar Preview Showcase */}
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4 text-white">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          Live Header & Navigation Preview (লাইভ হেডার প্রিভিউ)
+                        </h3>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Real-time visualization of how your top announcement bar, brand logo, menu links, and Chat Support button render.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsLiveWebPreviewOpen(true)}
+                      className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all self-start sm:self-auto"
+                    >
+                      <Monitor className="w-3.5 h-3.5" />
+                      <span>Full Website Preview</span>
+                    </button>
+                  </div>
+
+                  {/* Browser Mockup Container */}
+                  <div className="rounded-2xl border border-slate-700 bg-white shadow-2xl overflow-hidden text-slate-900">
+                    {/* 1. Announcement Bar Preview */}
+                    {headerForm.showAnnouncement !== false ? (
+                      <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-4 py-2 text-center text-xs font-semibold flex items-center justify-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin-slow flex-shrink-0" />
+                        <span className="truncate">
+                          {headerForm.announcementText || '⚡ SPECIAL OFFER: Empower your digital presence with Eagle Eye Digital!'}
+                        </span>
+                        {headerForm.announcementLink && (
+                          <span className="text-[10px] underline font-bold bg-white/20 px-2 py-0.5 rounded-full ml-1 cursor-pointer">
+                            Learn More →
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-slate-100 text-slate-400 px-4 py-1 text-center text-[10px] font-semibold italic border-b border-slate-200">
+                        Top Announcement Banner is currently hidden (Disabled)
+                      </div>
+                    )}
+
+                    {/* 2. Main Navbar Preview */}
+                    <div className="p-4 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-200 bg-white">
+                      {/* Brand unit */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-md flex items-center justify-center">
+                          {siteForm.logoUrl ? (
+                            <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-[10px]" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white font-black text-xs">
+                              EE
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-base font-black tracking-tight text-slate-900 flex items-center gap-1">
+                            <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                              {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
+                            </span>
+                          </div>
+                          <div className="text-[9px] font-extrabold tracking-widest text-slate-400 uppercase">
+                            {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Navigation menu */}
+                      <nav className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-slate-700">
+                        {(headerForm.navLinks || []).map((link, idx) => (
+                          <span
+                            key={idx}
+                            className="hover:text-indigo-600 transition-colors cursor-pointer py-1 border-b-2 border-transparent hover:border-indigo-600"
+                          >
+                            {link.label}
+                          </span>
+                        ))}
+                      </nav>
+
+                      {/* Right: Social & Chat Support */}
+                      <div className="flex items-center gap-3">
+                        {/* Header Social Icons */}
+                        <div className="hidden lg:flex items-center gap-1">
+                          {socialList
+                            .filter((s) => s.isActive && s.showInHeader)
+                            .map((item) => (
+                              <span
+                                key={item.id}
+                                className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:text-indigo-600"
+                              >
+                                <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                              </span>
+                            ))}
+                        </div>
+
+                        {/* Chat Support Pill */}
+                        {headerForm.showChatSupport !== false && (
+                          <a
+                            href={`https://wa.me/${(headerForm.chatSupportNumber || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs shadow-xs hover:bg-emerald-100 transition-all"
+                          >
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>{headerForm.chatSupportText || 'Chat Support'}</span>
+                            <span className="font-mono text-[11px] text-emerald-800">
+                              ({headerForm.chatSupportNumber || siteForm.whatsappNumber || '01836126791'})
+                            </span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </form>
@@ -6809,6 +7152,139 @@ export const AdminDashboardPage: React.FC = () => {
                       >
                         Add
                       </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Full Footer Preview Showcase */}
+                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4 text-white">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-amber-400" />
+                        <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          Live Footer Preview (লাইভ ফুটার প্রিভিউ)
+                        </h3>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Real-time visualization of your website footer columns, brand summary, social media icons, and copyright.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsLiveWebPreviewOpen(true)}
+                      className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all self-start sm:self-auto"
+                    >
+                      <Monitor className="w-3.5 h-3.5" />
+                      <span>Full Website Preview</span>
+                    </button>
+                  </div>
+
+                  {/* Browser Mockup Footer */}
+                  <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 md:p-8 space-y-6 text-slate-300">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                      {/* Col 1: Brand & Bio */}
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
+                            {siteForm.logoUrl ? (
+                              <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                            ) : (
+                              <span className="text-[10px] font-black text-white">EE</span>
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-black tracking-tight text-white">
+                              {siteForm.brandName || 'Eagle Eye Digital'}
+                            </div>
+                            <div className="text-[8px] font-semibold text-indigo-400 uppercase tracking-wider">
+                              {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          {footerForm.aboutText ||
+                            'Empowering businesses worldwide through modern digital solutions, web design, and cutting-edge software.'}
+                        </p>
+
+                        {/* Social Icons in Footer */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          {socialList
+                            .filter((s) => s.isActive && s.showInFooter)
+                            .map((item) => (
+                              <span
+                                key={item.id}
+                                title={item.platform}
+                                className="w-7 h-7 rounded-full bg-slate-900 border border-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center text-xs"
+                              >
+                                <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+
+                      {/* Col 2: Services */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-white border-b border-slate-800 pb-2">
+                          Services
+                        </h4>
+                        <ul className="space-y-1.5 text-xs text-slate-400">
+                          {(footerForm.servicesLinks || []).map((l, i) => (
+                            <li key={i} className="hover:text-white transition-colors cursor-pointer">
+                              • {l.label}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Col 3: Resources */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-white border-b border-slate-800 pb-2">
+                          Resources & Products
+                        </h4>
+                        <ul className="space-y-1.5 text-xs text-slate-400">
+                          {(footerForm.resourcesLinks || []).map((l, i) => (
+                            <li key={i} className="hover:text-white transition-colors cursor-pointer">
+                              • {l.label}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Col 4: Contact */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-white border-b border-slate-800 pb-2">
+                          Helpline & Support
+                        </h4>
+                        <div className="space-y-1.5 text-xs text-slate-400">
+                          <div>
+                            <span className="block text-[10px] text-slate-500 font-bold">Email:</span>
+                            <span className="text-slate-300 font-mono">
+                              {footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-500 font-bold">Phone / Helpline:</span>
+                            <span className="text-slate-300 font-mono">
+                              {footerForm.contactPhone || siteForm.whatsappNumber || '+880 1836-126791'}
+                            </span>
+                          </div>
+                          {footerForm.operatingHours && (
+                            <div>
+                              <span className="block text-[10px] text-slate-500 font-bold">Hours:</span>
+                              <span className="text-slate-300">{footerForm.operatingHours}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Copyright */}
+                    <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
+                      <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital. All rights reserved.'}</span>
+                      <span className="text-indigo-400 font-semibold">{footerForm.tagline || 'YOUR DIGITAL WORLD'}</span>
                     </div>
                   </div>
                 </div>
@@ -7645,6 +8121,417 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= FULL WEBSITE LIVE INTERACTIVE PREVIEW MODAL ================= */}
+      {isLiveWebPreviewOpen && (
+        <div className="fixed inset-0 z-[100] flex flex-col bg-slate-950/85 backdrop-blur-md p-2 sm:p-4 md:p-6 animate-in fade-in">
+          {/* Modal Chrome Header */}
+          <div className="bg-slate-900 border border-slate-700/80 rounded-t-3xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-white shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                <Globe className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-white">Live Website Preview (ওয়েবসাইট প্রিভিউ)</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Live Interactive Draft
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Real-time full website rendering with all your draft settings, banners, and links.
+                </p>
+              </div>
+            </div>
+
+            {/* Device Viewport Switcher */}
+            <div className="flex items-center gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setWebPreviewDevice('desktop')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  webPreviewDevice === 'desktop'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Desktop</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWebPreviewDevice('tablet')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  webPreviewDevice === 'tablet'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Tablet className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Tablet</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWebPreviewDevice('mobile')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  webPreviewDevice === 'mobile'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Mobile</span>
+              </button>
+            </div>
+
+            {/* Close Button */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsLiveWebPreviewOpen(false)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                title="Close Preview"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Browser Address Bar */}
+          <div className="bg-slate-950 border-x border-slate-700/80 px-4 py-2 flex items-center gap-3 text-xs text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+            </div>
+            <div className="flex-1 max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-lg px-3 py-1 text-center font-mono text-[11px] text-slate-300 flex items-center justify-center gap-1.5">
+              <Lock className="w-3 h-3 text-emerald-400" />
+              <span>https://eagleeye-tau.vercel.app</span>
+            </div>
+          </div>
+
+          {/* Scrollable Website Canvas */}
+          <div className="flex-1 bg-slate-950 border-x border-b border-slate-700/80 rounded-b-3xl overflow-y-auto flex justify-center p-2 sm:p-4">
+            <div
+              className={`bg-white text-slate-900 shadow-2xl transition-all duration-300 relative flex flex-col ${
+                webPreviewDevice === 'desktop'
+                  ? 'w-full max-w-6xl rounded-2xl overflow-hidden'
+                  : webPreviewDevice === 'tablet'
+                  ? 'w-full max-w-[768px] rounded-2xl overflow-hidden border-8 border-slate-900 shadow-2xl'
+                  : 'w-full max-w-[390px] rounded-[36px] overflow-hidden border-8 border-slate-900 shadow-2xl my-2'
+              }`}
+            >
+              {/* 1. Announcement Bar */}
+              {headerForm.showAnnouncement !== false && (
+                <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-4 py-2 text-center text-xs font-semibold flex items-center justify-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin-slow flex-shrink-0" />
+                  <span className="truncate">
+                    {headerForm.announcementText || '⚡ SPECIAL OFFER: Empower your digital presence with Eagle Eye Digital!'}
+                  </span>
+                  {headerForm.announcementLink && (
+                    <span className="text-[10px] underline font-bold bg-white/20 px-2 py-0.5 rounded-full ml-1">
+                      Learn More →
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* 2. Dynamic Navbar */}
+              <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 flex items-center justify-between gap-4">
+                {/* Brand Logo & Name */}
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-md flex items-center justify-center">
+                    {siteForm.logoUrl ? (
+                      <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-[10px]" />
+                    ) : (
+                      <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white font-black text-xs">
+                        EE
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-base font-black tracking-tight text-slate-900 flex items-center gap-1">
+                      <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                        {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
+                      </span>
+                    </div>
+                    <div className="text-[8px] font-extrabold tracking-widest text-slate-400 uppercase">
+                      {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nav Links (Desktop) */}
+                {webPreviewDevice !== 'mobile' && (
+                  <nav className="flex items-center gap-4 text-xs font-bold text-slate-700">
+                    {(headerForm.navLinks || []).map((link, idx) => (
+                      <span
+                        key={idx}
+                        className="hover:text-indigo-600 transition-colors cursor-pointer py-1 border-b-2 border-transparent hover:border-indigo-600"
+                      >
+                        {link.label}
+                      </span>
+                    ))}
+                  </nav>
+                )}
+
+                {/* Header CTA & Social */}
+                <div className="flex items-center gap-2">
+                  {/* Social Icons in Header */}
+                  {webPreviewDevice === 'desktop' && (
+                    <div className="flex items-center gap-1">
+                      {socialList
+                        .filter((s) => s.isActive && s.showInHeader)
+                        .map((item) => (
+                          <span
+                            key={item.id}
+                            title={item.platform}
+                            className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:text-indigo-600"
+                          >
+                            <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                          </span>
+                        ))}
+                    </div>
+                  )}
+
+                  {/* Chat Support Pill */}
+                  {headerForm.showChatSupport !== false && (
+                    <a
+                      href={`https://wa.me/${(headerForm.chatSupportNumber || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[11px] shadow-xs hover:bg-emerald-100 transition-all"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>{headerForm.chatSupportText || 'Chat Support'}</span>
+                    </a>
+                  )}
+                </div>
+              </header>
+
+              {/* 3. Hero Banner & Bento Section */}
+              <div className="p-4 sm:p-6 bg-slate-50 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                  {/* Main Slider (8 cols) */}
+                  <div className="md:col-span-8 rounded-2xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white p-6 relative overflow-hidden shadow-md flex flex-col justify-between min-h-[260px]">
+                    {/* Background Slide Image */}
+                    {bentoForm.heroSlides?.[previewSlideIndex]?.bgImage && (
+                      <div className="absolute inset-0 z-0">
+                        <img
+                          src={bentoForm.heroSlides[previewSlideIndex].bgImage}
+                          alt="Banner"
+                          className="w-full h-full object-cover opacity-40"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                      </div>
+                    )}
+
+                    <div className="relative z-10 space-y-2">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+                        <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow" />
+                        <span>
+                          {bentoForm.heroSlides?.[previewSlideIndex]?.tag || 'Premium Digital Solutions'}
+                        </span>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                        {previewTypedTitle || bentoForm.heroSlides?.[previewSlideIndex]?.title || 'Elevate Your Digital Brand with Eagle Eye'}
+                      </h2>
+                      <p className="text-xs text-slate-300 max-w-lg line-clamp-2">
+                        {bentoForm.heroSlides?.[previewSlideIndex]?.description || 'Custom software development, UI/UX systems, and marketing solutions tailored for high growth.'}
+                      </p>
+                    </div>
+
+                    <div className="relative z-10 pt-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button className="px-3.5 py-1.5 rounded-xl bg-amber-400 text-slate-950 font-black text-xs shadow-md">
+                          {bentoForm.heroSlides?.[previewSlideIndex]?.btn1Text || 'Explore Products'}
+                        </button>
+                        <button className="px-3.5 py-1.5 rounded-xl bg-white/10 border border-white/20 text-white font-bold text-xs backdrop-blur-md">
+                          {bentoForm.heroSlides?.[previewSlideIndex]?.btn2Text || 'Agency Services'}
+                        </button>
+                      </div>
+
+                      {/* Indicator Dots */}
+                      <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
+                        {(bentoForm.heroSlides || []).map((_, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setPreviewSlideIndex(idx)}
+                            className={`rounded-full transition-all ${
+                              previewSlideIndex === idx
+                                ? 'w-4 h-1.5 bg-amber-400'
+                                : 'w-1.5 h-1.5 bg-white/40'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Side Bento Posters (4 cols) */}
+                  <div className="md:col-span-4 flex flex-col gap-3">
+                    <div className="rounded-xl bg-slate-900 text-white p-3 border border-slate-800 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] font-bold text-sky-400 uppercase tracking-wider">
+                          {bentoForm.card1Tag || 'Growth Partner'}
+                        </span>
+                        <h5 className="text-xs font-black text-white">{bentoForm.card1Title || 'Social Growth & Media'}</h5>
+                        <span className="text-[9px] text-sky-400 font-bold block mt-1">Explore Services →</span>
+                      </div>
+                      <Sparkles className="w-5 h-5 text-sky-400" />
+                    </div>
+
+                    <div className="rounded-xl bg-slate-900 text-white p-3 border border-slate-800 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
+                          {bentoForm.card2Tag || 'Ready Made'}
+                        </span>
+                        <h5 className="text-xs font-black text-white">{bentoForm.card2Title || 'Premium Digital Products'}</h5>
+                        <span className="text-[9px] text-amber-400 font-bold block mt-1">Browse Catalog →</span>
+                      </div>
+                      <Package className="w-5 h-5 text-amber-400" />
+                    </div>
+
+                    <div className="rounded-xl bg-slate-900 text-white p-3 border border-slate-800 shadow-sm flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">
+                          {bentoForm.card3Tag || 'Enterprise'}
+                        </span>
+                        <h5 className="text-xs font-black text-white">{bentoForm.card3Title || 'Custom App & Web Design'}</h5>
+                        <span className="text-[9px] text-emerald-400 font-bold block mt-1">Schedule Meeting →</span>
+                      </div>
+                      <Phone className="w-5 h-5 text-emerald-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Sticky Floating Sidebar Simulation inside Canvas */}
+              {socialList.filter((s) => s.isActive && s.showInFloatingSidebar).length > 0 && (
+                <div className="absolute right-3 top-48 z-40 flex flex-col gap-1.5 p-1.5 bg-slate-950/90 backdrop-blur-md rounded-2xl border border-slate-700/80 shadow-2xl">
+                  {socialList
+                    .filter((s) => s.isActive && s.showInFloatingSidebar)
+                    .map((item) => (
+                      <span
+                        key={item.id}
+                        title={item.platform}
+                        className="w-8 h-8 rounded-xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white transition-all shadow-sm"
+                      >
+                        <SocialIcon link={item} className="w-4 h-4" size={16} />
+                      </span>
+                    ))}
+                </div>
+              )}
+
+              {/* 5. Full Dynamic Footer */}
+              <footer className="bg-slate-950 text-slate-300 p-6 md:p-8 space-y-6 border-t border-slate-800">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                  {/* Col 1 */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
+                        {siteForm.logoUrl ? (
+                          <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <span className="text-[10px] font-black text-white">EE</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-black tracking-tight text-white">
+                          {siteForm.brandName || 'Eagle Eye Digital'}
+                        </div>
+                        <div className="text-[8px] font-semibold text-indigo-400 uppercase tracking-wider">
+                          {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {footerForm.aboutText ||
+                        'Empowering businesses worldwide through modern digital solutions, web design, and cutting-edge software.'}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {socialList
+                        .filter((s) => s.isActive && s.showInFooter)
+                        .map((item) => (
+                          <span
+                            key={item.id}
+                            title={item.platform}
+                            className="w-7 h-7 rounded-full bg-slate-900 border border-slate-800 text-white flex items-center justify-center text-xs"
+                          >
+                            <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Col 2 */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white border-b border-slate-800 pb-2">
+                      Services
+                    </h4>
+                    <ul className="space-y-1.5 text-xs text-slate-400">
+                      {(footerForm.servicesLinks || []).map((l, i) => (
+                        <li key={i}>• {l.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Col 3 */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white border-b border-slate-800 pb-2">
+                      Resources
+                    </h4>
+                    <ul className="space-y-1.5 text-xs text-slate-400">
+                      {(footerForm.resourcesLinks || []).map((l, i) => (
+                        <li key={i}>• {l.label}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Col 4 */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white border-b border-slate-800 pb-2">
+                      Helpline & Contact
+                    </h4>
+                    <div className="space-y-1.5 text-xs text-slate-400">
+                      <div>
+                        <span className="block text-[10px] text-slate-500 font-bold">Email:</span>
+                        <span className="text-slate-300 font-mono">
+                          {footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-500 font-bold">WhatsApp Helpline:</span>
+                        <span className="text-slate-300 font-mono">
+                          {footerForm.contactPhone || siteForm.whatsappNumber || '01836126791'}
+                        </span>
+                      </div>
+                      {footerForm.operatingHours && (
+                        <div>
+                          <span className="block text-[10px] text-slate-500 font-bold">Hours:</span>
+                          <span className="text-slate-300">{footerForm.operatingHours}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
+                  <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital. All rights reserved.'}</span>
+                  <span className="text-indigo-400 font-semibold">{footerForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                </div>
+              </footer>
+            </div>
           </div>
         </div>
       )}
