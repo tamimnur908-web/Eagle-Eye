@@ -60,7 +60,8 @@ import {
   Video,
   Bell,
   BellOff,
-  MessageSquare
+  MessageSquare,
+  AlertTriangle
 } from 'lucide-react';
 import {
   getAllServices,
@@ -88,7 +89,8 @@ import {
   getAllAdmins,
   saveAdmin,
   deleteAdmin,
-  getDefaultRolePermissions
+  getDefaultRolePermissions,
+  findRegisteredUserByEmail
 } from '../services/firestoreService';
 import {
   Service,
@@ -340,6 +342,9 @@ export const AdminDashboardPage: React.FC = () => {
   });
   const [adminSaving, setAdminSaving] = useState(false);
   const [adminActionMsg, setAdminActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [adminFormError, setAdminFormError] = useState<string | null>(null);
+  const [userCheckStatus, setUserCheckStatus] = useState<'idle' | 'checking' | 'registered' | 'not-registered'>('idle');
+  const [registeredUserInfo, setRegisteredUserInfo] = useState<{ name?: string; uid?: string } | null>(null);
 
   // Notification Recipient Settings State
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -367,6 +372,23 @@ export const AdminDashboardPage: React.FC = () => {
     navigator.clipboard.writeText(link);
     setCopiedLeadId(leadId);
     setTimeout(() => setCopiedLeadId(null), 2500);
+  };
+
+  const formatDateTime = (dateVal?: string | number) => {
+    if (!dateVal) return 'Not set';
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal);
+      return d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return String(dateVal);
+    }
   };
 
   const loadData = async () => {
@@ -425,40 +447,6 @@ export const AdminDashboardPage: React.FC = () => {
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const pendingOrdersCount = orders.filter((o) => o.paymentStatus === 'pending').length;
   const activeCategoriesCount = categories.length || 1;
-
-  // Real-time Lead & Meeting Stats
-  const totalLeadsCount = leads.length;
-  const newLeadsCount = leads.filter((l) => l.status === 'New').length;
-  const scheduledMeetingsCount = leads.filter(
-    (l) => l.meetingDetails?.meetingStatus === 'proposed' || l.status === 'Meeting Scheduled'
-  ).length;
-  const confirmedMeetingsCount = leads.filter(
-    (l) => l.meetingDetails?.meetingStatus === 'confirmed' || l.status === 'Meeting Confirmed'
-  ).length;
-  const cancelledMeetingsCount = leads.filter(
-    (l) => l.meetingDetails?.meetingStatus === 'cancelled' || l.status === 'Meeting Cancelled'
-  ).length;
-
-  // Filtered Leads
-  const filteredLeads = leads.filter((lead) => {
-    if (leadsFilter === 'new' && lead.status !== 'New') return false;
-    if (leadsFilter === 'scheduled' && lead.meetingDetails?.meetingStatus !== 'proposed' && lead.status !== 'Meeting Scheduled') return false;
-    if (leadsFilter === 'confirmed' && lead.meetingDetails?.meetingStatus !== 'confirmed' && lead.status !== 'Meeting Confirmed') return false;
-    if (leadsFilter === 'cancelled' && lead.meetingDetails?.meetingStatus !== 'cancelled' && lead.status !== 'Meeting Cancelled') return false;
-    if (leadsFilter === 'archived' && lead.status !== 'Archived') return false;
-
-    if (leadsSearch.trim()) {
-      const q = leadsSearch.toLowerCase();
-      const match =
-        lead.name.toLowerCase().includes(q) ||
-        lead.email.toLowerCase().includes(q) ||
-        lead.phoneOrWhatsApp.toLowerCase().includes(q) ||
-        (lead.businessName && lead.businessName.toLowerCase().includes(q)) ||
-        lead.serviceInterest.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    return true;
-  });
 
   // Notification Recipient Handlers
   const handleAddRecipientEmail = async () => {
@@ -1052,6 +1040,9 @@ export const AdminDashboardPage: React.FC = () => {
       status: 'active',
       permissions: getDefaultRolePermissions('editor')
     });
+    setAdminFormError(null);
+    setUserCheckStatus('idle');
+    setRegisteredUserInfo(null);
     setAdminActionMsg(null);
     setIsAdminModalOpen(true);
   };
@@ -1067,8 +1058,40 @@ export const AdminDashboardPage: React.FC = () => {
       status: admin.status || 'active',
       permissions: admin.permissions || getDefaultRolePermissions(admin.role)
     });
+    setAdminFormError(null);
+    setUserCheckStatus('registered');
+    setRegisteredUserInfo({ name: admin.name, uid: admin.uid });
     setAdminActionMsg(null);
     setIsAdminModalOpen(true);
+  };
+
+  const handleCheckEmailRegistration = async (emailToCheck: string) => {
+    const clean = emailToCheck.trim().toLowerCase();
+    if (!clean || !clean.includes('@')) {
+      setUserCheckStatus('idle');
+      setRegisteredUserInfo(null);
+      setAdminFormError(null);
+      return;
+    }
+
+    setUserCheckStatus('checking');
+    setAdminFormError(null);
+    try {
+      const user = await findRegisteredUserByEmail(clean);
+      if (user) {
+        setUserCheckStatus('registered');
+        setRegisteredUserInfo({ name: user.fullName || user.displayName, uid: user.uid });
+        if (!adminForm.name.trim() && user.fullName) {
+          setAdminForm((prev) => ({ ...prev, name: user.fullName }));
+        }
+      } else {
+        setUserCheckStatus('not-registered');
+        setRegisteredUserInfo(null);
+        setAdminFormError('This user must register or log in before becoming an Admin. (যাকে অ্যাডমিন বানাবেন, তাকে প্রথমে এই ওয়েবসাইটে লগইন বা সাইন-আপ করতে হবে।)');
+      }
+    } catch {
+      setUserCheckStatus('idle');
+    }
   };
 
   const handleRoleChangeInForm = (newRole: AdminRole) => {
@@ -1091,17 +1114,32 @@ export const AdminDashboardPage: React.FC = () => {
 
   const handleSaveAdminForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminForm.name.trim() || !adminForm.email.trim()) {
-      alert('দয়া করে নাম এবং সঠিক ইমেইল প্রদান করুন।');
+    setAdminFormError(null);
+
+    const emailClean = adminForm.email.trim().toLowerCase();
+    if (!emailClean) {
+      setAdminFormError('Please enter a valid Gmail / Email address.');
       return;
+    }
+
+    // Step: Verify that the user has registered or logged in
+    if (!editingAdminId) {
+      setAdminSaving(true);
+      const registeredUser = await findRegisteredUserByEmail(emailClean);
+      if (!registeredUser) {
+        setAdminSaving(false);
+        setUserCheckStatus('not-registered');
+        setAdminFormError('This user must register or log in before becoming an Admin. (এই ইউজার এখনো ওয়েবসাইটে সাইন-ইন বা লগইন করেননি। অ্যাডমিন দেওয়ার পূর্বে তাকে ওয়েবসাইটে একবার লগইন করতে হবে।)');
+        return;
+      }
     }
 
     setAdminSaving(true);
     try {
       await saveAdmin({
         ...(editingAdminId ? { id: editingAdminId } : {}),
-        name: adminForm.name.trim(),
-        email: adminForm.email.trim().toLowerCase(),
+        name: adminForm.name.trim() || emailClean.split('@')[0],
+        email: emailClean,
         role: adminForm.role,
         designation: adminForm.designation.trim(),
         phone: adminForm.phone.trim(),
@@ -1115,11 +1153,11 @@ export const AdminDashboardPage: React.FC = () => {
       setIsAdminModalOpen(false);
       setAdminActionMsg({
         type: 'success',
-        text: `অ্যাডমিন ${adminForm.name} (${adminForm.role.toUpperCase()}) সফলভাবে সংরক্ষণ করা হয়েছে!`
+        text: `অ্যাডমিন ${adminForm.name || emailClean} (${adminForm.role.toUpperCase()}) সফলভাবে সংরক্ষণ করা হয়েছে!`
       });
       setTimeout(() => setAdminActionMsg(null), 5000);
     } catch (err: any) {
-      alert(err.message || 'অ্যাডমিন সংরক্ষণ করতে সমস্যা হয়েছে।');
+      setAdminFormError(err.message || 'অ্যাডমিন সংরক্ষণ করতে সমস্যা হয়েছে।');
     } finally {
       setAdminSaving(false);
     }
@@ -2567,6 +2605,207 @@ export const AdminDashboardPage: React.FC = () => {
                 <div className="text-3xl font-black text-slate-900 mt-2">{activeCategoriesCount}</div>
                 <span className="text-[11px] text-slate-400 mt-1 block">{categories.length} configured</span>
               </div>
+            </div>
+
+            {/* Leads & Consultation Pipeline Summary */}
+            <div className="pt-2">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 flex items-center space-x-2">
+                    <Video className="w-4 h-4 text-blue-600" />
+                    <span>Leads & Consultation Pipeline</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Live tracking of client inquiries, scheduled meetings, and client confirmations
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleSelectMenu('leads')}
+                  className="inline-flex items-center space-x-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 px-3 py-1.5 rounded-xl transition-all self-start sm:self-auto"
+                >
+                  <span>Open Leads & Consultations</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div
+                  onClick={() => {
+                    setLeadsFilter('all');
+                    handleSelectMenu('leads');
+                  }}
+                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">TOTAL INQUIRIES</span>
+                    <span className="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:scale-110 transition-transform">
+                      <Inbox className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="text-3xl font-black text-slate-900 mt-2">{leadStats.total}</div>
+                  <span className="text-[11px] text-blue-600 font-semibold mt-1 block">
+                    {leadStats.newCount} new pending follow-up
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setLeadsFilter('scheduled');
+                    handleSelectMenu('leads');
+                  }}
+                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:border-amber-300 hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">SCHEDULED MEETINGS</span>
+                    <span className="p-1.5 bg-amber-50 text-amber-600 rounded-lg group-hover:scale-110 transition-transform">
+                      <Calendar className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="text-3xl font-black text-amber-600 mt-2">{leadStats.scheduledCount}</div>
+                  <span className="text-[11px] text-slate-400 mt-1 block">Awaiting client response</span>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setLeadsFilter('confirmed');
+                    handleSelectMenu('leads');
+                  }}
+                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CONFIRMED MEETINGS</span>
+                    <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg group-hover:scale-110 transition-transform">
+                      <CheckCircle2 className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="text-3xl font-black text-emerald-600 mt-2">{leadStats.confirmedCount}</div>
+                  <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">Ready to join</span>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setLeadsFilter('cancelled');
+                    handleSelectMenu('leads');
+                  }}
+                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:border-rose-300 hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">CANCELLED / LOST</span>
+                    <span className="p-1.5 bg-rose-50 text-rose-600 rounded-lg group-hover:scale-110 transition-transform">
+                      <Clock className="w-4 h-4" />
+                    </span>
+                  </div>
+                  <div className="text-3xl font-black text-rose-600 mt-2">{leadStats.cancelledCount}</div>
+                  <span className="text-[11px] text-slate-400 mt-1 block">Declined or closed</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Upcoming Consultations Preview */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                    Upcoming Client Consultations ({upcomingConsultations.length})
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Sessions scheduled with clients, showing meeting time, link & response
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleSelectMenu('leads')}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                >
+                  View All &rarr;
+                </button>
+              </div>
+
+              {upcomingConsultations.length > 0 ? (
+                <div className="divide-y divide-slate-100">
+                  {upcomingConsultations.slice(0, 5).map((l) => {
+                    const status = l.meetingDetails?.meetingStatus || 'proposed';
+                    return (
+                      <div key={l.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-bold text-sm text-slate-900">{l.name}</span>
+                            <span className="text-xs text-slate-400">({l.businessName || 'Direct Client'})</span>
+                            {status === 'confirmed' && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800">
+                                Confirmed
+                              </span>
+                            )}
+                            {status === 'proposed' && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800">
+                                Awaiting Client
+                              </span>
+                            )}
+                            {status === 'cancelled' && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800">
+                                Cancelled
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                            <span className="font-semibold text-blue-600">{l.serviceInterest}</span>
+                            <span>•</span>
+                            <span className="flex items-center space-x-1 font-mono text-[11px] text-slate-700">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{formatDateTime(l.meetingDetails?.scheduledTime)}</span>
+                            </span>
+                            <span>•</span>
+                            <span className="text-[11px]">Host: {l.meetingDetails?.scheduledBy || 'Admin'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          {l.meetingDetails?.meetingLink && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyMeetingLink(l.id, l.meetingDetails!.meetingLink)}
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center space-x-1"
+                              >
+                                {copiedLeadId === l.id ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span className="text-emerald-700">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>Copy Link</span>
+                                  </>
+                                )}
+                              </button>
+                              <a
+                                href={l.meetingDetails.meetingLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center space-x-1"
+                              >
+                                <Video className="w-3.5 h-3.5" />
+                                <span>Join</span>
+                              </a>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenMeetingModal(l)}
+                            className="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
+                          >
+                            Reschedule
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-12 text-center text-slate-400 text-xs italic">
+                  No upcoming meetings scheduled yet. Click on any inquiry under Leads & Consultations to propose a meeting time.
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -4284,74 +4523,468 @@ export const AdminDashboardPage: React.FC = () => {
         {/* ================= LEADS & INQUIRIES TAB ================= */}
         {activeMenu === 'leads' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            {/* Header & Notification Settings Bar */}
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
               <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                  Leads & Client Inquiries ({leads.length})
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center space-x-2.5">
+                  <Inbox className="w-6 h-6 text-blue-600" />
+                  <span>Leads & Client Inquiries ({leads.length})</span>
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Review customer project inquiries and change follow-up status
+                  Review customer project inquiries, schedule video consultations, and manage automated email notification recipients
                 </p>
+              </div>
+
+              {/* Notification Recipient Settings Trigger */}
+              <button
+                type="button"
+                onClick={() => setIsNotificationModalOpen(true)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all shadow-sm ${
+                  notificationSettings.leadRecipientEmails.length === 0
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white animate-pulse'
+                    : 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-800'
+                }`}
+              >
+                {notificationSettings.leadRecipientEmails.length === 0 ? (
+                  <>
+                    <BellOff className="w-4 h-4 text-white" />
+                    <span>Email Notifications: PAUSED (0 recipients)</span>
+                  </>
+                ) : (
+                  <>
+                    <Bell className="w-4 h-4 text-blue-600" />
+                    <span>Notification Emails: {notificationSettings.leadRecipientEmails.length} Configured</span>
+                  </>
+                )}
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                  Settings
+                </span>
+              </button>
+            </div>
+
+            {/* Notification Recipient Alert Banner if 0 emails */}
+            {notificationSettings.leadRecipientEmails.length === 0 && (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-800">
+                <div className="flex items-center space-x-2">
+                  <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>
+                    <strong>Notice:</strong> No notification recipient emails are currently set. Inquiries will be saved to the database but no alert emails will be dispatched until an email is added.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsNotificationModalOpen(true)}
+                  className="underline font-bold hover:text-amber-950 flex-shrink-0 ml-3"
+                >
+                  Configure Now
+                </button>
+              </div>
+            )}
+
+            {/* Metric KPI Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <button
+                type="button"
+                onClick={() => setLeadsFilter('all')}
+                className={`p-4 rounded-2xl text-left border transition-all ${
+                  leadsFilter === 'all'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                    : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span className={`text-[10px] font-black uppercase tracking-wider block ${
+                  leadsFilter === 'all' ? 'text-blue-100' : 'text-slate-400'
+                }`}>
+                  TOTAL INQUIRIES
+                </span>
+                <span className="text-2xl font-black block mt-1">{leadStats.total}</span>
+                <span className={`text-[11px] block mt-0.5 ${
+                  leadsFilter === 'all' ? 'text-blue-100' : 'text-slate-400'
+                }`}>
+                  All received
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLeadsFilter('new')}
+                className={`p-4 rounded-2xl text-left border transition-all ${
+                  leadsFilter === 'new'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
+                    : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span className={`text-[10px] font-black uppercase tracking-wider block ${
+                  leadsFilter === 'new' ? 'text-blue-100' : 'text-slate-400'
+                }`}>
+                  NEW & UNREAD
+                </span>
+                <span className="text-2xl font-black block mt-1 text-blue-500">{leadStats.newCount}</span>
+                <span className={`text-[11px] block mt-0.5 ${
+                  leadsFilter === 'new' ? 'text-blue-100' : 'text-slate-400'
+                }`}>
+                  Needs response
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLeadsFilter('scheduled')}
+                className={`p-4 rounded-2xl text-left border transition-all ${
+                  leadsFilter === 'scheduled'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-md shadow-amber-500/20'
+                    : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span className={`text-[10px] font-black uppercase tracking-wider block ${
+                  leadsFilter === 'scheduled' ? 'text-amber-100' : 'text-slate-400'
+                }`}>
+                  SCHEDULED
+                </span>
+                <span className="text-2xl font-black block mt-1 text-amber-500">{leadStats.scheduledCount}</span>
+                <span className={`text-[11px] block mt-0.5 ${
+                  leadsFilter === 'scheduled' ? 'text-amber-100' : 'text-slate-400'
+                }`}>
+                  Pending client
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLeadsFilter('confirmed')}
+                className={`p-4 rounded-2xl text-left border transition-all ${
+                  leadsFilter === 'confirmed'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/20'
+                    : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span className={`text-[10px] font-black uppercase tracking-wider block ${
+                  leadsFilter === 'confirmed' ? 'text-emerald-100' : 'text-slate-400'
+                }`}>
+                  CONFIRMED
+                </span>
+                <span className="text-2xl font-black block mt-1 text-emerald-500">{leadStats.confirmedCount}</span>
+                <span className={`text-[11px] block mt-0.5 ${
+                  leadsFilter === 'confirmed' ? 'text-emerald-100' : 'text-slate-400'
+                }`}>
+                  Client accepted
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLeadsFilter('cancelled')}
+                className={`p-4 rounded-2xl text-left border transition-all ${
+                  leadsFilter === 'cancelled'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-500/20'
+                    : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <span className={`text-[10px] font-black uppercase tracking-wider block ${
+                  leadsFilter === 'cancelled' ? 'text-rose-100' : 'text-slate-400'
+                }`}>
+                  CANCELLED / LOST
+                </span>
+                <span className="text-2xl font-black block mt-1 text-rose-500">{leadStats.cancelledCount}</span>
+                <span className={`text-[11px] block mt-0.5 ${
+                  leadsFilter === 'cancelled' ? 'text-rose-100' : 'text-slate-400'
+                }`}>
+                  Declined or closed
+                </span>
+              </button>
+            </div>
+
+            {/* Filter Tabs & Search Bar */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
+              {/* Search Bar */}
+              <div className="relative w-full md:w-96">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search by client name, email, phone, business or service..."
+                  value={leadsSearch}
+                  onChange={(e) => setLeadsSearch(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                />
+                {leadsSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setLeadsSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center space-x-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+                {(['all', 'new', 'scheduled', 'confirmed', 'cancelled', 'archived'] as const).map((filterKey) => {
+                  const labelMap: Record<string, string> = {
+                    all: 'All',
+                    new: 'New',
+                    scheduled: 'Scheduled',
+                    confirmed: 'Confirmed',
+                    cancelled: 'Cancelled',
+                    archived: 'Archived / Won'
+                  };
+                  const active = leadsFilter === filterKey;
+                  return (
+                    <button
+                      key={filterKey}
+                      type="button"
+                      onClick={() => setLeadsFilter(filterKey)}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all ${
+                        active
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {labelMap[filterKey]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
+            {/* Leads Table & Cards */}
             <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                      <th className="py-3.5 px-5">Client / Business</th>
-                      <th className="py-3.5 px-5">Contact Info</th>
+                      <th className="py-3.5 px-5">Client & Contact</th>
                       <th className="py-3.5 px-5">Service & Budget</th>
-                      <th className="py-3.5 px-5">Message</th>
+                      <th className="py-3.5 px-5">Requirement & Message</th>
+                      <th className="py-3.5 px-5">Meeting / Consultation</th>
                       <th className="py-3.5 px-5">Status</th>
+                      <th className="py-3.5 px-5 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {leads.length > 0 ? (
-                      leads.map((lead) => (
-                        <tr key={lead.id} className="hover:bg-slate-50/50">
-                          <td className="py-4 px-5">
-                            <span className="font-bold text-slate-900 block">{lead.name}</span>
-                            <span className="text-[10px] text-slate-400 block">{lead.businessName || 'Individual'}</span>
-                          </td>
-                          <td className="py-4 px-5 text-slate-600">
-                            <div className="space-y-0.5">
-                              <span className="block font-mono text-[11px]">{lead.email}</span>
-                              <span className="block text-[10px] text-slate-400">{lead.phoneOrWhatsApp}</span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-5">
-                            <span className="font-bold text-slate-800 block">{lead.serviceInterest}</span>
-                            <span className="text-[10px] text-blue-600 font-semibold block">{lead.budgetRange}</span>
-                          </td>
-                          <td className="py-4 px-5 max-w-xs text-slate-600">
-                            <p className="truncate text-[11px]">{lead.projectDescription}</p>
-                          </td>
-                          <td className="py-4 px-5">
-                            <select
-                              value={lead.status}
-                              onChange={async (e) => {
-                                await updateLeadStatus(lead.id, e.target.value as any);
-                                loadData();
-                              }}
-                              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-bold text-slate-800 focus:outline-none"
-                            >
-                              <option value="New">New</option>
-                              <option value="Contacted">Contacted</option>
-                              <option value="Qualified">Qualified</option>
-                              <option value="Proposal Sent">Proposal Sent</option>
-                              <option value="Negotiation">Negotiation</option>
-                              <option value="Won">Won</option>
-                              <option value="Lost">Lost</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))
+                    {filteredLeads.length > 0 ? (
+                      filteredLeads.map((lead) => {
+                        const hasMeeting = Boolean(lead.meetingDetails?.scheduledTime);
+                        const meetingStatus = lead.meetingDetails?.meetingStatus || 'proposed';
+                        return (
+                          <tr key={lead.id} className="hover:bg-slate-50/60 transition-colors">
+                            {/* Client & Contact */}
+                            <td className="py-4 px-5 align-top">
+                              <div className="space-y-1">
+                                <span className="font-bold text-slate-900 text-sm block">{lead.name}</span>
+                                <span className="text-[11px] text-slate-500 block font-medium">
+                                  {lead.businessName || 'Individual Client'}
+                                </span>
+                                <div className="pt-1 flex flex-col space-y-1">
+                                  <a
+                                    href={`mailto:${lead.email}`}
+                                    className="inline-flex items-center space-x-1 font-mono text-[11px] text-blue-600 hover:underline"
+                                  >
+                                    <Mail className="w-3 h-3 text-slate-400" />
+                                    <span>{lead.email}</span>
+                                  </a>
+                                  {lead.phoneOrWhatsApp && (
+                                    <div className="flex items-center space-x-2">
+                                      <a
+                                        href={`https://wa.me/${lead.phoneOrWhatsApp.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-600 hover:underline"
+                                      >
+                                        <MessageSquare className="w-3 h-3 text-emerald-500" />
+                                        <span>WhatsApp</span>
+                                      </a>
+                                      <span className="text-slate-300">•</span>
+                                      <a
+                                        href={`tel:${lead.phoneOrWhatsApp}`}
+                                        className="text-[11px] text-slate-500 hover:text-slate-700 font-mono"
+                                      >
+                                        {lead.phoneOrWhatsApp}
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400 block pt-1">
+                                  Submitted: {formatDateTime(lead.createdAt)}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Service & Budget */}
+                            <td className="py-4 px-5 align-top">
+                              <span className="inline-block px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                                {lead.serviceInterest}
+                              </span>
+                              <div className="mt-1.5">
+                                <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Budget</span>
+                                <span className="text-xs font-bold text-slate-800">{lead.budgetRange}</span>
+                              </div>
+                            </td>
+
+                            {/* Requirement / Message */}
+                            <td className="py-4 px-5 align-top max-w-xs">
+                              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-slate-600 text-[11px] leading-relaxed max-h-28 overflow-y-auto whitespace-pre-wrap">
+                                {lead.projectDescription || 'No additional notes provided.'}
+                              </div>
+                            </td>
+
+                            {/* Meeting / Consultation */}
+                            <td className="py-4 px-5 align-top">
+                              {hasMeeting ? (
+                                <div className="space-y-1.5 p-2.5 bg-slate-50/80 rounded-xl border border-slate-200">
+                                  <div className="flex items-center space-x-1.5">
+                                    {meetingStatus === 'confirmed' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 flex items-center space-x-1">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        <span>Client Confirmed</span>
+                                      </span>
+                                    )}
+                                    {meetingStatus === 'proposed' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 flex items-center space-x-1">
+                                        <Clock className="w-3 h-3" />
+                                        <span>Awaiting Confirmation</span>
+                                      </span>
+                                    )}
+                                    {meetingStatus === 'cancelled' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 flex items-center space-x-1">
+                                        <X className="w-3 h-3" />
+                                        <span>Meeting Cancelled</span>
+                                      </span>
+                                    )}
+                                    {meetingStatus === 'completed' && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 flex items-center space-x-1">
+                                        <Check className="w-3 h-3" />
+                                        <span>Completed</span>
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="text-[11px] text-slate-700 font-bold flex items-center space-x-1 pt-0.5">
+                                    <Calendar className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                                    <span>{formatDateTime(lead.meetingDetails?.scheduledTime)}</span>
+                                  </div>
+
+                                  <div className="text-[10px] text-slate-400">
+                                    Host: {lead.meetingDetails?.scheduledBy || 'Admin'}
+                                  </div>
+
+                                  {lead.meetingDetails?.meetingLink && (
+                                    <div className="pt-1 flex items-center space-x-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopyMeetingLink(lead.id, lead.meetingDetails!.meetingLink)}
+                                        className="px-2 py-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[10px] font-bold rounded-lg flex items-center space-x-1 shadow-sm"
+                                        title={lead.meetingDetails.meetingLink}
+                                      >
+                                        {copiedLeadId === lead.id ? (
+                                          <>
+                                            <Check className="w-3 h-3 text-emerald-600" />
+                                            <span className="text-emerald-700">Copied</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy className="w-3 h-3" />
+                                            <span>Copy Link</span>
+                                          </>
+                                        )}
+                                      </button>
+
+                                      <a
+                                        href={lead.meetingDetails.meetingLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg flex items-center space-x-1 shadow-sm"
+                                      >
+                                        <Video className="w-3 h-3" />
+                                        <span>Join</span>
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="space-y-1 text-slate-400">
+                                  <span className="text-[11px] italic block">No meeting scheduled yet</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenMeetingModal(lead)}
+                                    className="inline-flex items-center space-x-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                                  >
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Schedule Consultation &rarr;</span>
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Status Selector */}
+                            <td className="py-4 px-5 align-top">
+                              <select
+                                value={lead.status}
+                                onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value as any)}
+                                className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              >
+                                <option value="New">New</option>
+                                <option value="Contacted">Contacted</option>
+                                <option value="Qualified">Qualified</option>
+                                <option value="Proposal Sent">Proposal Sent</option>
+                                <option value="Negotiation">Negotiation</option>
+                                <option value="Won">Won</option>
+                                <option value="Lost">Lost</option>
+                                <option value="Meeting Scheduled">Meeting Scheduled</option>
+                                <option value="Meeting Confirmed">Meeting Confirmed</option>
+                                <option value="Meeting Cancelled">Meeting Cancelled</option>
+                              </select>
+                            </td>
+
+                            {/* Actions Column */}
+                            <td className="py-4 px-5 align-top text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenMeetingModal(lead)}
+                                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl flex items-center space-x-1 transition-colors"
+                                  title="Schedule or Reschedule Video Meeting"
+                                >
+                                  <Video className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>{hasMeeting ? 'Edit Time' : 'Book Time'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteLead(lead)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                  title="Delete Lead"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-slate-400 text-xs italic">
-                          No leads submitted yet.
+                        <td colSpan={6} className="py-16 text-center">
+                          <div className="max-w-xs mx-auto space-y-2">
+                            <Inbox className="w-8 h-8 text-slate-300 mx-auto" />
+                            <p className="text-sm font-bold text-slate-700">No Inquiries Found</p>
+                            <p className="text-xs text-slate-400">
+                              {leadsSearch || leadsFilter !== 'all'
+                                ? 'No leads matched your current search filters.'
+                                : 'Submitted client inquiries will appear here automatically.'}
+                            </p>
+                            {(leadsSearch || leadsFilter !== 'all') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLeadsSearch('');
+                                  setLeadsFilter('all');
+                                }}
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl mt-2"
+                              >
+                                Reset Search & Filters
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -4775,34 +5408,87 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSaveAdminForm} className="space-y-4">
+              {/* Registration Error Alert */}
+              {adminFormError && (
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-start space-x-2 animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">লগইন ছাড়া অ্যাডমিন দেওয়া যাবে না!</strong>
+                    <span className="text-[11px] leading-relaxed block mt-0.5">{adminFormError}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Name & Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    Full Name (পুরো নাম) *
+                    Full Name (পুরো নাম)
                   </label>
                   <input
                     type="text"
-                    required
                     placeholder="e.g. Tanvir Ahmed"
                     value={adminForm.name}
                     onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
                   />
+                  <span className="text-[10px] text-slate-400 mt-0.5 block">
+                    (ইউজার একাউন্ট পেলে স্বয়ংক্রিয়ভাবে নাম বসে যাবে)
+                  </span>
                 </div>
 
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    Email Address (ইমেইল এড্রেস) *
+                    Registered Gmail (নিবন্ধিত জিমেইল) *
                   </label>
                   <input
                     type="email"
                     required
-                    placeholder="e.g. tanvir@example.com"
+                    placeholder="e.g. user@gmail.com"
                     value={adminForm.email}
-                    onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                    onChange={(e) => {
+                      setAdminForm({ ...adminForm, email: e.target.value });
+                      if (userCheckStatus !== 'idle') {
+                        setUserCheckStatus('idle');
+                        setAdminFormError(null);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value.includes('@') && !editingAdminId) {
+                        handleCheckEmailRegistration(e.target.value);
+                      }
+                    }}
+                    className={`w-full bg-slate-50 border rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 font-medium ${
+                      userCheckStatus === 'registered'
+                        ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/20'
+                        : userCheckStatus === 'not-registered'
+                        ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20'
+                    }`}
                   />
+                  <div className="flex items-center justify-between mt-1 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => handleCheckEmailRegistration(adminForm.email)}
+                      className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline"
+                    >
+                      🔍 Check Registration (যাচাই করুন)
+                    </button>
+                    {userCheckStatus === 'checking' && (
+                      <span className="text-[10px] text-slate-500 animate-pulse">যাচাই করা হচ্ছে...</span>
+                    )}
+                    {userCheckStatus === 'registered' && (
+                      <span className="text-[10px] text-emerald-700 font-bold flex items-center space-x-1">
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>একাউন্ট পাওয়া গেছে ({registeredUserInfo?.name || 'Registered'})</span>
+                      </span>
+                    )}
+                    {userCheckStatus === 'not-registered' && (
+                      <span className="text-[10px] text-red-600 font-bold">
+                        ⚠️ একাউন্ট খোলা হয়নি
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -4978,10 +5664,16 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
 
               {/* Info Note */}
-              <div className="p-3 bg-blue-50 border border-blue-200/80 rounded-xl text-[11px] text-blue-900 leading-relaxed flex items-start space-x-2">
-                <Sparkles className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="p-3.5 bg-blue-50 border border-blue-200/80 rounded-xl text-[11px] text-blue-900 leading-relaxed space-y-1">
+                <div className="flex items-center space-x-1.5 font-bold text-blue-950">
+                  <Sparkles className="w-4 h-4 text-blue-600" />
+                  <span>অ্যাডমিন দেওয়ার আবশ্যিক শর্ত:</span>
+                </div>
                 <p>
-                  <strong>নির্দেশনা:</strong> নতুন অ্যাডমিন ওয়েবসাইটের <code>/account</code> পেজে গিয়ে এই ইমেইল দিয়ে লগইন বা গুগল সাইন-ইন করলেই স্বয়ংক্রিয়ভাবে তার নির্ধারিত রোলের ক্ষমতা পেয়ে যাবেন।
+                  <strong>১.</strong> যাকে অ্যাডমিন বানাতে চান, তাকে <strong>অবশ্যই আগে</strong> আপনার ওয়েবসাইটের <code>/account</code> পেজে গিয়ে তার জিমেইল দিয়ে সাইন-ইন বা লগইন করতে হবে।
+                </p>
+                <p>
+                  <strong>২.</strong> যদি তিনি লগইন না করে থাকেন, তবে সিস্টেম তাকে অ্যাডমিন হতে দিবে না। লগইন সম্পন্ন করার পর এখানে তার জিমেইলটি দিয়ে <strong>Save & Assign Role</strong> বাটনে ক্লিক করলে তিনি তাৎক্ষণিক অ্যাডমিন ক্ষমতা পাবেন।
                 </p>
               </div>
 
