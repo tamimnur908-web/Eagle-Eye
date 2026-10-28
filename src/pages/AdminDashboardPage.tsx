@@ -6929,7 +6929,7 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             {/* Sub-tab Navigation */}
-            <div className="flex items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 w-fit">
+            <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 max-w-full">
               <button
                 type="button"
                 onClick={() => setHeaderFooterActiveTab('social')}
@@ -7037,7 +7037,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           Platform Name <span className="text-rose-500">*</span>
@@ -7069,7 +7069,7 @@ export const AdminDashboardPage: React.FC = () => {
                         </select>
                       </div>
 
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="block text-xs font-bold text-slate-700 mb-1">
                           Profile / Page URL <span className="text-rose-500">*</span>
                         </label>
@@ -7100,9 +7100,9 @@ export const AdminDashboardPage: React.FC = () => {
                     )}
 
                     {/* Placements */}
-                    <div className="pt-2 border-t border-indigo-200/80 flex flex-wrap items-center gap-6 text-xs font-bold text-slate-700">
+                    <div className="pt-2 border-t border-indigo-200/80 flex flex-wrap items-center gap-4 text-xs font-bold text-slate-700">
                       <span className="text-slate-500 text-[11px] uppercase tracking-wider">Placement Options:</span>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1 rounded-lg border border-indigo-100">
                         <input
                           type="checkbox"
                           checked={newSocialForm.showInHeader ?? false}
@@ -7111,7 +7111,7 @@ export const AdminDashboardPage: React.FC = () => {
                         />
                         Show in Header
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1 rounded-lg border border-indigo-100">
                         <input
                           type="checkbox"
                           checked={newSocialForm.showInFooter ?? true}
@@ -7120,7 +7120,7 @@ export const AdminDashboardPage: React.FC = () => {
                         />
                         Show in Footer
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-1.5 cursor-pointer bg-white px-2.5 py-1 rounded-lg border border-indigo-100">
                         <input
                           type="checkbox"
                           checked={newSocialForm.showInFloatingSidebar ?? true}
@@ -7161,8 +7161,8 @@ export const AdminDashboardPage: React.FC = () => {
                         }`}
                       >
                         {/* Row 1: Icon, Platform Input & Icon Dropdown, Active Button, Delete Button */}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 flex-wrap min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
                             {/* Icon preview badge */}
                             <div
                               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-sm"
@@ -7171,7 +7171,7 @@ export const AdminDashboardPage: React.FC = () => {
                               <SocialIcon link={item} className="w-5 h-5" size={20} />
                             </div>
 
-                            {/* Platform name editable input */}
+                            {/* Platform name editable input (Fluid width, min 100px, max 200px) */}
                             <input
                               type="text"
                               value={item.platform}
@@ -7182,7 +7182,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 setSocialList(updated);
                               }}
                               placeholder="Platform name"
-                              className="text-xs sm:text-sm font-black text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-indigo-600 focus:bg-white focus:outline-none w-36 sm:w-44 transition-all"
+                              className="flex-1 min-w-[100px] max-w-[200px] text-xs sm:text-sm font-black text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-indigo-600 focus:bg-white focus:outline-none transition-all"
                             />
 
                             {/* Icon selector dropdown */}
@@ -7194,7 +7194,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 );
                                 setSocialList(updated);
                               }}
-                              className="text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-indigo-500 focus:outline-none transition-all cursor-pointer"
+                              className="text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-indigo-500 focus:outline-none transition-all cursor-pointer flex-shrink-0"
                             >
                               {SOCIAL_ICON_OPTIONS.map((opt) => (
                                 <option key={opt.key} value={opt.key}>
@@ -7205,7 +7205,7 @@ export const AdminDashboardPage: React.FC = () => {
                           </div>
 
                           {/* Right: Active Toggle & Delete */}
-                          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                          <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
                             <button
                               type="button"
                               onClick={() => handleToggleSocialActive(item.id)}
@@ -7229,10 +7229,9 @@ export const AdminDashboardPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Row 2: Full Width URL + Placements checkboxes */}
-                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 pt-2.5 border-t border-slate-100">
-                          {/* Profile URL Input */}
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {/* Row 2: Full-Width Profile URL Input with Test Link */}
+                        <div className="flex items-center gap-2 w-full">
+                          <div className="relative flex-1 min-w-0">
                             <input
                               type="url"
                               value={item.url}
@@ -7243,7 +7242,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 setSocialList(updated);
                               }}
                               placeholder="https://..."
-                              className="w-full text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                              className="w-full text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 pr-9 focus:border-indigo-500 focus:bg-white focus:outline-none"
                             />
                             {item.url && (
                               <a
@@ -7251,42 +7250,44 @@ export const AdminDashboardPage: React.FC = () => {
                                 target="_blank"
                                 rel="noreferrer"
                                 title="Test Link"
-                                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors flex-shrink-0"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-indigo-600 transition-colors"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
                               </a>
                             )}
                           </div>
+                        </div>
 
-                          {/* Placements Options */}
-                          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 bg-slate-50/80 px-3.5 py-2 rounded-xl border border-slate-200/60 flex-shrink-0 justify-start sm:justify-end">
-                            <span className="text-[10px] uppercase font-bold text-slate-400">Placements:</span>
-                            <label className="flex items-center gap-1.5 cursor-pointer">
+                        {/* Row 3: Dedicated Placements Checkboxes Bar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-100">
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Placements:</span>
+                            <label className="flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60 transition-colors">
                               <input
                                 type="checkbox"
                                 checked={item.showInHeader}
                                 onChange={() => handleToggleSocialPlacement(item.id, 'header')}
                                 className="rounded text-indigo-600 focus:ring-indigo-500"
                               />
-                              Header
+                              <span>Header</span>
                             </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer">
+                            <label className="flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60 transition-colors">
                               <input
                                 type="checkbox"
                                 checked={item.showInFooter}
                                 onChange={() => handleToggleSocialPlacement(item.id, 'footer')}
                                 className="rounded text-indigo-600 focus:ring-indigo-500"
                               />
-                              Footer
+                              <span>Footer</span>
                             </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer">
+                            <label className="flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/60 transition-colors">
                               <input
                                 type="checkbox"
                                 checked={item.showInFloatingSidebar}
                                 onChange={() => handleToggleSocialPlacement(item.id, 'sidebar')}
                                 className="rounded text-indigo-600 focus:ring-indigo-500"
                               />
-                              Sidebar
+                              <span>Sidebar</span>
                             </label>
                           </div>
                         </div>
@@ -7449,9 +7450,9 @@ export const AdminDashboardPage: React.FC = () => {
                     {(headerForm.navLinks || []).map((link, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80"
+                        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80"
                       >
-                        <span className="text-[10px] font-mono text-slate-400 w-6 text-center font-bold">
+                        <span className="text-[10px] font-mono text-slate-400 w-6 text-center font-bold hidden sm:inline-block">
                           #{idx + 1}
                         </span>
                         <input
@@ -7463,7 +7464,7 @@ export const AdminDashboardPage: React.FC = () => {
                             setHeaderForm({ ...headerForm, navLinks: updated });
                           }}
                           placeholder="Menu Label"
-                          className="w-40 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 focus:border-indigo-500 text-slate-900"
+                          className="w-full sm:w-40 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 focus:border-indigo-500 text-slate-900"
                         />
                         <input
                           type="text"
@@ -7474,12 +7475,12 @@ export const AdminDashboardPage: React.FC = () => {
                             setHeaderForm({ ...headerForm, navLinks: updated });
                           }}
                           placeholder="/path"
-                          className="flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 focus:border-indigo-500 text-slate-900"
+                          className="w-full sm:flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 focus:border-indigo-500 text-slate-900"
                         />
                         <button
                           type="button"
                           onClick={() => handleRemoveNavLink(idx)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          className="self-end sm:self-auto p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -7653,7 +7654,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                     <div className="space-y-2">
                       {(footerForm.servicesLinks || []).map((link, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
                           <input
                             type="text"
                             value={link.label}
@@ -7662,7 +7663,8 @@ export const AdminDashboardPage: React.FC = () => {
                               updated[idx] = { ...updated[idx], label: e.target.value };
                               setFooterForm({ ...footerForm, servicesLinks: updated });
                             }}
-                            className="w-36 text-xs font-bold px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                            placeholder="Link Title"
+                            className="w-full sm:w-36 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-900"
                           />
                           <input
                             type="text"
@@ -7672,12 +7674,13 @@ export const AdminDashboardPage: React.FC = () => {
                               updated[idx] = { ...updated[idx], path: e.target.value };
                               setFooterForm({ ...footerForm, servicesLinks: updated });
                             }}
-                            className="flex-1 text-xs font-mono px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                            placeholder="/path"
+                            className="w-full sm:flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-900"
                           />
                           <button
                             type="button"
                             onClick={() => handleRemoveServiceLink(idx)}
-                            className="p-1 rounded text-slate-400 hover:text-rose-600 transition-colors"
+                            className="self-end sm:self-auto p-1.5 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -7685,25 +7688,25 @@ export const AdminDashboardPage: React.FC = () => {
                       ))}
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-2">
+                    <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       <input
                         type="text"
                         value={newServiceLink.label}
                         onChange={(e) => setNewServiceLink({ ...newServiceLink, label: e.target.value })}
                         placeholder="Link Name"
-                        className="w-32 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                        className="w-full sm:w-32 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
                       />
                       <input
                         type="text"
                         value={newServiceLink.path}
                         onChange={(e) => setNewServiceLink({ ...newServiceLink, path: e.target.value })}
                         placeholder="/services"
-                        className="flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                        className="w-full sm:flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
                       />
                       <button
                         type="button"
                         onClick={handleAddServiceLink}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+                        className="w-full sm:w-auto px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
                       >
                         Add
                       </button>
@@ -7718,7 +7721,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                     <div className="space-y-2">
                       {(footerForm.resourcesLinks || []).map((link, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
+                        <div key={idx} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
                           <input
                             type="text"
                             value={link.label}
@@ -7727,7 +7730,8 @@ export const AdminDashboardPage: React.FC = () => {
                               updated[idx] = { ...updated[idx], label: e.target.value };
                               setFooterForm({ ...footerForm, resourcesLinks: updated });
                             }}
-                            className="w-36 text-xs font-bold px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                            placeholder="Link Title"
+                            className="w-full sm:w-36 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-900"
                           />
                           <input
                             type="text"
@@ -7737,12 +7741,13 @@ export const AdminDashboardPage: React.FC = () => {
                               updated[idx] = { ...updated[idx], path: e.target.value };
                               setFooterForm({ ...footerForm, resourcesLinks: updated });
                             }}
-                            className="flex-1 text-xs font-mono px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                            placeholder="/path"
+                            className="w-full sm:flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-900"
                           />
                           <button
                             type="button"
                             onClick={() => handleRemoveResourceLink(idx)}
-                            className="p-1 rounded text-slate-400 hover:text-rose-600 transition-colors"
+                            className="self-end sm:self-auto p-1.5 rounded-lg text-slate-400 hover:text-rose-600 transition-colors"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -7750,25 +7755,25 @@ export const AdminDashboardPage: React.FC = () => {
                       ))}
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-2">
+                    <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       <input
                         type="text"
                         value={newResourceLink.label}
                         onChange={(e) => setNewResourceLink({ ...newResourceLink, label: e.target.value })}
                         placeholder="Link Name"
-                        className="w-32 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                        className="w-full sm:w-32 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
                       />
                       <input
                         type="text"
                         value={newResourceLink.path}
                         onChange={(e) => setNewResourceLink({ ...newResourceLink, path: e.target.value })}
                         placeholder="/products"
-                        className="flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                        className="w-full sm:flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
                       />
                       <button
                         type="button"
                         onClick={handleAddResourceLink}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+                        className="w-full sm:w-auto px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
                       >
                         Add
                       </button>
