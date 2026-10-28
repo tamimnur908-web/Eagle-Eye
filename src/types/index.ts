@@ -108,8 +108,21 @@ export interface CaseStudy {
   createdAt: number;
 }
 
+export interface MeetingDetails {
+  scheduledTime: string; // ISO string e.g. "2026-10-30T15:30"
+  meetingLink: string;   // Google Meet / Zoom URL
+  scheduledBy: string;   // Admin or recipient email
+  meetingStatus: 'proposed' | 'confirmed' | 'cancelled' | 'completed';
+  scheduledAt: number;
+  confirmedAt?: number;
+  cancelledAt?: number;
+  cancellationReason?: string;
+  notes?: string;
+}
+
 export interface Lead {
   id: string;
+  userId?: string;
   name: string;
   businessName?: string;
   email: string;
@@ -120,10 +133,28 @@ export interface Lead {
   deadline?: string;
   projectDescription: string;
   preferredContactMethod: 'WhatsApp' | 'Email' | 'Phone';
-  status: 'New' | 'Contacted' | 'Qualified' | 'Proposal Sent' | 'Negotiation' | 'Won' | 'Lost' | 'Archived';
+  status:
+    | 'New'
+    | 'Contacted'
+    | 'Qualified'
+    | 'Proposal Sent'
+    | 'Negotiation'
+    | 'Won'
+    | 'Lost'
+    | 'Archived'
+    | 'Meeting Scheduled'
+    | 'Meeting Confirmed'
+    | 'Meeting Cancelled';
+  meetingDetails?: MeetingDetails;
   internalNotes?: string;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface NotificationSettings {
+  leadRecipientEmails: string[];
+  updatedAt?: number;
+  updatedBy?: string;
 }
 
 export interface Quotation {
@@ -259,3 +290,32 @@ export interface BentoConfig {
     link: string;
   }[];
 }
+
+export type AdminRole = 'owner' | 'manager' | 'editor' | 'viewer';
+
+export interface AdminPermissions {
+  canManageAdmins?: boolean;
+  canManageProducts?: boolean;
+  canDeleteProducts?: boolean;
+  canManageServices?: boolean;
+  canManageOrders?: boolean;
+  canManageLeads?: boolean;
+  canManageHomepage?: boolean;
+  canManageSettings?: boolean;
+}
+
+export interface AdminUser {
+  id: string;
+  uid?: string;
+  email: string;
+  name: string;
+  role: AdminRole;
+  designation?: string;
+  phone?: string;
+  status: 'active' | 'suspended';
+  permissions: AdminPermissions;
+  createdAt: number;
+  updatedAt?: number;
+  addedBy?: string;
+}
+

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -69,9 +69,9 @@ import { EmptyState } from '../components/EmptyState';
 export const AdminDashboardPage: React.FC = () => {
   const { currentUser, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Active Menu Selection (Exact Vyrqonix Left Sidebar)
-  const [activeMenu, setActiveMenu] = useState<
+  type AdminTab =
     | 'dashboard'
     | 'orders'
     | 'products'
@@ -80,8 +80,57 @@ export const AdminDashboardPage: React.FC = () => {
     | 'leads'
     | 'homepage'
     | 'footer'
-    | 'settings'
-  >('products');
+    | 'settings';
+
+  const validTabs: AdminTab[] = [
+    'dashboard',
+    'orders',
+    'products',
+    'services',
+    'categories',
+    'leads',
+    'homepage',
+    'footer',
+    'settings'
+  ];
+
+  // Active Menu Selection (Defaults to 'dashboard', persists across page reloads via URL & localStorage)
+  const [activeMenu, setActiveMenu] = useState<AdminTab>(() => {
+    // 1. Check URL query param (e.g., ?tab=dashboard or ?tab=homepage)
+    const tabParam = searchParams.get('tab') as AdminTab;
+    if (tabParam && validTabs.includes(tabParam)) {
+      return tabParam;
+    }
+    // 2. Check localStorage if user was previously on a tab
+    const savedTab = localStorage.getItem('eagle_admin_active_tab') as AdminTab;
+    if (savedTab && validTabs.includes(savedTab)) {
+      return savedTab;
+    }
+    // 3. Default to 'dashboard' (Overview)
+    return 'dashboard';
+  });
+
+  // Keep URL query param and localStorage synced
+  const handleSelectMenu = (tab: AdminTab) => {
+    setActiveMenu(tab);
+    localStorage.setItem('eagle_admin_active_tab', tab);
+    setSearchParams({ tab }, { replace: true });
+    if (tab === 'products') setProductViewMode('list');
+  };
+
+  // Sync state if user navigates back/forward or if no param provided
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as AdminTab;
+    if (tabParam && validTabs.includes(tabParam)) {
+      if (tabParam !== activeMenu) {
+        setActiveMenu(tabParam);
+        localStorage.setItem('eagle_admin_active_tab', tabParam);
+      }
+    } else {
+      setSearchParams({ tab: activeMenu }, { replace: true });
+      localStorage.setItem('eagle_admin_active_tab', activeMenu);
+    }
+  }, [searchParams]);
 
   // Sub-view: 'list' | 'create'
   const [productViewMode, setProductViewMode] = useState<'list' | 'create'>('list');
@@ -737,10 +786,7 @@ export const AdminDashboardPage: React.FC = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    setActiveMenu(item.id as any);
-                    if (item.id === 'products') setProductViewMode('list');
-                  }}
+                  onClick={() => handleSelectMenu(item.id as AdminTab)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
@@ -1935,7 +1981,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => {
-                    setActiveMenu('products');
+                    handleSelectMenu('products');
                     setProductViewMode('create');
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5"
@@ -1945,7 +1991,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => setActiveMenu('categories')}
+                  onClick={() => handleSelectMenu('categories')}
                   className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5"
                 >
                   <FolderTree className="w-3.5 h-3.5 text-slate-400" />
