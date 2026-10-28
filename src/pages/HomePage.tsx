@@ -52,39 +52,61 @@ export const HomePage: React.FC = () => {
     ? bento.heroSlides
     : defaultHeroSlides;
 
-  // Auto-advance banner slides every 4.5 seconds
+  // Auto-advance banner slides every 4.8 seconds
   useEffect(() => {
     if (slides.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 4500);
+    }, 4800);
     return () => clearInterval(interval);
   }, [slides.length]);
 
   const activeSlide = slides[currentSlide] || slides[0] || defaultHeroSlides[0];
 
+  // Smooth Typewriter effect whenever active slide changes
+  const [typedTitle, setTypedTitle] = useState('');
+  useEffect(() => {
+    const fullText = activeSlide.title || bento.heroTitle || 'Empower Your Growth With Intelligent Strategy';
+    setTypedTitle('');
+    let idx = 0;
+    const timer = setInterval(() => {
+      idx++;
+      setTypedTitle(fullText.slice(0, idx));
+      if (idx >= fullText.length) {
+        clearInterval(timer);
+      }
+    }, 32);
+    return () => clearInterval(timer);
+  }, [currentSlide, activeSlide.title, bento.heroTitle]);
+
   return (
     <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-12 sm:space-y-16">
       
-      {/* 1. TOP HERO BENTO GRID (Dynamic From Admin Panel with Multi-Slide & 3D Visual Support) */}
+      {/* 1. TOP HERO BENTO GRID (Dynamic From Admin Panel with Multi-Slide, Animated Typography & 3D Visual Support) */}
       <section className="w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
           
-          {/* Main Large Hero Banner with Auto-Sliding Carousel & 3D Visual Support */}
-          <div
-            className="lg:col-span-8 rounded-3xl overflow-hidden relative min-h-[340px] sm:min-h-[440px] bg-gradient-to-br from-blue-600 via-indigo-700 to-slate-900 p-8 sm:p-12 flex flex-col justify-between text-white shadow-xl group bg-cover bg-center transition-all duration-700"
-            style={
-              activeSlide.bgImage
-                ? { backgroundImage: `url(${activeSlide.bgImage})` }
-                : bento.heroBgImage
-                ? { backgroundImage: `url(${bento.heroBgImage})` }
-                : undefined
-            }
-          >
-            {/* Ambient Background Wave & Grid Accent */}
-            <div className="absolute inset-0 bg-black/35 backdrop-blur-[1px] pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-sky-400/25 rounded-full blur-3xl pointer-events-none animate-pulse" />
-            <div className="absolute top-10 right-1/4 w-64 h-64 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+          {/* Main Large Hero Banner with Smooth Sliding Carousel, Ken Burns effect & Floating Vectors */}
+          <div className="lg:col-span-8 rounded-3xl overflow-hidden relative min-h-[380px] sm:min-h-[460px] bg-slate-950 p-8 sm:p-12 flex flex-col justify-between text-white shadow-2xl group transition-all duration-700">
+            
+            {/* Animated Ken Burns Background Image with Crossfade */}
+            <div
+              key={currentSlide}
+              className="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-out animate-ken-burns scale-100"
+              style={
+                activeSlide.bgImage
+                  ? { backgroundImage: `url(${activeSlide.bgImage})` }
+                  : bento.heroBgImage
+                  ? { backgroundImage: `url(${bento.heroBgImage})` }
+                  : { backgroundImage: 'linear-gradient(135deg, #1d4ed8 0%, #4338ca 50%, #0f172a 100%)' }
+              }
+            />
+
+            {/* Ambient Dark Gradient & Dynamic Glowing Mesh Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none" />
+            <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-blue-500/25 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
+            <div className="absolute -top-16 right-1/4 w-60 h-60 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none animate-pulse-glow" />
 
             {/* Previous / Next Slide Controls (Visible on Hover) */}
             {slides.length > 1 && (
@@ -92,82 +114,131 @@ export const HomePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 backdrop-blur-md shadow-md"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-30 backdrop-blur-md shadow-xl"
                   aria-label="Previous Slide"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 backdrop-blur-md shadow-md"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-30 backdrop-blur-md shadow-xl"
                   aria-label="Next Slide"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-5 h-5" />
                 </button>
               </>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center relative z-10">
+            {/* Content Area with Dynamic Animated Typography & Vectors */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center relative z-20">
               <div className="md:col-span-8 space-y-4 max-w-xl">
-                <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-sky-200">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>{activeSlide.tag || bento.heroTag || 'Next-Gen Digital Agency & Products Hub'}</span>
+                
+                {/* Pop-in Animated Tag Badge */}
+                <div
+                  key={`tag-${currentSlide}`}
+                  className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-sky-200 animate-pop-in shadow-lg"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin-slow" />
+                  <span className="bg-gradient-to-r from-amber-200 via-sky-200 to-indigo-100 bg-clip-text text-transparent">
+                    {activeSlide.tag || bento.heroTag || 'Eagle Eye Digital • Premium Highlights'}
+                  </span>
                 </div>
 
-                <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight transition-all duration-300">
-                  {activeSlide.title || bento.heroTitle}
+                {/* Animated Color-Shifting & Typewriter Headline */}
+                <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight min-h-[72px] sm:min-h-[116px]">
+                  <span className="bg-gradient-to-r from-white via-amber-200 to-cyan-300 bg-clip-text text-transparent animate-gradient-text drop-shadow-sm">
+                    {typedTitle}
+                  </span>
+                  <span className="inline-block w-1 h-7 sm:h-10 ml-1.5 bg-amber-400 animate-pulse align-middle" />
                 </h1>
 
-                <p className="text-sm sm:text-base text-slate-200 leading-relaxed transition-all duration-300">
+                {/* Smooth Fade-in Description */}
+                <p
+                  key={`desc-${currentSlide}`}
+                  className="text-sm sm:text-base text-slate-200 leading-relaxed max-w-lg animate-pop-in"
+                >
                   {activeSlide.description || bento.heroDescription}
                 </p>
               </div>
 
-              {/* 3D Floating Picture / Illustration on the Slide */}
-              {activeSlide.image3D && (
-                <div className="md:col-span-4 hidden md:flex items-center justify-center">
-                  <div className="relative w-44 h-44 lg:w-52 lg:h-52 rounded-2xl overflow-hidden p-2 bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl transform hover:scale-105 transition-transform duration-500">
+              {/* 3D Floating Picture / Interactive Graphic with Pop-in & Continuous Float */}
+              <div className="md:col-span-4 hidden md:flex items-center justify-center relative">
+                {activeSlide.image3D ? (
+                  <div
+                    key={`img3d-${currentSlide}`}
+                    className="relative w-48 h-48 lg:w-56 lg:h-56 rounded-2xl overflow-hidden p-2.5 bg-white/10 backdrop-blur-md border border-white/25 shadow-2xl animate-pop-in animate-float"
+                  >
                     <img
                       src={activeSlide.image3D}
                       alt="3D Visual"
-                      className="w-full h-full object-cover rounded-xl"
+                      className="w-full h-full object-cover rounded-xl shadow-inner"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-white/20 pointer-events-none rounded-2xl" />
                   </div>
-                </div>
-              )}
+                ) : (
+                  /* Floating Pop-up Tech Badges & Vectors if no custom 3D image */
+                  <div
+                    key={`visual-vectors-${currentSlide}`}
+                    className="relative w-48 h-48 lg:w-56 lg:h-56 flex items-center justify-center animate-pop-in"
+                  >
+                    {/* Floating Center Orb */}
+                    <div className="w-36 h-36 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-500/30 to-amber-400/20 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl animate-float">
+                      <div className="text-center space-y-1">
+                        <Sparkles className="w-8 h-8 text-amber-300 mx-auto animate-pulse" />
+                        <span className="text-[11px] font-black uppercase tracking-wider text-white block">
+                          Verified 4K
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Pop-up Vector Badge 1 (Top Left) */}
+                    <div className="absolute -top-1 -left-2 px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-md border border-amber-400/40 text-[10px] font-extrabold text-amber-300 shadow-xl animate-float flex items-center space-x-1.5">
+                      <span>🚀</span>
+                      <span>Instant Deploy</span>
+                    </div>
+
+                    {/* Pop-up Vector Badge 2 (Bottom Right) */}
+                    <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-xl bg-indigo-950/80 backdrop-blur-md border border-sky-400/40 text-[10px] font-extrabold text-sky-300 shadow-xl animate-float-reverse flex items-center space-x-1.5">
+                      <span>⭐</span>
+                      <span>4.9/5 Rating</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="relative z-10 pt-6 flex flex-wrap items-center justify-between gap-3">
+            {/* Bottom Navigation & Indicator Dots */}
+            <div className="relative z-20 pt-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   to={activeSlide.btn1Link || bento.heroBtn1Link || '/products'}
-                  className="px-6 py-3 rounded-full bg-white text-indigo-900 font-extrabold text-xs sm:text-sm hover:bg-slate-100 transition-all shadow-md flex items-center space-x-2"
+                  className="px-6 py-3 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-amber-500/25 flex items-center space-x-2 transform hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <span>{activeSlide.btn1Text || bento.heroBtn1Text || 'Browse Products'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   to={activeSlide.btn2Link || bento.heroBtn2Link || '/services'}
-                  className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-white font-bold text-xs sm:text-sm backdrop-blur-md transition-all"
+                  className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm backdrop-blur-md transition-all transform hover:-translate-y-0.5"
                 >
                   {activeSlide.btn2Text || bento.heroBtn2Text || 'Agency Services'}
                 </Link>
               </div>
 
-              {/* Multi-Slide Indicator Dots (Changes every few seconds) */}
+              {/* Multi-Slide Indicator Dots with Progress Glow */}
               {slides.length > 1 && (
-                <div className="flex items-center space-x-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                <div className="flex items-center space-x-2 bg-slate-950/60 backdrop-blur-md px-3.5 py-2 rounded-full border border-white/15 shadow-inner">
                   {slides.map((_, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => setCurrentSlide(idx)}
                       aria-label={`Go to slide ${idx + 1}`}
-                      className={`transition-all rounded-full ${
+                      className={`transition-all duration-300 rounded-full ${
                         currentSlide === idx
-                          ? 'w-6 h-2 bg-amber-400 shadow-sm'
-                          : 'w-2 h-2 bg-white/40 hover:bg-white'
+                          ? 'w-7 h-2.5 bg-gradient-to-r from-amber-400 to-amber-300 shadow-md shadow-amber-400/50'
+                          : 'w-2.5 h-2.5 bg-white/35 hover:bg-white/70'
                       }`}
                     />
                   ))}

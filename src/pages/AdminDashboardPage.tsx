@@ -36,7 +36,13 @@ import {
   ImagePlus,
   FolderPlus,
   Sliders,
-  LayoutGrid
+  LayoutGrid,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Pause,
+  Eye,
+  Maximize2
 } from 'lucide-react';
 import {
   getAllServices,
@@ -147,6 +153,54 @@ export const AdminDashboardPage: React.FC = () => {
   const [newPosterTitle, setNewPosterTitle] = useState('');
   const [newPosterLink, setNewPosterLink] = useState('/products');
   const sidePosterFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Real-time Preview States & Dynamic Typewriter for Admin
+  const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
+  const [previewAutoPlay, setPreviewAutoPlay] = useState(true);
+  const [previewViewMode, setPreviewViewMode] = useState<'slider' | 'full-layout'>('slider');
+  const [previewTypedTitle, setPreviewTypedTitle] = useState('');
+
+  // Auto-advance preview slides if previewAutoPlay is enabled
+  useEffect(() => {
+    if (!previewAutoPlay) return;
+    const slidesList = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
+      ? bentoForm.heroSlides
+      : defaultHeroSlides;
+    if (slidesList.length <= 1) return;
+    const timer = setInterval(() => {
+      setPreviewSlideIndex((prev) => (prev + 1) % slidesList.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [previewAutoPlay, bentoForm.heroSlides]);
+
+  // Jump preview to active slide when starting an edit
+  useEffect(() => {
+    if (editingSlideIndex !== null) {
+      setPreviewSlideIndex(editingSlideIndex);
+    }
+  }, [editingSlideIndex]);
+
+  // Typewriter effect in preview title
+  useEffect(() => {
+    const slidesList = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
+      ? bentoForm.heroSlides
+      : defaultHeroSlides;
+    const current = slidesList[previewSlideIndex] || slidesList[0];
+    const targetTitle = (editingSlideIndex === previewSlideIndex && newSlideTitle)
+      ? newSlideTitle
+      : (current?.title || 'Empower Your Growth With Intelligent Strategy');
+
+    setPreviewTypedTitle('');
+    let charIdx = 0;
+    const interval = setInterval(() => {
+      charIdx++;
+      setPreviewTypedTitle(targetTitle.slice(0, charIdx));
+      if (charIdx >= targetTitle.length) {
+        clearInterval(interval);
+      }
+    }, 28);
+    return () => clearInterval(interval);
+  }, [previewSlideIndex, editingSlideIndex, newSlideTitle, bentoForm.heroSlides]);
 
   const [serviceForm, setServiceForm] = useState<Partial<Service>>({
     name: '',
@@ -2246,72 +2300,348 @@ export const AdminDashboardPage: React.FC = () => {
                 {/* Right Column: LIVE HOMEPAGE PREVIEW & ACTIVE BANNERS */}
                 <div className="lg:col-span-6 space-y-6">
                   
-                  {/* REAL-TIME WEBSITE LIVE PREVIEW CARD */}
-                  <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-indigo-700">
-                        <Sparkles className="w-4 h-4 text-indigo-600" />
-                        <span>LIVE HOMEPAGE PREVIEW (ওয়েবসাইটে যেমন দেখাবে)</span>
-                      </h3>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        Real-time Render
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      ছবি আপলোড বা এডিট করলে ওয়েবসাইটে হুবহু যেমন দেখাবে তা এখানে লাইভ প্রিভিউ হচ্ছে:
-                    </p>
-
-                    {/* Live Rendered Banner Mockup */}
-                    <div
-                      className="rounded-2xl overflow-hidden relative min-h-[220px] bg-gradient-to-br from-blue-600 via-indigo-700 to-slate-900 p-6 flex flex-col justify-between text-white shadow-md bg-cover bg-center transition-all duration-300"
-                      style={
-                        newSlideImg
-                          ? { backgroundImage: `url(${newSlideImg})` }
-                          : (editingSlideIndex !== null && (bentoForm.heroSlides || defaultHeroSlides)[editingSlideIndex]?.bgImage)
-                          ? { backgroundImage: `url(${(bentoForm.heroSlides || defaultHeroSlides)[editingSlideIndex]?.bgImage})` }
-                          : undefined
-                      }
-                    >
-                      {/* Dark overlay for contrast */}
-                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px] pointer-events-none" />
-                      <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-sky-400/30 rounded-full blur-2xl pointer-events-none" />
-
-                      <div className="relative z-10 space-y-2 max-w-sm">
-                        <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] font-bold text-sky-200">
-                          <Sparkles className="w-3 h-3 text-amber-300" />
-                          <span>Eagle Eye Digital • Featured</span>
-                        </div>
-
-                        <h4 className="text-lg sm:text-xl font-black tracking-tight leading-tight line-clamp-2">
-                          {newSlideTitle ||
-                            (editingSlideIndex !== null
-                              ? (bentoForm.heroSlides || defaultHeroSlides)[editingSlideIndex]?.title
-                              : 'Empower Your Growth With Intelligent Strategy')}
-                        </h4>
-
-                        <p className="text-[11px] text-slate-200 line-clamp-2">
-                          From performance marketing to ready-to-deploy UI assets and digital products.
+                  {/* REAL-TIME WEBSITE LIVE PREVIEW CARD (Interactive, Full Layout Toggle & Animated) */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                    
+                    {/* Preview Top Header & Controls */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div>
+                        <h3 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-indigo-700">
+                          <Sparkles className="w-4 h-4 text-indigo-600 animate-spin-slow" />
+                          <span>LIVE HOMEPAGE PREVIEW (ওয়েবসাইটে যেমন দেখাবে)</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          স্লাইড করে দেখুন, লেখা ও ছবির অ্যানিমেশন দেখুন এবং ফুল ওয়েব লেআউট প্রিভিউ করুন:
                         </p>
                       </div>
 
-                      <div className="relative z-10 pt-4 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="px-3 py-1.5 rounded-full bg-white text-indigo-900 font-extrabold text-[10px] shadow-sm flex items-center space-x-1">
-                            <span>Browse Products</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </span>
-                          <span className="px-3 py-1.5 rounded-full bg-white/15 border border-white/20 text-white font-bold text-[10px]">
-                            Agency Services
-                          </span>
-                        </div>
-
-                        <div className="flex items-center space-x-1.5">
-                          <span className="w-4 h-1.5 rounded-full bg-amber-400" />
-                          <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                          <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                        </div>
+                      {/* View Mode Toggle: Slider vs Full Web Layout */}
+                      <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-[11px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewViewMode('slider')}
+                          className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
+                            previewViewMode === 'slider'
+                              ? 'bg-white text-indigo-700 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-900'
+                          }`}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Slider Only</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewViewMode('full-layout')}
+                          className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
+                            previewViewMode === 'full-layout'
+                              ? 'bg-white text-indigo-700 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-900'
+                          }`}
+                        >
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                          <span>Full Bento Layout</span>
+                        </button>
                       </div>
                     </div>
+
+                    {/* Quick Preview Toolbar: Prev, Next, Play/Pause, Slide Indicator */}
+                    {(() => {
+                      const previewSlides = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
+                        ? bentoForm.heroSlides
+                        : defaultHeroSlides;
+                      const currentPreview = previewSlides[previewSlideIndex] || previewSlides[0];
+                      const activeBg = (editingSlideIndex === previewSlideIndex && newSlideImg)
+                        ? newSlideImg
+                        : (editingSlideIndex === null && newSlideImg)
+                        ? newSlideImg
+                        : currentPreview?.bgImage;
+                      const active3D = currentPreview?.image3D;
+
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-xs">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold text-slate-700 text-[11px] bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+                                Slide {previewSlideIndex + 1} of {previewSlides.length}
+                              </span>
+                              {editingSlideIndex === previewSlideIndex && (
+                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                                  Live Editing
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center space-x-1.5">
+                              {/* Slide Prev Button */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewSlideIndex(
+                                    (prev) => (prev - 1 + previewSlides.length) % previewSlides.length
+                                  )
+                                }
+                                className="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
+                                title="Previous Slide"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+
+                              {/* Play / Pause Toggle Button */}
+                              <button
+                                type="button"
+                                onClick={() => setPreviewAutoPlay(!previewAutoPlay)}
+                                className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-colors ${
+                                  previewAutoPlay
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600'
+                                }`}
+                                title={previewAutoPlay ? 'Pause Auto Slide' : 'Play Auto Slide'}
+                              >
+                                {previewAutoPlay ? (
+                                  <>
+                                    <Pause className="w-3 h-3 text-emerald-600" />
+                                    <span>Auto-Slide ON</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="w-3 h-3 text-slate-500" />
+                                    <span>Paused</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Slide Next Button */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length)
+                                }
+                                className="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
+                                title="Next Slide"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Full Bento Grid Preview Layout Container */}
+                          <div
+                            className={
+                              previewViewMode === 'full-layout'
+                                ? 'grid grid-cols-1 md:grid-cols-12 gap-3.5 items-stretch'
+                                : 'w-full'
+                            }
+                          >
+                            {/* The Interactive Hero Slider Mockup */}
+                            <div
+                              className={`${
+                                previewViewMode === 'full-layout' ? 'md:col-span-8' : 'w-full'
+                              } rounded-2xl overflow-hidden relative min-h-[250px] sm:min-h-[280px] bg-slate-950 p-6 flex flex-col justify-between text-white shadow-xl transition-all duration-700 group`}
+                            >
+                              {/* Ken Burns Animated Background Image */}
+                              <div
+                                key={`preview-bg-${previewSlideIndex}`}
+                                className="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-out animate-ken-burns scale-100"
+                                style={
+                                  activeBg
+                                    ? { backgroundImage: `url(${activeBg})` }
+                                    : { backgroundImage: 'linear-gradient(135deg, #1d4ed8 0%, #4338ca 50%, #0f172a 100%)' }
+                                }
+                              />
+
+                              {/* Dark Gradient Overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-transparent pointer-events-none" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none" />
+                              <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/25 rounded-full blur-2xl pointer-events-none animate-pulse-glow" />
+
+                              {/* Slide Prev/Next Overlay Buttons inside Mockup */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewSlideIndex(
+                                    (prev) => (prev - 1 + previewSlides.length) % previewSlides.length
+                                  )
+                                }
+                                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all z-30 shadow-md"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length)
+                                }
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all z-30 shadow-md"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+
+                              {/* Typography & Floating Vectors */}
+                              <div className="relative z-20 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                                <div className="sm:col-span-8 space-y-2 max-w-sm">
+                                  {/* Pop-in Animated Tag Badge */}
+                                  <div
+                                    key={`preview-tag-${previewSlideIndex}`}
+                                    className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-sky-200 animate-pop-in"
+                                  >
+                                    <Sparkles className="w-3 h-3 text-amber-300" />
+                                    <span>
+                                      {currentPreview?.tag || 'Eagle Eye Digital • Featured'}
+                                    </span>
+                                  </div>
+
+                                  {/* Animated Color Gradient & Typewriter Title */}
+                                  <h4 className="text-base sm:text-xl font-black tracking-tight leading-tight min-h-[44px]">
+                                    <span className="bg-gradient-to-r from-white via-amber-200 to-cyan-300 bg-clip-text text-transparent animate-gradient-text">
+                                      {previewTypedTitle}
+                                    </span>
+                                    <span className="inline-block w-1 h-4 sm:h-5 ml-1 bg-amber-400 animate-pulse align-middle" />
+                                  </h4>
+
+                                  <p
+                                    key={`preview-desc-${previewSlideIndex}`}
+                                    className="text-[11px] text-slate-200 line-clamp-2 leading-relaxed animate-pop-in"
+                                  >
+                                    {currentPreview?.description ||
+                                      'From performance marketing to ready-to-deploy UI assets and digital products.'}
+                                  </p>
+                                </div>
+
+                                {/* Floating 3D Graphic / Pop-up Vectors in Preview */}
+                                <div className="sm:col-span-4 hidden sm:flex items-center justify-center">
+                                  {active3D ? (
+                                    <div
+                                      key={`preview-3d-${previewSlideIndex}`}
+                                      className="w-24 h-24 rounded-xl overflow-hidden p-1.5 bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-pop-in animate-float"
+                                    >
+                                      <img
+                                        src={active3D}
+                                        alt="3D Preview"
+                                        className="w-full h-full object-cover rounded-lg"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div
+                                      key={`preview-orb-${previewSlideIndex}`}
+                                      className="relative w-24 h-24 flex items-center justify-center animate-pop-in"
+                                    >
+                                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-500/30 to-amber-400/20 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg animate-float">
+                                        <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
+                                      </div>
+                                      <div className="absolute -top-1 -left-1 px-2 py-0.5 rounded-lg bg-slate-900/80 border border-amber-400/40 text-[8px] font-black text-amber-300 animate-float flex items-center space-x-1">
+                                        <span>🚀</span>
+                                        <span>Instant</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Buttons and Indicator Dots */}
+                              <div className="relative z-20 pt-4 flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-[10px] shadow-sm flex items-center space-x-1">
+                                    <span>Browse Products</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </span>
+                                  <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white font-bold text-[10px] backdrop-blur-md">
+                                    Agency Services
+                                  </span>
+                                </div>
+
+                                {/* Clickable Slide Indicator Dots in Preview */}
+                                <div className="flex items-center space-x-1.5 bg-slate-950/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
+                                  {previewSlides.map((_, idx) => (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => setPreviewSlideIndex(idx)}
+                                      aria-label={`Slide ${idx + 1}`}
+                                      className={`transition-all duration-300 rounded-full ${
+                                        previewSlideIndex === idx
+                                          ? 'w-5 h-2 bg-gradient-to-r from-amber-400 to-amber-300 shadow-sm'
+                                          : 'w-2 h-2 bg-white/35 hover:bg-white'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Side Promo Posters Column (Rendered when in 'full-layout' view) */}
+                            {previewViewMode === 'full-layout' && (
+                              <div className="md:col-span-4 flex flex-col gap-2.5">
+                                {/* Card 1 */}
+                                <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 flex items-center justify-between overflow-hidden shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] uppercase font-bold text-sky-400">
+                                      {bentoForm.card1Tag || 'Growth Partner'}
+                                    </span>
+                                    <h5 className="text-xs font-black text-white line-clamp-1">
+                                      {bentoForm.card1Title || 'Social Growth & Media'}
+                                    </h5>
+                                    <span className="text-[9px] text-sky-400 font-bold block">
+                                      {bentoForm.card1LinkText || 'Explore Retainers →'}
+                                    </span>
+                                  </div>
+                                  <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
+                                    {bentoForm.card1Image ? (
+                                      <img src={bentoForm.card1Image} alt="Card 1" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-base font-black text-white">in</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Card 2 */}
+                                <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 flex items-center justify-between overflow-hidden shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] uppercase font-bold text-amber-400">
+                                      {bentoForm.card2Tag || 'Ready Code'}
+                                    </span>
+                                    <h5 className="text-xs font-black text-white line-clamp-1">
+                                      {bentoForm.card2Title || 'Deployable UI Assets'}
+                                    </h5>
+                                    <span className="text-[9px] text-amber-400 font-bold block">
+                                      Get Products →
+                                    </span>
+                                  </div>
+                                  <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
+                                    {bentoForm.card2Image ? (
+                                      <img src={bentoForm.card2Image} alt="Card 2" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-base font-black text-white">ui</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Card 3 */}
+                                <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 flex items-center justify-between overflow-hidden shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <span className="text-[9px] uppercase font-bold text-emerald-400">
+                                      {bentoForm.card3Tag || 'Store'}
+                                    </span>
+                                    <h5 className="text-xs font-black text-white line-clamp-1">
+                                      {bentoForm.card3Title || 'Official Digital Store'}
+                                    </h5>
+                                    <span className="text-[9px] text-emerald-400 font-bold block">
+                                      {bentoForm.card3LinkText || 'Shop Store →'}
+                                    </span>
+                                  </div>
+                                  <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
+                                    {bentoForm.card3Image ? (
+                                      <img src={bentoForm.card3Image} alt="Card 3" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-base font-black text-white">shop</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* ACTIVE HERO SLIDER BANNERS LIST */}
