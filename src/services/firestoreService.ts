@@ -820,14 +820,22 @@ export const saveAdmin = async (
   let targetUid = adminData.uid;
   let detectedName = adminData.name?.trim() || '';
 
-  if (!adminData.id && !targetUid) {
-    const registeredUser = await findRegisteredUserByEmail(emailClean);
-    if (!registeredUser) {
-      throw new Error('This user must register or log in before becoming an Admin.');
+  if (!targetUid) {
+    if (adminData.id && adminData.id !== 'primary-owner' && !adminData.id.includes('@')) {
+      targetUid = adminData.id;
     }
-    targetUid = registeredUser.uid;
-    if (!detectedName && registeredUser.fullName) {
-      detectedName = registeredUser.fullName;
+  }
+
+  // Look up user by email if targetUid is still not resolved
+  if (!targetUid) {
+    const registeredUser = await findRegisteredUserByEmail(emailClean);
+    if (registeredUser) {
+      targetUid = registeredUser.uid;
+      if (!detectedName && registeredUser.fullName) {
+        detectedName = registeredUser.fullName;
+      }
+    } else if (!adminData.id) {
+      throw new Error('This user must register or log in before becoming an Admin.');
     }
   }
 
@@ -835,12 +843,11 @@ export const saveAdmin = async (
   const docId = targetUid || adminData.id || emailClean.replace(/[^a-zA-Z0-9]/g, '_');
   const permissions = adminData.permissions || getDefaultRolePermissions(adminData.role);
 
-  const payload: Partial<AdminUser> = {
+  const payload: Record<string, any> = {
     ...adminData,
     id: docId,
-    uid: targetUid,
     email: emailClean,
-    name: detectedName || emailClean.split('@')[0],
+    name: detectedName || adminData.name?.trim() || emailClean.split('@')[0],
     role: adminData.role,
     status: adminData.status || 'active',
     designation: adminData.designation || '',
@@ -849,12 +856,26 @@ export const saveAdmin = async (
     updatedAt: Date.now()
   };
 
+  if (targetUid) {
+    payload.uid = targetUid;
+  } else {
+    delete payload.uid;
+  }
+
   if (!adminData.createdAt) {
     payload.createdAt = Date.now();
   }
 
+  // Crucial: Clean out ANY undefined fields so Firestore never throws "Unsupported field value: undefined"
+  const cleanPayload: Record<string, any> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (value !== undefined) {
+      cleanPayload[key] = value;
+    }
+  }
+
   // Save to admins collection
-  await setDoc(doc(db, 'admins', docId), payload, { merge: true });
+  await setDoc(doc(db, 'admins', docId), cleanPayload, { merge: true });
 
   // Update user document if known
   if (targetUid) {

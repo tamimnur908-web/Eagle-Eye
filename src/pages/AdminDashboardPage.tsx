@@ -35,6 +35,7 @@ import {
   Monitor,
   Tablet,
   Smartphone,
+  Menu,
   X,
   Clipboard,
   ImagePlus,
@@ -463,9 +464,11 @@ export const AdminDashboardPage: React.FC = () => {
   const [copiedUid, setCopiedUid] = useState(false);
   const logoFileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Full Website Live Preview Modal State
+  // Full Website Live Preview State
   const [isLiveWebPreviewOpen, setIsLiveWebPreviewOpen] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<'laptop' | 'tablet' | 'phone'>('laptop');
   const [webPreviewDevice, setWebPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [previewMobileNavOpen, setPreviewMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (globalSiteSettings) {
@@ -1130,7 +1133,7 @@ export const AdminDashboardPage: React.FC = () => {
   const handleQuickAddCategory = async () => {
     const trimmed = quickCategoryName.trim();
     if (!trimmed) {
-      alert('αªàαª¿αºüαªùαºìαª░αª╣ αªòαª░αºç αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐αª░ αª¿αª╛αª« αª▓αª┐αªûαºüαª¿αÑñ');
+      alert('অনুগ্রহ করে ক্যাটাগরির নাম লিখুন।');
       return;
     }
     const slug = trimmed
@@ -1230,9 +1233,9 @@ export const AdminDashboardPage: React.FC = () => {
         setProdForm((prev) => ({ ...prev, thumbnailUrl: text.trim() }));
         return;
       }
-      alert('Clipboard-αªÅ αªòαºïαª¿αºï αª¢αª¼αª┐ αª¼αª╛ αªçαª«αºçαª£ αª▓αª┐αªéαªò αª¬αª╛αªôαª»αª╝αª╛ αª»αª╛αª»αª╝αª¿αª┐αÑñ αª¢αª¼αª┐ αªòαª¬αª┐ αªòαª░αºç αªÅαªûαª╛αª¿αºç Ctrl + V αªÜαª╛αª¬αºüαª¿αÑñ');
+      alert('Clipboard-এ কোনো ছবি বা ইমেজ লিংক পাওয়া যায়নি। ছবি কপি করে এখানে Ctrl + V চাপুন।');
     } catch (err) {
-      alert('αª¢αª¼αª┐αªƒαª┐ αªòαª¬αª┐ αªòαª░αºç αªÅαªç αª¼αªòαºìαª╕αºç Ctrl + V αªÜαª╛αª¬αºüαª¿, αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αªàαºìαª»αª╛αªí αª╣αºƒαºç αª»αª╛αª¼αºç!');
+      alert('ছবিটি কপি করে এই বক্সে Ctrl + V চাপুন, স্বয়ংক্রিয়ভাবে অ্যাড হয়ে যাবে!');
     }
   };
 
@@ -1541,22 +1544,26 @@ export const AdminDashboardPage: React.FC = () => {
       return;
     }
 
-    // Step: Verify that the user has registered or logged in
-    if (!editingAdminId) {
-      setAdminSaving(true);
-      const registeredUser = await findRegisteredUserByEmail(emailClean);
-      if (!registeredUser) {
+    setAdminSaving(true);
+    try {
+      let resolvedUid = registeredUserInfo?.uid;
+      if (!resolvedUid) {
+        const regUser = await findRegisteredUserByEmail(emailClean);
+        if (regUser) {
+          resolvedUid = regUser.uid;
+        }
+      }
+
+      if (!editingAdminId && !resolvedUid) {
         setAdminSaving(false);
         setUserCheckStatus('not-registered');
         setAdminFormError('This user must register or log in before becoming an Admin. (এই ইউজার এখনো ওয়েবসাইটে সাইন-ইন বা লগইন করেননি। অ্যাডমিন দেওয়ার পূর্বে তাকে ওয়েবসাইটে একবার লগইন করতে হবে।)');
         return;
       }
-    }
 
-    setAdminSaving(true);
-    try {
       await saveAdmin({
-        ...(editingAdminId ? { id: editingAdminId } : {}),
+        ...(editingAdminId ? { id: editingAdminId } : (resolvedUid ? { id: resolvedUid } : {})),
+        ...(resolvedUid ? { uid: resolvedUid } : {}),
         name: adminForm.name.trim() || emailClean.split('@')[0],
         email: emailClean,
         role: adminForm.role,
@@ -1791,6 +1798,444 @@ export const AdminDashboardPage: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Interactive Live Website Preview Pane (Sticky on the right side)
+  const renderInteractiveWebsitePreviewPane = () => {
+    const activeHeaderSocials = socialList.filter((s) => s.isActive && s.showInHeader && s.url);
+    const activeFooterSocials = socialList.filter((s) => s.isActive && s.showInFooter && s.url);
+    const activeSidebarSocials = socialList.filter((s) => s.isActive && s.showInFloatingSidebar && s.url);
+    const currentSlide = (bentoForm.heroSlides && bentoForm.heroSlides[previewSlideIndex]) || bentoForm.heroSlides?.[0];
+
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl flex flex-col h-[calc(100vh-120px)] min-h-[660px] max-h-[890px] sticky top-4 select-none">
+        {/* Top Control Bar: Title & Device Switcher */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800 gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-black text-white uppercase tracking-wider">
+              Live Preview (সাইড প্রিভিউ)
+            </span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Real-time Draft Sync" />
+          </div>
+
+          {/* 3 Device Options: Phone, Laptop, Tablet */}
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setPreviewDevice('phone')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                previewDevice === 'phone'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Phone</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreviewDevice('laptop')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                previewDevice === 'laptop'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Laptop className="w-3.5 h-3.5" />
+              <span>Laptop</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreviewDevice('tablet')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                previewDevice === 'tablet'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Tablet className="w-3.5 h-3.5" />
+              <span>Tablet</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Guidance badge */}
+        <div className="py-1.5 px-2 text-[10px] text-slate-400 flex items-center justify-between">
+          <span className="text-amber-300 font-medium">
+            💡 প্রিভিউতে সব লিংক, হোয়াটসঅ্যাপ ও আইকন লাইভ ক্লিকেবল!
+          </span>
+          <span className="font-mono text-indigo-400 font-bold capitalize">
+            {previewDevice === 'phone' ? '📱 Mobile Frame' : previewDevice === 'laptop' ? '💻 Widescreen' : '📟 Tablet Frame'}
+          </span>
+        </div>
+
+        {/* Canvas Viewport */}
+        <div className="flex-1 overflow-y-auto bg-slate-950/80 rounded-2xl border border-slate-800 p-2 sm:p-3 flex justify-center items-start">
+          <div
+            className={`bg-white text-slate-900 shadow-2xl transition-all duration-300 relative flex flex-col ${
+              previewDevice === 'laptop'
+                ? 'w-full rounded-xl overflow-hidden'
+                : previewDevice === 'tablet'
+                ? 'w-[520px] max-w-full rounded-2xl overflow-hidden border-4 border-slate-800'
+                : 'w-[330px] max-w-full rounded-[38px] overflow-hidden border-[7px] border-slate-800 shadow-2xl'
+            }`}
+          >
+            {/* Phone Top Notch Bar */}
+            {previewDevice === 'phone' && (
+              <div className="bg-slate-950 text-slate-400 px-5 pt-2 pb-1 flex items-center justify-between text-[10px] font-mono border-b border-slate-800 select-none">
+                <span>9:41</span>
+                <div className="w-16 h-3 bg-slate-900 rounded-full border border-slate-700/60" />
+                <div className="flex items-center gap-1 text-[9px]">
+                  <span>5G</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            )}
+
+            {/* 1. Announcement Bar */}
+            {headerForm.showAnnouncement !== false && (
+              <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 leading-tight">
+                <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
+                <span className="truncate">
+                  {headerForm.announcementText || '⚡ SPECIAL OFFER: Empower your digital presence with Eagle Eye Digital!'}
+                </span>
+                {headerForm.announcementLink && (
+                  <a
+                    href={headerForm.announcementLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[9px] underline font-bold bg-white/20 px-1.5 py-0.5 rounded ml-0.5 hover:bg-white/30"
+                  >
+                    View →
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* 2. Navbar */}
+            <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 py-2 flex items-center justify-between gap-2 shadow-xs">
+              {/* Brand Logo & Name */}
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-sm flex items-center justify-center flex-shrink-0">
+                  {siteForm.logoUrl ? (
+                    <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-900 rounded-md flex items-center justify-center text-white font-black text-[9px]">
+                      EE
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-black tracking-tight text-slate-900 truncate flex items-center gap-1">
+                    <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                      {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
+                    </span>
+                  </div>
+                  <div className="text-[7px] font-extrabold tracking-widest text-slate-400 uppercase truncate">
+                    {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Laptop Navigation Links */}
+              {previewDevice === 'laptop' && (
+                <nav className="flex items-center gap-2.5 text-[11px] font-bold text-slate-700">
+                  {(headerForm.navLinks || []).slice(0, 5).map((link, idx) => (
+                    <a
+                      key={idx}
+                      href={link.path}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-indigo-600 transition-colors py-0.5"
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </nav>
+              )}
+
+              {/* Right: CTA & Actions */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Header Social Icons (Laptop & Tablet) */}
+                {previewDevice !== 'phone' && (
+                  <div className="flex items-center gap-1">
+                    {activeHeaderSocials.map((item) => (
+                      <a
+                        key={item.id}
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={item.platform}
+                        className="p-1 rounded-md bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition-colors"
+                      >
+                        <SocialIcon link={item} className="w-3 h-3" size={12} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Chat Support WhatsApp Pill */}
+                {headerForm.showChatSupport !== false && (
+                  <a
+                    href={`https://wa.me/${(headerForm.chatSupportNumber || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Click to test WhatsApp Link"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[9px] shadow-xs hover:bg-emerald-100 transition-all cursor-pointer"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="truncate">{headerForm.chatSupportText || 'Chat Support'}</span>
+                  </a>
+                )}
+
+                {/* Phone Hamburger Menu Toggle */}
+                {previewDevice === 'phone' && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMobileNavOpen(!previewMobileNavOpen)}
+                    className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
+                    title="Toggle Mobile Menu"
+                  >
+                    {previewMobileNavOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+              </div>
+            </header>
+
+            {/* Phone Mobile Drawer Menu (When opened) */}
+            {previewDevice === 'phone' && previewMobileNavOpen && (
+              <div className="bg-slate-50 border-b border-slate-200 p-3 space-y-2 text-xs animate-in fade-in">
+                <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Navigation Menu</div>
+                <div className="flex flex-col gap-1.5">
+                  {(headerForm.navLinks || []).map((link, idx) => (
+                    <a
+                      key={idx}
+                      href={link.path}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1.5 rounded-lg bg-white border border-slate-200 font-semibold text-slate-800 flex items-center justify-between"
+                    >
+                      <span>{link.label}</span>
+                      <ChevronRight className="w-3 h-3 text-slate-400" />
+                    </a>
+                  ))}
+                </div>
+
+                {activeHeaderSocials.length > 0 && (
+                  <div className="pt-2 border-t border-slate-200">
+                    <span className="text-[9px] text-slate-400 font-bold block mb-1">Official Channels</span>
+                    <div className="flex items-center gap-1.5">
+                      {activeHeaderSocials.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1 rounded bg-white border border-slate-200 text-slate-700"
+                        >
+                          <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. Hero Banner & Bento Section */}
+            <div className="p-3 bg-slate-50 space-y-3">
+              {/* Main Slider Box */}
+              <div className="rounded-xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white p-4 relative overflow-hidden shadow-sm flex flex-col justify-between min-h-[160px]">
+                {/* Background Slide Image */}
+                {currentSlide?.bgImage && (
+                  <div className="absolute inset-0 z-0">
+                    <img
+                      src={currentSlide.bgImage}
+                      alt="Banner"
+                      className="w-full h-full object-cover opacity-35"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                  </div>
+                )}
+
+                <div className="relative z-10 space-y-1">
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[8px] font-black uppercase tracking-wider">
+                    <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                    <span>{currentSlide?.tag || 'Premium Digital Solutions'}</span>
+                  </div>
+                  <h3 className="text-sm font-black text-white leading-tight line-clamp-2">
+                    {previewTypedTitle || currentSlide?.title || 'Elevate Your Digital Brand with Eagle Eye'}
+                  </h3>
+                  <p className="text-[10px] text-slate-300 line-clamp-2">
+                    {currentSlide?.description || 'Custom web systems and digital marketing for growth.'}
+                  </p>
+                </div>
+
+                <div className="relative z-10 pt-2 flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <a
+                      href={currentSlide?.btn1Link || '/products'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-black text-[9px] shadow-xs hover:bg-amber-300 transition-colors"
+                    >
+                      {currentSlide?.btn1Text || 'Products'}
+                    </a>
+                    <a
+                      href={currentSlide?.btn2Link || '/services'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-white font-bold text-[9px] hover:bg-white/20 transition-colors"
+                    >
+                      {currentSlide?.btn2Text || 'Services'}
+                    </a>
+                  </div>
+
+                  {/* Indicator Dots */}
+                  <div className="flex items-center gap-1 bg-black/60 px-2 py-0.5 rounded-full border border-white/15">
+                    {(bentoForm.heroSlides || []).map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPreviewSlideIndex(idx)}
+                        className={`rounded-full transition-all ${
+                          previewSlideIndex === idx ? 'w-3 h-1 bg-amber-400' : 'w-1 h-1 bg-white/40'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Side Bento Posters (Shown on Laptop & Tablet) */}
+              {previewDevice !== 'phone' && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                    <span className="text-[8px] font-bold text-sky-400 uppercase block">{bentoForm.card1Tag || 'Growth'}</span>
+                    <div className="text-[10px] font-black truncate">{bentoForm.card1Title || 'Social Media'}</div>
+                  </div>
+                  <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                    <span className="text-[8px] font-bold text-amber-400 uppercase block">{bentoForm.card2Tag || 'Ready'}</span>
+                    <div className="text-[10px] font-black truncate">{bentoForm.card2Title || 'Products'}</div>
+                  </div>
+                  <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                    <span className="text-[8px] font-bold text-emerald-400 uppercase block">{bentoForm.card3Tag || 'Enterprise'}</span>
+                    <div className="text-[10px] font-black truncate">{bentoForm.card3Title || 'Web Design'}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Sticky Floating Sidebar Simulation inside Preview */}
+            {activeSidebarSocials.length > 0 && (
+              <div className="absolute right-2 top-32 z-30 flex flex-col gap-1 p-1 bg-slate-950/90 backdrop-blur-md rounded-xl border border-slate-700 shadow-xl">
+                {activeSidebarSocials.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`Open ${item.platform}: ${item.url}`}
+                    className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/10 hover:bg-indigo-600 text-white transition-all hover:scale-110 shadow-xs"
+                  >
+                    <SocialIcon link={item} className="w-3 h-3" size={12} />
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* 5. Footer */}
+            <footer className="bg-slate-950 text-slate-300 p-4 space-y-4 border-t border-slate-800">
+              <div className={`grid gap-4 ${previewDevice === 'phone' ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                {/* Brand & Bio */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
+                      {siteForm.logoUrl ? (
+                        <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-sm" />
+                      ) : (
+                        <span className="text-[8px] font-black text-white">EE</span>
+                      )}
+                    </div>
+                    <div className="text-xs font-black text-white truncate">
+                      {siteForm.brandName || 'Eagle Eye Digital'}
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">
+                    {footerForm.aboutText || 'Premier digital agency providing bespoke web development.'}
+                  </p>
+
+                  {/* Footer Social Icons */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {activeFooterSocials.map((item) => (
+                      <a
+                        key={item.id}
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={item.platform}
+                        className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center transition-all hover:scale-110"
+                      >
+                        <SocialIcon link={item} className="w-3 h-3" size={12} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick Links */}
+                {previewDevice !== 'phone' && (
+                  <div className="space-y-1.5 text-[10px]">
+                    <div className="font-bold text-white uppercase tracking-wider">Services & Products</div>
+                    <ul className="space-y-1 text-slate-400">
+                      {(footerForm.servicesLinks || []).slice(0, 3).map((l, i) => (
+                        <li key={i}>
+                          <a href={l.path} target="_blank" rel="noreferrer" className="hover:text-white">
+                            • {l.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Contact */}
+                <div className="space-y-1 text-[10px] text-slate-400">
+                  <div className="font-bold text-white uppercase tracking-wider">Helpline</div>
+                  <div>
+                    <a
+                      href={`mailto:${footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
+                      className="hover:text-indigo-400 font-mono block truncate"
+                    >
+                      ✉ {footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}
+                    </a>
+                  </div>
+                  <div>
+                    <a
+                      href={`https://wa.me/${(footerForm.contactPhone || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hover:text-emerald-400 font-mono block truncate"
+                    >
+                      📞 {footerForm.contactPhone || siteForm.whatsappNumber || '01836126791'}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-500">
+                <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
+                <span className="text-indigo-400 font-semibold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+              </div>
+            </footer>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
       
@@ -1930,7 +2375,7 @@ export const AdminDashboardPage: React.FC = () => {
       </aside>
 
       {/* ================= RIGHT MAIN CONTENT AREA ================= */}
-      <main className="flex-1 p-6 sm:p-10 max-w-7xl overflow-y-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1800px] w-full overflow-y-auto">
         
         {/* ================= PRODUCTS TAB (EXACT VYRQONIX SETUP) ================= */}
         {activeMenu === 'products' && (
@@ -2038,7 +2483,7 @@ export const AdminDashboardPage: React.FC = () => {
                                   FREE
                                 </span>
                               ) : (
-                                <span className="font-extrabold text-slate-900">αº│{p.salePrice ?? p.price}</span>
+                                <span className="font-extrabold text-slate-900">৳{p.salePrice ?? p.price}</span>
                               )}
                             </td>
                             <td className="py-3.5 px-5">
@@ -2194,10 +2639,10 @@ export const AdminDashboardPage: React.FC = () => {
                         onChange={(e) => setProdForm({ ...prodForm, productType: e.target.value as any })}
                         className="w-full sm:w-64 bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-blue-600 focus:bg-white"
                       >
-                        <option value="Template">≡ƒôä Template</option>
-                        <option value="Graphic Asset">≡ƒÄ¿ Graphic Asset</option>
-                        <option value="Software">≡ƒÆ╗ Software</option>
-                        <option value="Game">≡ƒÄ« Game</option>
+                        <option value="Template">📄 Template</option>
+                        <option value="Graphic Asset">🎨 Graphic Asset</option>
+                        <option value="Software">💻 Software</option>
+                        <option value="Game">🎮 Game</option>
                       </select>
                     </div>
 
@@ -2241,7 +2686,7 @@ export const AdminDashboardPage: React.FC = () => {
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        PAID PRODUCT (BDT αº│)
+                        PAID PRODUCT (BDT ৳)
                       </button>
                       <button
                         type="button"
@@ -2252,14 +2697,14 @@ export const AdminDashboardPage: React.FC = () => {
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        FREE GIVEAWAY (αº│0)
+                        FREE GIVEAWAY (৳0)
                       </button>
                     </div>
 
                     {!prodForm.isFree && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                         <div>
-                          <label className="block font-bold text-slate-700 mb-1">Selling Price (BDT αº│) *</label>
+                          <label className="block font-bold text-slate-700 mb-1">Selling Price (BDT ৳) *</label>
                           <input
                             type="number"
                             value={prodForm.price ?? 0}
@@ -2295,7 +2740,7 @@ export const AdminDashboardPage: React.FC = () => {
                             Show Offer / Discount Badge (% OFF) on Product Card
                           </label>
                           <p className="text-[10px] text-slate-500">
-                            αªƒαª┐αªò αªÜαª┐αª╣αºìαª¿ αªªαª┐αª▓αºç αªòαª╛αª░αºìαªíαºçαª░ αªëαª¬αª░ "50% OFF" αª╕αºìαªƒαª┐αªòαª╛αª░ αª╢αºï αªòαª░αª¼αºçαÑñ αªåαª¿αªÜαºçαªò αª░αª╛αªûαª▓αºç αªòαºïαª¿αºï αªàαª½αª╛αª░ αª¼αºìαª»αª╛αª£ αªªαºçαªûαª╛αª¼αºç αª¿αª╛αÑñ
+                            টিক চিহ্ন দিলে কার্ডের উপর "50% OFF" স্টিকার শো করবে। আনচেক রাখলে কোনো অফার ব্যাজ দেখাবে না।
                           </p>
                         </div>
                       </div>
@@ -2313,7 +2758,7 @@ export const AdminDashboardPage: React.FC = () => {
                           3. DIGITAL DELIVERY METHOD & DOWNLOAD SETTINGS
                         </h3>
                         <p className="text-[11px] text-slate-500">
-                          Google Drive αª▓αª┐αªéαªò αªÅαª¼αªé αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªòαºÇ αªºαª░αª¿αºçαª░ αªåαªçαªƒαºçαª« (Game, Software αª¿αª╛αªòαª┐ Graphic Resource) αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αª¼αºç αªñαª╛ αª¿αª┐αª░αºìαªºαª╛αª░αªú αªòαª░αºüαª¿αÑñ
+                          Google Drive লিংক এবং কাস্টমার কী ধরনের আইটেম (Game, Software নাকি Graphic Resource) ডাউনলোড করবে তা নির্ধারণ করুন।
                         </p>
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">
@@ -2321,27 +2766,27 @@ export const AdminDashboardPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* αªÅαªƒαª┐ αªòαºÇ αªºαª░αª¿αºçαª░ αªåαªçαªƒαºçαª«? (Game, Software αª¿αª╛αªòαª┐ Graphic Asset) */}
+                    {/* এটি কী ধরনের আইটেম? (Game, Software নাকি Graphic Asset) */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <label className="font-bold text-slate-700">
-                          αªÅαªƒαª┐ αªòαºÇ αªºαª░αª¿αºçαª░ αªåαªçαªƒαºçαª«? (Game, Software αª¿αª╛αªòαª┐ Graphic Asset) *
+                          এটি কী ধরনের আইটেম? (Game, Software নাকি Graphic Asset) *
                         </label>
                         <span className="text-[11px] text-purple-600 font-semibold">
-                          αª╕αª┐αª▓αºçαªòαºìαªƒ αªòαª░αª▓αºç αª¼αª╛αªƒαª¿αºçαª░ αª▓αª┐αªûαª╛ αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αª╕αºçαªƒ αª╣αª¼αºç
+                          সিলেক্ট করলে বাটনের লিখা স্বয়ংক্রিয়ভাবে সেট হবে
                         </span>
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                          { id: 'Game', label: 'Game', sub: 'PC / Mobile αªùαºçαª«', icon: Gamepad2 },
-                          { id: 'Software', label: 'Software', sub: 'αªƒαºüαª▓αª╕ αª¼αª╛ αª╕αª½αªƒαªôαºƒαºìαª»αª╛αª░', icon: Laptop },
-                          { id: 'Graphic Asset', label: 'Graphic Asset', sub: 'αªùαºìαª░αª╛αª½αª┐αªòαºìαª╕ αª¼αª╛ αªíαª┐αª£αª╛αªçαª¿', icon: Palette },
-                          { id: 'Template', label: 'Template', sub: 'αªƒαºçαª«αª¬αºìαª▓αºçαªƒ αª¼αª╛ αªÑαª┐αª«', icon: FileCode },
+                          { id: 'Game', label: 'Game', sub: 'PC / Mobile গেম', icon: Gamepad2 },
+                          { id: 'Software', label: 'Software', sub: 'টুলস বা সফটওয়্যার', icon: Laptop },
+                          { id: 'Graphic Asset', label: 'Graphic Asset', sub: 'গ্রাফিক্স বা ডিজাইন', icon: Palette },
+                          { id: 'Template', label: 'Template', sub: 'টেমপ্লেট বা থিম', icon: FileCode },
                           ...customTypes.map((ct) => ({
                             id: ct,
                             label: ct,
-                            sub: 'αªòαª╛αª╕αºìαªƒαª« αªåαªçαªƒαºçαª«',
+                            sub: 'কাস্টম আইটেম',
                             icon: Sparkles
                           }))
                         ].map((item) => {
@@ -2380,8 +2825,8 @@ export const AdminDashboardPage: React.FC = () => {
                           className="p-3.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50/60 hover:bg-amber-50/30 text-left transition-all flex flex-col justify-center items-center text-center group"
                         >
                           <Plus className="w-5 h-5 text-slate-400 group-hover:text-amber-600 transition-colors" />
-                          <span className="font-bold text-slate-700 group-hover:text-amber-700 text-xs mt-1">+ αªòαª╛αª╕αºìαªƒαª« αªƒαª╛αªçαª¬</span>
-                          <span className="text-[10px] text-slate-400">αª¿αªñαºüαª¿ αªƒαª╛αªçαª¬ αª»αºïαªù αªòαª░αºüαª¿</span>
+                          <span className="font-bold text-slate-700 group-hover:text-amber-700 text-xs mt-1">+ কাস্টম টাইপ</span>
+                          <span className="text-[10px] text-slate-400">নতুন টাইপ যোগ করুন</span>
                         </button>
                       </div>
 
@@ -2390,7 +2835,7 @@ export const AdminDashboardPage: React.FC = () => {
                         <div className="flex items-center space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-xl mt-3 animate-fadeIn">
                           <input
                             type="text"
-                            placeholder="αª¿αªñαºüαª¿ αªåαªçαªƒαºçαª« αªƒαª╛αªçαª¬αºçαª░ αª¿αª╛αª« αª▓αª┐αªûαºüαª¿ (αª»αºçαª«αª¿: eBook, Plugin, Presets, Course)..."
+                            placeholder="নতুন আইটেম টাইপের নাম লিখুন (যেমন: eBook, Plugin, Presets, Course)..."
                             value={newCustomTypeName}
                             onChange={(e) => setNewCustomTypeName(e.target.value)}
                             className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-amber-600 font-semibold"
@@ -2408,7 +2853,7 @@ export const AdminDashboardPage: React.FC = () => {
                             className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1"
                           >
                             <Check className="w-3.5 h-3.5" />
-                            <span>αª»αºïαªù αªòαª░αºüαª¿</span>
+                            <span>যোগ করুন</span>
                           </button>
                           <button
                             type="button"
@@ -2438,18 +2883,18 @@ export const AdminDashboardPage: React.FC = () => {
                         className="w-full bg-white border border-slate-300 rounded-lg p-2.5 font-mono text-xs focus:outline-none focus:border-blue-600"
                       />
                       <p className="text-[10px] text-slate-500">
-                        Google Drive-αªÅ αª½αª╛αªçαª▓ (αªùαºçαª«, αª╕αª½αªƒαªôαºƒαºìαª»αª╛αª░, αªàαªÑαª¼αª╛ αª£αª┐αª¬ αª½αª╛αªçαª▓) αªåαª¬αª▓αºïαªí αªòαª░αºç "Anyone with the link can view" αª¬αª╛αª░αª«αª┐αª╢αª¿ αªªαª┐αºƒαºç αª╢αºçαºƒαª╛αª░ αª▓αª┐αªéαªòαªƒαª┐ αªÅαªûαª╛αª¿αºç αªªαª┐αª¿αÑñ αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªàαª░αºìαªíαª╛αª░ αªòαª¿αª½αª╛αª░αºìαª« αª╣αª▓αºç αªÅαªç αª╕αºüαª░αªòαºìαª╖αª┐αªñ αª▓αª┐αªéαªò αªÑαºçαªòαºç αª½αª╛αªçαª▓ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αªñαºç αª¬αª╛αª░αª¼αºçαª¿αÑñ
+                        Google Drive-এ ফাইল (গেম, সফটওয়্যার, অথবা জিপ ফাইল) আপলোড করে "Anyone with the link can view" পারমিশন দিয়ে শেয়ার লিংকটি এখানে দিন। কাস্টমার অর্ডার কনফার্ম হলে এই সুরক্ষিত লিংক থেকে ফাইল ডাউনলোড করতে পারবেন।
                       </p>
                     </div>
 
-                    {/* αªíαª╛αªëαª¿αª▓αºïαªí αª¼αª╛αªƒαª¿ αª▓αª┐αªûαª╛ / Download Button Text */}
+                    {/* ডাউনলোড বাটন লিখা / Download Button Text */}
                     <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/30 space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-purple-900">
-                          ≡ƒÅ╖∩╕Å αªíαª╛αªëαª¿αª▓αºïαªí αª¼αª╛αªƒαª¿ αª▓αª┐αªûαª╛ / Download Button Text (αªòαª╛αª╕αºìαªƒαª«αª╛αªçαª£αºçαª╢αª¿)
+                          🏷️ ডাউনলোড বাটন লিখা / Download Button Text (কাস্টমাইজেশন)
                         </span>
                         <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-semibold">
-                          αªôαºƒαºçαª¼αª╕αª╛αªçαªƒαºç αª¼αª╛αªƒαª¿αºçαª░ αªëαª¬αª░ αª╕αª░αª╛αª╕αª░αª┐ αªªαºçαªûαª╛αª¼αºç
+                          ওয়েবসাইটে বাটনের উপর সরাসরি দেখাবে
                         </span>
                       </div>
 
@@ -2463,7 +2908,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                       {/* Quick Select Buttons */}
                       <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold text-slate-600 block">αªÅαªò αªòαºìαª▓αª┐αªòαºç αª¼αª╛αªƒαª¿αºçαª░ αªƒαºçαªòαºìαª╕αªƒ αª¬αª¢αª¿αºìαªª αªòαª░αºüαª¿:</span>
+                        <span className="text-[10px] font-bold text-slate-600 block">এক ক্লিকে বাটনের টেক্সট পছন্দ করুন:</span>
                         <div className="flex flex-wrap gap-1.5">
                           {[
                             'Download Free Game',
@@ -2486,80 +2931,80 @@ export const AdminDashboardPage: React.FC = () => {
                           ))}
                         </div>
                         <p className="text-[10px] text-slate-500 pt-1">
-                          ≡ƒÆí αª½αª╛αªüαªòαª╛ αª░αª╛αªûαª▓αºç αª¬αºìαª░αºïαªíαª╛αªòαºìαªƒαºçαª░ αªƒαª╛αªçαª¬ (Game / Software / Resource) αªàαª¿αºüαª»αª╛αºƒαºÇ αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αª╕αªáαª┐αªò αª¿αª╛αª« αª¼αª╛αªƒαª¿αºç αªÜαª▓αºç αªåαª╕αª¼αºçαÑñ
+                          💡 ফাঁকা রাখলে প্রোডাক্টের টাইপ (Game / Software / Resource) অনুযায়ী স্বয়ংক্রিয়ভাবে সঠিক নাম বাটনে চলে আসবে।
                         </p>
                       </div>
                     </div>
 
-                    {/* ZIP / αª½αª╛αªçαª▓ αªåαª¿αª£αª┐αª¬ αªòαª░αª╛αª░ αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional) */}
+                    {/* ZIP / ফাইল আনজিপ করার পাসওয়ার্ড (ঐচ্ছিক / Optional) */}
                     <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/20 space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-purple-900 flex items-center space-x-1.5">
                           <KeyRound className="w-3.5 h-3.5 text-purple-600" />
-                          <span>ZIP / αª½αª╛αªçαª▓ αªåαª¿αª£αª┐αª¬ αªòαª░αª╛αª░ αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional)</span>
+                          <span>ZIP / ফাইল আনজিপ করার পাসওয়ার্ড (ঐচ্ছিক / Optional)</span>
                         </span>
                         <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-semibold">
-                          αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí αª¿αª╛ αªÑαª╛αªòαª▓αºç αª½αª╛αªüαªòαª╛ αª░αª╛αªûαºüαª¿
+                          পাসওয়ার্ড না থাকলে ফাঁকা রাখুন
                         </span>
                       </div>
                       <input
                         type="text"
                         value={prodForm.zipPassword || ''}
                         onChange={(e) => setProdForm({ ...prodForm, zipPassword: e.target.value })}
-                        placeholder="αª»αºçαª«αª¿: 1234 αª¼αª╛ MG2026 (αª¿αª╛ αªÑαª╛αªòαª▓αºç αªûαª╛αª▓αª┐ αª░αª╛αªûαºüαª¿)"
+                        placeholder="যেমন: 1234 বা MG2026 (না থাকলে খালি রাখুন)"
                         className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-purple-600"
                       />
                       <p className="text-[10px] text-slate-500">
-                        ≡ƒÆí <strong>αªòαªûαª¿ αªªαª┐αª¼αºçαª¿?</strong> αª½αª╛αªçαª▓αªƒαª┐αªñαºç αª»αªªαª┐ αªåαª¿αª£αª┐αª¬ αªòαª░αª╛αª░ αªòαºïαª¿αºï αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí αªÑαª╛αªòαºç (αª»αºçαª«αª¿ αº¬ αª╕αªéαªûαºìαª»αª╛αª░ αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí), αªñαª¼αºç αª╕αºçαªƒαª┐ αªÅαªûαª╛αª¿αºç αªªαª┐αª¿αÑñ αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªàαª░αºìαªíαª╛αª░ αª╕αª½αª▓ αª╣αªôαºƒαª╛αª░ αª¬αª░ αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αªÅαªòαªƒαª┐ αª╕αºüαª¿αºìαªªαª░ αª¿αºïαªƒαª┐αª╢αºç αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí αªô αªòαª¬αª┐ αª¼αª╛αªƒαª¿ αªªαºçαªûαªñαºç αª¬αª╛αª¼αºçαÑñ
+                        💡 <strong>কখন দিবেন?</strong> ফাইলটিতে যদি আনজিপ করার কোনো পাসওয়ার্ড থাকে (যেমন ৪ সংখ্যার পাসওয়ার্ড), তবে সেটি এখানে দিন। কাস্টমার অর্ডার সফল হওয়ার পর স্বয়ংক্রিয়ভাবে একটি সুন্দর নোটিশে পাসওয়ার্ড ও কপি বাটন দেখতে পাবে।
                       </p>
                     </div>
 
-                    {/* αªòαºÇαª¡αª╛αª¼αºç αªòαª┐ αªòαª░αªñαºç αª╣αª¼αºç / αªçαª¿αºìαª╕αªƒαª▓αºçαª╢αª¿ αªùαª╛αªçαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional) */}
+                    {/* কীভাবে কি করতে হবে / ইন্সটলেশন গাইড (ঐচ্ছিক / Optional) */}
                     <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/30 space-y-2.5">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-amber-900 flex items-center space-x-1.5">
                           <FileText className="w-3.5 h-3.5 text-amber-600" />
-                          <span>αªòαºÇαª¡αª╛αª¼αºç αªòαª┐ αªòαª░αªñαºç αª╣αª¼αºç / αªçαª¿αºìαª╕αªƒαª▓αºçαª╢αª¿ αªùαª╛αªçαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional)</span>
+                          <span>কীভাবে কি করতে হবে / ইন্সটলেশন গাইড (ঐচ্ছিক / Optional)</span>
                         </span>
                         <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded font-semibold">
-                          αªíαª╛αªëαª¿αª▓αºïαªí αª¬αª¬αªåαª¬αºç αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªªαºçαªûαªñαºç αª¬αª╛αª¼αºç
+                          ডাউনলোড পপআপে কাস্টমার দেখতে পাবে
                         </span>
                       </div>
                       <textarea
                         rows={3}
                         value={prodForm.installGuide || ''}
                         onChange={(e) => setProdForm({ ...prodForm, installGuide: e.target.value })}
-                        placeholder="αª»αºçαª«αª¿: αºº. αª£αª┐αª¬ αª½αª╛αªçαª▓αªƒαª┐ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αºç αªåαª¿αª£αª┐αª¬ αªòαª░αºüαª¿αÑñ αº¿. αªåαª¿αª£αª┐αª¬ αªòαª░αªñαºç αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí MG2026 αªªαª┐αª¿αÑñ αº⌐. Setup.exe αª░αª╛αª¿ αªòαª░αºç αªçαª¿αºìαª╕αªƒαª▓ αªòαª░αºüαª¿..."
+                        placeholder="যেমন: ১. জিপ ফাইলটি ডাউনলোড করে আনজিপ করুন। ২. আনজিপ করতে পাসওয়ার্ড MG2026 দিন। ৩. Setup.exe রান করে ইন্সটল করুন..."
                         className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:outline-none focus:border-amber-600"
                       />
 
                       {/* Quick preset guidelines */}
                       <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <span className="text-[10px] font-bold text-slate-600">αªªαºìαª░αºüαªñ αªùαª╛αªçαªíαª▓αª╛αªçαª¿ αª╕αª┐αª▓αºçαªòαºìαªƒ αªòαª░αºüαª¿:</span>
+                        <span className="text-[10px] font-bold text-slate-600">দ্রুত গাইডলাইন সিলেক্ট করুন:</span>
                         <button
                           type="button"
-                          onClick={() => setProdForm({ ...prodForm, installGuide: 'αºº. αª½αª╛αªçαª▓αªƒαª┐ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αºç αªåαª¿αª£αª┐αª¬ αªòαª░αºüαª¿αÑñ\nαº¿. αª¬αºìαª░αª»αª╝αºïαª£αª¿αºÇαª»αª╝ αª½αºïαª▓αºìαªíαª╛αª░ αªÅαªòαºìαª╕αªƒαºìαª░αª╛αªòαºìαªƒ αªòαª░αºç αªùαºçαª«αªƒαª┐ αªÜαª╛αª▓αºü αªòαª░αºüαª¿αÑñ' })}
+                          onClick={() => setProdForm({ ...prodForm, installGuide: '১. ফাইলটি ডাউনলোড করে আনজিপ করুন।\n২. প্রয়োজনীয় ফোল্ডার এক্সট্রাক্ট করে গেমটি চালু করুন।' })}
                           className="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-amber-500 text-[10px] font-semibold text-slate-700"
                         >
-                          ≡ƒÄ« αªùαºçαª« αªçαª¿αºìαª╕αªƒαª▓ αªùαª╛αªçαªí
+                          🎮 গেম ইন্সটল গাইড
                         </button>
                         <button
                           type="button"
-                          onClick={() => setProdForm({ ...prodForm, installGuide: 'αºº. αª£αª┐αª¬ αª½αª╛αªçαª▓αªƒαª┐ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αºüαª¿αÑñ\nαº¿. αª╕αºçαªƒαªåαª¬ αª½αª╛αªçαª▓αªƒαª┐ αª░αª╛αª¿ αªòαª░αºç αª¿αª┐αª░αºìαªªαºçαª╢αª¿αª╛ αªàαª¿αºüαª»αª╛αºƒαºÇ αªçαª¿αºìαª╕αªƒαª▓ αª╕αª«αºìαª¬αª¿αºìαª¿ αªòαª░αºüαª¿αÑñ' })}
+                          onClick={() => setProdForm({ ...prodForm, installGuide: '১. জিপ ফাইলটি ডাউনলোড করুন।\n২. সেটআপ ফাইলটি রান করে নির্দেশনা অনুযায়ী ইন্সটল সম্পন্ন করুন।' })}
                           className="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-amber-500 text-[10px] font-semibold text-slate-700"
                         >
-                          ≡ƒÆ╗ αª╕αª½αªƒαªôαºƒαºìαª»αª╛αª░ αªùαª╛αªçαªí
+                          💻 সফটওয়্যার গাইড
                         </button>
                         <button
                           type="button"
-                          onClick={() => setProdForm({ ...prodForm, installGuide: 'αºº. αª¡αºçαªòαºìαªƒαª░ αª¼αª╛ αªƒαºçαª«αª¬αºìαª▓αºçαªƒ αª½αª╛αªçαª▓αªƒαª┐ αªôαª¬αºçαª¿ αªòαª░αºüαª¿αÑñ\nαº¿. αª½αª¿αºìαªƒ αªô αªòαª╛αª▓αª╛αª░ αªåαª¬αª¿αª╛αª░ αª¼αºìαª░αºìαª»αª╛αª¿αºìαªí αªàαª¿αºüαª»αª╛αºƒαºÇ αª¬αª░αª┐αª¼αª░αºìαªñαª¿ αªòαª░αºüαª¿αÑñ' })}
+                          onClick={() => setProdForm({ ...prodForm, installGuide: '১. ভেক্টর বা টেমপ্লেট ফাইলটি ওপেন করুন।\n২. ফন্ট ও কালার আপনার ব্র্যান্ড অনুযায়ী পরিবর্তন করুন।' })}
                           className="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-amber-500 text-[10px] font-semibold text-slate-700"
                         >
-                          ≡ƒÄ¿ αªùαºìαª░αª╛αª½αª┐αªòαºìαª╕ / αªíαª┐αª£αª╛αªçαª¿ αªùαª╛αªçαªí
+                          🎨 গ্রাফিক্স / ডিজাইন গাইড
                         </button>
                       </div>
                       <p className="text-[10px] text-slate-500">
-                        ≡ƒÆí αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αª»αªûαª¿ αªíαª╛αªëαª¿αª▓αºïαªí αª¼αª╛αªƒαª¿αºç αªòαºìαª▓αª┐αªò αªòαª░αª¼αºç, αªñαªûαª¿ αªÅαªç αª¿αª┐αºƒαª«αª╛αª¼αª▓αºÇαªƒαª┐ αª¬αª¬αªåαª¬αºç αªªαºçαªûαªñαºç αª¬αª╛αª¼αºçαÑñ
+                        💡 কাস্টমার যখন ডাউনলোড বাটনে ক্লিক করবে, তখন এই নিয়মাবলীটি পপআপে দেখতে পাবে।
                       </p>
                     </div>
 
@@ -2569,10 +3014,10 @@ export const AdminDashboardPage: React.FC = () => {
                         <div>
                           <span className="font-bold text-slate-800 text-xs flex items-center space-x-1.5">
                             <FolderTree className="w-3.5 h-3.5 text-blue-600" />
-                            <span>αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª¿αª┐αª░αºìαª¼αª╛αªÜαª¿ / Category Selection (αªåαª¬αª¿αª╛αª░ αª╕αª«αª╕αºìαªñ αªñαºêαª░αª┐ αªòαª░αª╛ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐) *</span>
+                            <span>ক্যাটাগরি নির্বাচন / Category Selection (আপনার সমস্ত তৈরি করা ক্যাটাগরি) *</span>
                           </span>
                           <p className="text-[10px] text-slate-500">
-                            αªåαªùαºç αªñαºêαª░αª┐ αªòαª░αª╛ αª»αºçαªòαºïαª¿αºï αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª¿αª┐αª░αºìαª¼αª╛αªÜαª¿ αªòαª░αºüαª¿ αªàαªÑαª¼αª╛ αª¿αªñαºüαª¿ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª»αºïαªù αªòαª░αºüαª¿αÑñ
+                            আগে তৈরি করা যেকোনো ক্যাটাগরি নির্বাচন করুন অথবা নতুন ক্যাটাগরি যোগ করুন।
                           </p>
                         </div>
                         
@@ -2589,11 +3034,11 @@ export const AdminDashboardPage: React.FC = () => {
                       {/* Quick Category Add Input if open */}
                       {isAddingQuickCategory && (
                         <div className="p-3 bg-white border border-blue-200 rounded-xl space-y-2 shadow-sm animate-fadeIn">
-                          <span className="text-[11px] font-bold text-blue-900 block">αª¿αªñαºüαª¿ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª»αºïαªù αªòαª░αºüαª¿:</span>
+                          <span className="text-[11px] font-bold text-blue-900 block">নতুন ক্যাটাগরি যোগ করুন:</span>
                           <div className="flex items-center space-x-2">
                             <input
                               type="text"
-                              placeholder="αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐αª░ αª¿αª╛αª« αª▓αª┐αªûαºüαª¿ (αª»αºçαª«αª¿: Gaming Mods, Software Tools)..."
+                              placeholder="ক্যাটাগরির নাম লিখুন (যেমন: Gaming Mods, Software Tools)..."
                               value={quickCategoryName}
                               onChange={(e) => setQuickCategoryName(e.target.value)}
                               className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600 font-semibold"
@@ -2645,7 +3090,7 @@ export const AdminDashboardPage: React.FC = () => {
                               {c.iconUrl ? (
                                 <img src={c.iconUrl} alt={c.name} className="w-3.5 h-3.5 rounded object-cover" />
                               ) : (
-                                <span>≡ƒôü</span>
+                                <span>📁</span>
                               )}
                               <span>{c.name}</span>
                               {isSel && <Check className="w-3 h-3 text-white" />}
@@ -2669,11 +3114,11 @@ export const AdminDashboardPage: React.FC = () => {
                           <span>4. PREVIEW IMAGES & PHOTOS</span>
                         </h3>
                         <p className="text-[11px] text-slate-500">
-                          αª¢αª¼αª┐ αªíαºìαª░αºìαª»αª╛αªù αªô αªíαºìαª░αª¬ αªòαª░αºüαª¿, αª╕αª░αª╛αª╕αª░αª┐ <strong className="text-blue-700">Ctrl + V αªªαª┐αºƒαºç αª¬αºçαª╕αºìαªƒ</strong> αªòαª░αºüαª¿, αªàαªÑαª¼αª╛ αªòαª«αºìαª¬αª┐αªëαªƒαª╛αª░ αªÑαºçαªòαºç αª╕αª┐αª▓αºçαªòαºìαªƒ αªòαª░αºüαª¿ (1080├ù1080 αª░αºçαª╢αª┐αªô)αÑñ
+                          ছবি ড্র্যাগ ও ড্রপ করুন, সরাসরি <strong className="text-blue-700">Ctrl + V দিয়ে পেস্ট</strong> করুন, অথবা কম্পিউটার থেকে সিলেক্ট করুন (1080×1080 রেশিও)।
                         </p>
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px] self-start sm:self-auto">
-                        {prodForm.thumbnailUrl ? 'Γ£à 1 Photo Active' : '0 Photos Selected'}
+                        {prodForm.thumbnailUrl ? '✅ 1 Photo Active' : '0 Photos Selected'}
                       </span>
                     </div>
 
@@ -2731,7 +3176,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Click to Upload Photo
                             </span>
                             <span className="text-[10px] text-slate-400 block">
-                              αª¼αª╛ αªíαºìαª░αºìαª»αª╛αªù αªòαª░αºç αª½αª╛αªçαª▓ αª¢αª╛αº£αºüαª¿
+                              বা ড্র্যাগ করে ফাইল ছাড়ুন
                             </span>
                           </div>
                         )}
@@ -2773,13 +3218,13 @@ export const AdminDashboardPage: React.FC = () => {
                         {/* Direct URL input */}
                         <div>
                           <label className="block font-bold text-slate-600 mb-1 text-[11px]">
-                            αªàαªÑαª¼αª╛ αª╕αª░αª╛αª╕αª░αª┐ αªçαª«αºçαª£ αª▓αª┐αªéαªò (Image URL) αª¬αºçαª╕αºìαªƒ αªòαª░αºüαª¿:
+                            অথবা সরাসরি ইমেজ লিংক (Image URL) পেস্ট করুন:
                           </label>
                           <input
                             type="text"
                             value={prodForm.thumbnailUrl || ''}
                             onChange={(e) => setProdForm({ ...prodForm, thumbnailUrl: e.target.value })}
-                            placeholder="https://images.unsplash.com/... αªàαªÑαª¼αª╛ αª»αºçαªòαºïαª¿αºï αª¢αª¼αª┐ URL"
+                            placeholder="https://images.unsplash.com/... অথবা যেকোনো ছবি URL"
                             className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-600 focus:bg-white"
                           />
                         </div>
@@ -2790,7 +3235,7 @@ export const AdminDashboardPage: React.FC = () => {
                             <span className="font-bold animate-pulse">{imageUploadStatus}</span>
                           ) : (
                             <span>
-                              ≡ƒÆí <strong>αªƒαª┐αª¬αª╕:</strong> αªåαª¬αª¿αª┐ Snipping Tool, Photoshop αª¼αª╛ αªôαºƒαºçαª¼αª╕αª╛αªçαªƒ αªÑαºçαªòαºç αª»αºçαªòαºïαª¿αºï αª¢αª¼αª┐ αªòαª¬αª┐ αªòαª░αºç αª╕αª░αª╛αª╕αª░αª┐ αªÅαªç αª¬αºçαª£αºç <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono font-bold text-slate-700">Ctrl + V</kbd> αª¬αºìαª░αºçαª╕ αªòαª░αª▓αºçαªç αª¢αª¼αª┐ αªñαª╛αºÄαªòαºìαª╖αªúαª┐αªò αª»αºüαªòαºìαªñ αª╣αºƒαºç αª»αª╛αª¼αºç!
+                              💡 <strong>টিপস:</strong> আপনি Snipping Tool, Photoshop বা ওয়েবসাইট থেকে যেকোনো ছবি কপি করে সরাসরি এই পেজে <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono font-bold text-slate-700">Ctrl + V</kbd> প্রেস করলেই ছবি তাৎক্ষণিক যুক্ত হয়ে যাবে!
                             </span>
                           )}
                         </div>
@@ -2895,7 +3340,7 @@ export const AdminDashboardPage: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <label className="font-bold text-slate-700">Category Photo / Icon *</label>
                       <span className="text-[10px] text-purple-600 bg-purple-50 border border-purple-200/60 px-2 py-0.5 rounded font-bold">
-                        300├ù225 (4:3 Card)
+                        300×225 (4:3 Card)
                       </span>
                     </div>
 
@@ -3104,7 +3549,7 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">VERIFIED REVENUE</span>
-                <div className="text-3xl font-black text-emerald-600 mt-2">αº│{verifiedRevenue}</div>
+                <div className="text-3xl font-black text-emerald-600 mt-2">৳{verifiedRevenue}</div>
                 <span className="text-[11px] text-slate-400 mt-1 block">From {orders.filter(o => o.paymentStatus === 'verified').length} orders</span>
               </div>
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
@@ -3419,7 +3864,7 @@ export const AdminDashboardPage: React.FC = () => {
                         <span className="font-semibold text-slate-900 block">{ord.customerName}</span>
                         <span className="text-[11px] text-slate-400">{ord.customerEmail}</span>
                       </td>
-                      <td className="py-3.5 px-5 font-black text-slate-900">αº│{ord.totalAmount}</td>
+                      <td className="py-3.5 px-5 font-black text-slate-900">৳{ord.totalAmount}</td>
                       <td className="py-3.5 px-5 text-slate-600 font-medium">
                         {ord.paymentMethod}
                         {ord.paymentDetails?.transactionId && (
@@ -3558,7 +4003,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {/* Slide Image Box */}
                     <div className="space-y-2">
                       <label className="block font-bold text-slate-700">
-                        Slide Image (Recommended: 1200├ù520px or 1024├ù440px | 2.3:1 Wide Ratio) *
+                        Slide Image (Recommended: 1200×520px or 1024×440px | 2.3:1 Wide Ratio) *
                       </label>
 
                       <input
@@ -3589,7 +4034,7 @@ export const AdminDashboardPage: React.FC = () => {
                             className="px-3.5 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-full font-bold text-[11px] hover:bg-purple-100 transition-colors flex items-center space-x-1"
                           >
                             <Sparkles className="w-3 h-3 text-purple-600" />
-                            <span>Use Perfect 1200├ù520 Banner</span>
+                            <span>Use Perfect 1200×520 Banner</span>
                           </button>
                         </div>
 
@@ -3631,10 +4076,10 @@ export const AdminDashboardPage: React.FC = () => {
                       />
                       <label htmlFor="pureBannerCheckbox" className="text-xs text-slate-800 cursor-pointer">
                         <span className="font-extrabold text-amber-950 block">
-                          Full Banner Graphic (αª¢αª¼αª┐αªñαºçαªç αªíαª┐αª£αª╛αªçαª¿ αªô αª▓αºçαªûαª╛ αªåαª¢αºç)
+                          Full Banner Graphic (ছবিতেই ডিজাইন ও লেখা আছে)
                         </span>
                         <span className="text-[11px] text-slate-500 block mt-0.5">
-                          αªƒαª┐αªò αªªαºçαªôαºƒαª╛ αªÑαª╛αªòαª▓αºç αª¢αª¼αª┐αª░ αªôαª¬αª░ αªåαª▓αª╛αªªαª╛ αªòαºïαª¿αºï αªòαª╛αª▓αºï αª╢αºìαª»αª╛αªíαºï αª¼αª╛ αªíαºüαª¬αºìαª▓αª┐αªòαºçαªƒ αª▓αºçαªûαª╛ αª¼αª╕αª¼αºç αª¿αª╛αÑñ αªåαª¬αª¿αª╛αª░ αªåαª¬αª▓αºïαªí αªòαª░αª╛ αª¢αª¼αª┐αªƒαª┐ αª½αºüαª▓ αªòαºìαª▓αª┐αºƒαª╛αª░ αªÑαª╛αªòαª¼αºç αªÅαª¼αªé αªàαºìαª»αª╛αª¿αª┐αª«αºçαª╢αª¿ αª╣αª¼αºçαÑñ
+                          টিক দেওয়া থাকলে ছবির ওপর আলাদা কোনো কালো শ্যাডো বা ডুপ্লিকেট লেখা বসবে না। আপনার আপলোড করা ছবিটি ফুল ক্লিয়ার থাকবে এবং অ্যানিমেশন হবে।
                         </span>
                       </label>
                     </div>
@@ -3707,10 +4152,10 @@ export const AdminDashboardPage: React.FC = () => {
                       <div>
                         <h3 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-indigo-700">
                           <Sparkles className="w-4 h-4 text-indigo-600 animate-spin-slow" />
-                          <span>LIVE HOMEPAGE PREVIEW (αªôαºƒαºçαª¼αª╕αª╛αªçαªƒαºç αª»αºçαª«αª¿ αªªαºçαªûαª╛αª¼αºç)</span>
+                          <span>LIVE HOMEPAGE PREVIEW (ওয়েবসাইটে যেমন দেখাবে)</span>
                         </h3>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          αª╕αºìαª▓αª╛αªçαªí αªòαª░αºç αªªαºçαªûαºüαª¿, αª▓αºçαªûαª╛ αªô αª¢αª¼αª┐αª░ αªàαºìαª»αª╛αª¿αª┐αª«αºçαª╢αª¿ αªªαºçαªûαºüαª¿ αªÅαª¼αªé αª½αºüαª▓ αªôαºƒαºçαª¼ αª▓αºçαªåαªëαªƒ αª¬αºìαª░αª┐αª¡αª┐αªë αªòαª░αºüαª¿:
+                          স্লাইড করে দেখুন, লেখা ও ছবির অ্যানিমেশন দেখুন এবং ফুল ওয়েব লেআউট প্রিভিউ করুন:
                         </p>
                       </div>
 
@@ -3775,7 +4220,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 }`}
                               >
                                 <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                                <span>Preview Uploaded Picture (αª▓αª╛αªçαª¡ αªåαª¬αª¿αª╛αª░ αª¢αª¼αª┐)</span>
+                                <span>Preview Uploaded Picture (লাইভ আপনার ছবি)</span>
                                 {previewFocusUploaded && <Check className="w-3.5 h-3.5" />}
                               </button>
                               <button
@@ -3988,7 +4433,7 @@ export const AdminDashboardPage: React.FC = () => {
                                             <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
                                           </div>
                                           <div className="absolute -top-1 -left-1 px-2 py-0.5 rounded-lg bg-slate-900/80 border border-amber-400/40 text-[8px] font-black text-amber-300 animate-float flex items-center space-x-1">
-                                            <span>≡ƒÜÇ</span>
+                                            <span>🚀</span>
                                             <span>Instant</span>
                                           </div>
                                         </div>
@@ -4037,8 +4482,8 @@ export const AdminDashboardPage: React.FC = () => {
                                       <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin-slow" />
                                       <span>
                                         {isUploadedFocused
-                                          ? 'Γ£¿ Live Uploaded Picture (αªåαª¬αª¿αª╛αª░ αª¢αª¼αª┐ αªàαºìαª»αª╛αª¿αª┐αª«αºçαª╢αª¿αª╕αª╣)'
-                                          : 'Γ£¿ Clean Graphic Banner (αª½αºüαª▓ αª¼αºìαª»αª╛αª¿αª╛αª░ αª«αºïαªí)'}
+                                          ? '✨ Live Uploaded Picture (আপনার ছবি অ্যানিমেশনসহ)'
+                                          : '✨ Clean Graphic Banner (ফুল ব্যানার মোড)'}
                                       </span>
                                     </span>
                                   </div>
@@ -4305,7 +4750,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Top Poster (Wide Banner)
                             </span>
                             <span className="text-[11px] text-slate-400 block">
-                              e.g. LinkedIn Premium Up To 90% Discount (~800├ù380px)
+                              e.g. LinkedIn Premium Up To 90% Discount (~800×380px)
                             </span>
                           </div>
                         </div>
@@ -4331,7 +4776,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Bottom-Left Poster
                             </span>
                             <span className="text-[11px] text-slate-400 block">
-                              e.g. Canva / Promo (~400├ù320px or 16:10)
+                              e.g. Canva / Promo (~400×320px or 16:10)
                             </span>
                           </div>
                         </div>
@@ -4357,7 +4802,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Bottom-Right Poster
                             </span>
                             <span className="text-[11px] text-slate-400 block">
-                              e.g. Adobe / Promo (~400├ù320px or 16:10)
+                              e.g. Adobe / Promo (~400×320px or 16:10)
                             </span>
                           </div>
                         </div>
@@ -4398,7 +4843,7 @@ export const AdminDashboardPage: React.FC = () => {
                             className="px-3.5 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-full font-bold text-[11px] hover:bg-purple-100 transition-colors flex items-center space-x-1"
                           >
                             <Sparkles className="w-3 h-3 text-purple-600" />
-                            <span>Use Perfect 720├ù380 Side Poster</span>
+                            <span>Use Perfect 720×380 Side Poster</span>
                           </button>
                         </div>
 
@@ -5705,10 +6150,10 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Settings Form Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left 2 Cols: Editable Fields */}
-              <div className="lg:col-span-2 space-y-6">
+            {/* Settings Form Grid (Side-by-Side with Live Preview) */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Editable Fields (7 cols) */}
+              <div className="xl:col-span-7 space-y-6">
                 {/* Brand Identity Card */}
                 <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
                   <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -5902,106 +6347,9 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Right Column: Live Mockup & Quick Actions */}
-              <div className="space-y-6">
-                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4 sticky top-6">
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <Eye className="w-4 h-4 text-indigo-600" />
-                    Live Brand Preview
-                  </h2>
-
-                  <p className="text-xs text-slate-500">
-                    Real-time preview of your brand identity as rendered in the live header.
-                  </p>
-
-                  {/* Header Brand Unit Mockup */}
-                  <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm space-y-3">
-                    <div className="text-[10px] uppercase font-bold text-slate-400">Navbar Brand Appearance</div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-md flex items-center justify-center">
-                        {siteForm.logoUrl ? (
-                          <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-[10px]" />
-                        ) : (
-                          <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white font-black text-xs">
-                            EE
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-base font-black tracking-tight text-slate-900 flex items-center gap-1">
-                          <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
-                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                            {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
-                          </span>
-                        </div>
-                        <div className="text-[9px] font-extrabold tracking-widest text-slate-400 uppercase">
-                          {siteForm.tagline || 'YOUR DIGITAL WORLD'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Chat Support Pill Mockup */}
-                  <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm space-y-2">
-                    <div className="text-[10px] uppercase font-bold text-slate-400">Header Chat Support Button</div>
-                    <a
-                      href={`https://wa.me/${(siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Chat Support</span>
-                      <span className="font-mono text-[11px] text-emerald-800">({siteForm.whatsappNumber || '01836126791'})</span>
-                    </a>
-                  </div>
-
-                  {/* Footer Brand Presentation Mockup */}
-                  <div className="rounded-xl border border-slate-200/90 bg-slate-900 text-white p-4 shadow-sm space-y-3">
-                    <div className="text-[10px] uppercase font-bold text-slate-400">Footer Brand Unit Mockup</div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
-                        {siteForm.logoUrl ? (
-                          <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-lg" />
-                        ) : (
-                          <span className="text-[10px] font-black text-white">EE</span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-sm font-black tracking-tight text-white">
-                          {siteForm.brandName || 'Eagle Eye Digital'}
-                        </div>
-                        <div className="text-[9px] font-semibold text-indigo-400 tracking-wider uppercase">
-                          {siteForm.tagline || 'YOUR DIGITAL WORLD'}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
-                      <span>{siteForm.businessEmail || 'support@eagleeyedigital.com'}</span>
-                      <span className="font-mono text-emerald-400">{siteForm.whatsappNumber || '01836126791'}</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsLiveWebPreviewOpen(true)}
-                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
-                    >
-                      <Eye className="w-4 h-4 text-amber-400" />
-                      <span>Open Full Website Live Preview</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveSiteSettings}
-                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Save className="w-4 h-4" />
-                      Save & Publish Settings
-                    </button>
-                  </div>
-                </div>
+              {/* Right Column: Interactive Live Preview Pane (5 cols) */}
+              <div className="xl:col-span-5">
+                {renderInteractiveWebsitePreviewPane()}
               </div>
             </div>
           </div>
@@ -7367,7 +7715,7 @@ export const AdminDashboardPage: React.FC = () => {
             </h3>
             <div className="space-y-2 text-slate-600">
               <p><strong>Customer:</strong> {selectedOrder.customerName} ({selectedOrder.customerEmail})</p>
-              <p><strong>Total Amount:</strong> αº│{selectedOrder.totalAmount} BDT</p>
+              <p><strong>Total Amount:</strong> ৳{selectedOrder.totalAmount} BDT</p>
               <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
               {selectedOrder.paymentDetails?.transactionId && (
                 <p><strong>Trx ID:</strong> <span className="font-mono text-blue-600">{selectedOrder.paymentDetails.transactionId}</span></p>
@@ -7645,9 +7993,9 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* ================= ADD / EDIT ADMIN MODAL ================= */}
       {isAdminModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-xl w-full p-6 sm:p-7 space-y-5 text-xs animate-in fade-in zoom-in duration-150 my-8">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col text-xs animate-in fade-in zoom-in duration-150 overflow-hidden">
+            <div className="flex items-center justify-between p-5 pb-4 border-b border-slate-100 flex-shrink-0 bg-white">
               <div className="flex items-center space-x-2.5">
                 <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/25">
                   <UserPlus className="w-4 h-4" />
@@ -7670,17 +8018,18 @@ export const AdminDashboardPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveAdminForm} className="space-y-4">
-              {/* Registration Error Alert */}
-              {adminFormError && (
-                <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-start space-x-2 animate-in fade-in">
-                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <strong className="block font-bold">লগইন ছাড়া অ্যাডমিন দেওয়া যাবে না!</strong>
-                    <span className="text-[11px] leading-relaxed block mt-0.5">{adminFormError}</span>
+            <form onSubmit={handleSaveAdminForm} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                {/* Registration Error Alert */}
+                {adminFormError && (
+                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-start space-x-2 animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <strong className="block font-bold">লগইন ছাড়া অ্যাডমিন দেওয়া যাবে না!</strong>
+                      <span className="text-[11px] leading-relaxed block mt-0.5 break-words font-medium">{adminFormError}</span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Name & Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -7981,40 +8330,41 @@ export const AdminDashboardPage: React.FC = () => {
                   <strong>২.</strong> যদি তিনি লগইন না করে থাকেন, তবে সিস্টেম তাকে অ্যাডমিন হতে দিবে না। লগইন সম্পন্ন করার পর এখানে তার জিমেইলটি দিয়ে <strong>Save & Assign Role</strong> বাটনে ক্লিক করলে তিনি তাৎক্ষণিক অ্যাডমিন ক্ষমতা পাবেন।
                 </p>
               </div>
+            </div>
 
-              {/* Actions */}
-              <div className="flex justify-end space-x-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsAdminModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={adminSaving}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/25 transition-all flex items-center space-x-1.5 disabled:opacity-50"
-                >
-                  {adminSaving ? (
-                    <span>Saving...</span>
-                  ) : (
-                    <>
-                      <Save className="w-3.5 h-3.5" />
-                      <span>{editingAdminId ? 'Update Admin' : 'Save & Assign Role'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
+            {/* Actions Footer (Pinned at bottom) */}
+            <div className="flex justify-end space-x-2.5 p-4 sm:p-5 border-t border-slate-100 flex-shrink-0 bg-slate-50/90 rounded-b-3xl">
+              <button
+                type="button"
+                onClick={() => setIsAdminModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={adminSaving}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/25 transition-all flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                {adminSaving ? (
+                  <span>Saving...</span>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{editingAdminId ? 'Update Admin' : 'Save & Assign Role'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
+    )}
 
       {/* ================= STAFF ADMIN CHANGE PASSWORD REQUEST MODAL ================= */}
       {isPassChangeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in overflow-hidden">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 animate-in fade-in zoom-in duration-150">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-2.5">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-600/25">
