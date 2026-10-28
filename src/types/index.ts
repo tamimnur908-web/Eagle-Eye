@@ -208,6 +208,19 @@ export interface SiteSettings {
   youtubeUrl?: string;
 }
 
+export interface HeroSlide {
+  id: string;
+  tag: string;
+  title: string;
+  description: string;
+  btn1Text: string;
+  btn1Link: string;
+  btn2Text: string;
+  btn2Link: string;
+  bgImage?: string;
+  image3D?: string;
+}
+
 export interface BentoConfig {
   heroTag: string;
   heroTitle: string;
@@ -217,6 +230,7 @@ export interface BentoConfig {
   heroBtn2Text: string;
   heroBtn2Link: string;
   heroBgImage?: string;
+  heroSlides?: HeroSlide[];
 
   card1Tag: string;
   card1Title: string;
@@ -224,16 +238,19 @@ export interface BentoConfig {
   card1LinkText: string;
   card1LinkUrl: string;
   card1IconText: string;
+  card1Image?: string;
 
   card2Tag: string;
   card2Title: string;
   card2Description: string;
   card2LinkUrl: string;
+  card2Image?: string;
 
   card3Tag: string;
   card3Title: string;
   card3LinkText: string;
   card3LinkUrl: string;
+  card3Image?: string;
 
   collections: {
     title: string;

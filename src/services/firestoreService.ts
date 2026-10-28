@@ -23,10 +23,50 @@ import {
   Order,
   DownloadEntitlement,
   FAQ,
-  BentoConfig
+  BentoConfig,
+  HeroSlide
 } from '../types';
 
 // ================= HOMEPAGE BENTO & COLLECTIONS SETTINGS =================
+export const defaultHeroSlides: HeroSlide[] = [
+  {
+    id: 'slide-1',
+    tag: 'Next-Gen Digital Agency & Products Hub',
+    title: 'Empower Your Growth With Intelligent Strategy',
+    description: 'From performance marketing to ready-to-deploy UI assets, Eagle Eye Digital fuels modern brands with commercial clarity.',
+    btn1Text: 'Browse Products',
+    btn1Link: '/products',
+    btn2Text: 'Agency Services',
+    btn2Link: '/services',
+    bgImage: '',
+    image3D: ''
+  },
+  {
+    id: 'slide-2',
+    tag: 'High-Converting Digital Assets',
+    title: 'Modern Templates & 3D Resource Vault',
+    description: 'Explore curated UI kits, production-ready software tools, and digital creative templates crafted for scale.',
+    btn1Text: 'Explore Vault',
+    btn1Link: '/products',
+    btn2Text: 'Custom Projects',
+    btn2Link: '/services',
+    bgImage: '',
+    image3D: ''
+  },
+  {
+    id: 'slide-3',
+    tag: 'Performance Marketing Retainers',
+    title: 'Full-Funnel Growth & Social Ad Engines',
+    description: 'Tailored Meta, Google, and LinkedIn ad strategies delivering measurable revenue for high-growth enterprises.',
+    btn1Text: 'Book Strategy Call',
+    btn1Link: '/contact',
+    btn2Text: 'View Case Studies',
+    btn2Link: '/case-studies',
+    bgImage: '',
+    image3D: ''
+  }
+];
+
 export const defaultBentoConfig: BentoConfig = {
   heroTag: 'Next-Gen Digital Agency & Products Hub',
   heroTitle: 'Empower Your Growth With Intelligent Strategy',
@@ -36,6 +76,7 @@ export const defaultBentoConfig: BentoConfig = {
   heroBtn2Text: 'Agency Services',
   heroBtn2Link: '/services',
   heroBgImage: '',
+  heroSlides: defaultHeroSlides,
 
   card1Tag: 'Performance Media',
   card1Title: 'Social Growth & Ads',
@@ -43,16 +84,19 @@ export const defaultBentoConfig: BentoConfig = {
   card1LinkText: 'Explore Retainers',
   card1LinkUrl: '/services',
   card1IconText: 'in',
+  card1Image: '',
 
   card2Tag: 'Custom Web Engine',
   card2Title: 'ubuntu:~$ sudo',
   card2Description: 'Custom Web & Infrastructure Development',
   card2LinkUrl: '/services',
+  card2Image: '',
 
   card3Tag: 'AI & Kits',
   card3Title: 'ChatGPT & UI Vault',
   card3LinkText: 'View Assets',
   card3LinkUrl: '/products',
+  card3Image: '',
 
   collections: [
     { title: 'All Products', tag: 'Complete Vault', link: '/products' },
@@ -69,7 +113,12 @@ export const getBentoConfig = async (): Promise<BentoConfig> => {
     const docRef = doc(db, 'settings', 'homepage_bento');
     const snap = await getDoc(docRef);
     if (snap.exists()) {
-      return { ...defaultBentoConfig, ...snap.data() } as BentoConfig;
+      const data = snap.data();
+      return {
+        ...defaultBentoConfig,
+        ...data,
+        heroSlides: data.heroSlides && data.heroSlides.length > 0 ? data.heroSlides : defaultHeroSlides
+      } as BentoConfig;
     }
   } catch (err) {
     console.error('Failed to load bento config:', err);
