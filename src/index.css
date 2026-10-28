@@ -131,3 +131,40 @@ body {
   animation: ken-burns 14s ease-in-out infinite alternate;
 }
 
+@keyframes light-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-25deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  35% {
+    transform: translateX(280%) skewX(-25deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(280%) skewX(-25deg);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-fade {
+  0% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-light-sweep {
+  animation: light-sweep 5.5s ease-in-out infinite;
+}
+
+.animate-slide-fade {
+  animation: slide-fade 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

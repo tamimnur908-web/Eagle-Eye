@@ -146,6 +146,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [newSlideImg, setNewSlideImg] = useState('');
   const [newSlideTitle, setNewSlideTitle] = useState('');
   const [newSlideLink, setNewSlideLink] = useState('/products');
+  const [newSlideIsPureBanner, setNewSlideIsPureBanner] = useState(true);
   const heroSlideFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [posterSlot, setPosterSlot] = useState<'top' | 'bottom-left' | 'bottom-right'>('top');
@@ -159,10 +160,18 @@ export const AdminDashboardPage: React.FC = () => {
   const [previewAutoPlay, setPreviewAutoPlay] = useState(true);
   const [previewViewMode, setPreviewViewMode] = useState<'slider' | 'full-layout'>('slider');
   const [previewTypedTitle, setPreviewTypedTitle] = useState('');
+  const [previewFocusUploaded, setPreviewFocusUploaded] = useState(false);
 
-  // Auto-advance preview slides if previewAutoPlay is enabled
+  // When a new image is uploaded or pasted, automatically focus the preview on it
   useEffect(() => {
-    if (!previewAutoPlay) return;
+    if (newSlideImg) {
+      setPreviewFocusUploaded(true);
+    }
+  }, [newSlideImg]);
+
+  // Auto-advance preview slides if previewAutoPlay is enabled and not locked on uploaded draft
+  useEffect(() => {
+    if (!previewAutoPlay || previewFocusUploaded) return;
     const slidesList = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
       ? bentoForm.heroSlides
       : defaultHeroSlides;
@@ -171,7 +180,7 @@ export const AdminDashboardPage: React.FC = () => {
       setPreviewSlideIndex((prev) => (prev + 1) % slidesList.length);
     }, 4500);
     return () => clearInterval(timer);
-  }, [previewAutoPlay, bentoForm.heroSlides]);
+  }, [previewAutoPlay, previewFocusUploaded, bentoForm.heroSlides]);
 
   // Jump preview to active slide when starting an edit
   useEffect(() => {
@@ -522,6 +531,8 @@ export const AdminDashboardPage: React.FC = () => {
     setNewSlideImg(slide.bgImage || '');
     setNewSlideTitle(slide.title || '');
     setNewSlideLink(slide.btn1Link || '/products');
+    setNewSlideIsPureBanner(slide.isPureBanner !== undefined ? slide.isPureBanner : !slide.title);
+    setPreviewFocusUploaded(true);
     window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
@@ -530,6 +541,26 @@ export const AdminDashboardPage: React.FC = () => {
     setNewSlideImg('');
     setNewSlideTitle('');
     setNewSlideLink('/products');
+    setNewSlideIsPureBanner(true);
+    setPreviewFocusUploaded(false);
+  };
+
+  // Clear demo placeholder slides and leave only custom uploads
+  const handleClearDemoSlides = async () => {
+    if (confirm('Delete demo placeholder banners and keep only your uploaded banners?')) {
+      const currentSlides = (bentoForm.heroSlides && bentoForm.heroSlides.length > 0
+        ? bentoForm.heroSlides
+        : defaultHeroSlides);
+      const filtered = currentSlides.filter(
+        (s) => s.bgImage && !s.id.startsWith('slide-1') && !s.id.startsWith('slide-2') && !s.id.startsWith('slide-3')
+      );
+      const updatedBento = { ...bentoForm, heroSlides: filtered };
+      setBentoForm(updatedBento);
+      await saveBentoConfig(updatedBento);
+      setPreviewSlideIndex(0);
+      setBentoSaved(true);
+      setTimeout(() => setBentoSaved(false), 3000);
+    }
   };
 
   // Add or Update Hero Slide Action
@@ -540,45 +571,49 @@ export const AdminDashboardPage: React.FC = () => {
       return;
     }
 
-    const currentSlides = [...(bentoForm.heroSlides && bentoForm.heroSlides.length > 0
-      ? bentoForm.heroSlides
-      : defaultHeroSlides)];
-
-    if (editingSlideIndex !== null) {
-      currentSlides[editingSlideIndex] = {
-        ...currentSlides[editingSlideIndex],
-        bgImage: newSlideImg.trim(),
-        title: newSlideTitle.trim() || currentSlides[editingSlideIndex].title,
-        btn1Link: newSlideLink.trim() || '/products'
-      };
-      const updatedBento = { ...bentoForm, heroSlides: currentSlides };
-      setBentoForm(updatedBento);
-      await saveBentoConfig(updatedBento);
-      handleCancelEditSlide();
-      setBentoSaved(true);
-      setTimeout(() => setBentoSaved(false), 3000);
-      return;
-    }
+    const existingSlides = bentoForm.heroSlides || [];
+    const hasOnlyDemoSlides =
+      existingSlides.length === 0 ||
+      existingSlides.every(
+        (s) => !s.bgImage || s.id.startsWith('slide-1') || s.id.startsWith('slide-2') || s.id.startsWith('slide-3')
+      );
 
     const newSlide: HeroSlide = {
       id: 'slide-' + Date.now(),
       tag: 'Featured Highlight',
-      title: newSlideTitle.trim() || 'Premium Digital Products for Smart Buyers',
-      description: 'Explore verified digital tools, agency retainers, and graphic vault.',
+      title: newSlideIsPureBanner ? '' : (newSlideTitle.trim() || 'Premium Digital Products for Smart Buyers'),
+      description: newSlideIsPureBanner ? '' : 'Explore verified digital tools, agency retainers, and graphic vault.',
       btn1Text: 'Browse Store',
       btn1Link: newSlideLink.trim() || '/products',
       btn2Text: 'Agency Services',
       btn2Link: '/services',
       bgImage: newSlideImg.trim(),
-      image3D: ''
+      image3D: '',
+      isPureBanner: newSlideIsPureBanner
     };
-    const updatedSlides = [...currentSlides, newSlide];
+
+    let updatedSlides: HeroSlide[] = [];
+    if (editingSlideIndex !== null) {
+      const currentSlides = [...(existingSlides.length > 0 ? existingSlides : defaultHeroSlides)];
+      currentSlides[editingSlideIndex] = {
+        ...currentSlides[editingSlideIndex],
+        bgImage: newSlideImg.trim(),
+        title: newSlideIsPureBanner ? '' : (newSlideTitle.trim() || currentSlides[editingSlideIndex].title),
+        btn1Link: newSlideLink.trim() || '/products',
+        isPureBanner: newSlideIsPureBanner
+      };
+      updatedSlides = currentSlides;
+    } else if (hasOnlyDemoSlides) {
+      // If only demo placeholder slides exist, let this first uploaded custom slide replace them directly!
+      updatedSlides = [newSlide];
+    } else {
+      updatedSlides = [...existingSlides, newSlide];
+    }
+
     const updatedBento = { ...bentoForm, heroSlides: updatedSlides };
     setBentoForm(updatedBento);
     await saveBentoConfig(updatedBento);
-    setNewSlideImg('');
-    setNewSlideTitle('');
-    setNewSlideLink('/products');
+    handleCancelEditSlide();
     setBentoSaved(true);
     setTimeout(() => setBentoSaved(false), 3000);
   };
@@ -2242,19 +2277,40 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Slide Title / Description */}
-                    <div>
-                      <label className="block font-bold text-slate-700 mb-1">
-                        Slide Title / Description
-                      </label>
+                    {/* Pure Banner Graphic Mode Toggle */}
+                    <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3 flex items-start space-x-2.5">
                       <input
-                        type="text"
-                        value={newSlideTitle}
-                        onChange={(e) => setNewSlideTitle(e.target.value)}
-                        placeholder="e.g. Premium Digital Products for Smart Buyers"
-                        className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all font-semibold"
+                        type="checkbox"
+                        id="pureBannerCheckbox"
+                        checked={newSlideIsPureBanner}
+                        onChange={(e) => setNewSlideIsPureBanner(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
+                      <label htmlFor="pureBannerCheckbox" className="text-xs text-slate-800 cursor-pointer">
+                        <span className="font-extrabold text-amber-950 block">
+                          Full Banner Graphic (ছবিতেই ডিজাইন ও লেখা আছে)
+                        </span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5">
+                          টিক দেওয়া থাকলে ছবির ওপর আলাদা কোনো কালো শ্যাডো বা ডুপ্লিকেট লেখা বসবে না। আপনার আপলোড করা ছবিটি ফুল ক্লিয়ার থাকবে এবং অ্যানিমেশন হবে।
+                        </span>
+                      </label>
                     </div>
+
+                    {/* Slide Title / Description (Optional when Pure Banner is selected) */}
+                    {!newSlideIsPureBanner && (
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">
+                          Slide Title / Description (Text Overlay)
+                        </label>
+                        <input
+                          type="text"
+                          value={newSlideTitle}
+                          onChange={(e) => setNewSlideTitle(e.target.value)}
+                          placeholder="e.g. Premium Digital Products for Smart Buyers"
+                          className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all font-semibold"
+                        />
+                      </div>
+                    )}
 
                     {/* Click Destination Link */}
                     <div>
@@ -2265,7 +2321,7 @@ export const AdminDashboardPage: React.FC = () => {
                         type="text"
                         value={newSlideLink}
                         onChange={(e) => setNewSlideLink(e.target.value)}
-                        placeholder="/shop"
+                        placeholder="/products"
                         className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all"
                       />
                     </div>
@@ -2349,24 +2405,65 @@ export const AdminDashboardPage: React.FC = () => {
                       const previewSlides = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
                         ? bentoForm.heroSlides
                         : defaultHeroSlides;
+                      const isUploadedFocused = previewFocusUploaded && Boolean(newSlideImg);
                       const currentPreview = previewSlides[previewSlideIndex] || previewSlides[0];
-                      const activeBg = (editingSlideIndex === previewSlideIndex && newSlideImg)
+                      const activeBg = isUploadedFocused
                         ? newSlideImg
-                        : (editingSlideIndex === null && newSlideImg)
+                        : (editingSlideIndex === previewSlideIndex && newSlideImg)
                         ? newSlideImg
                         : currentPreview?.bgImage;
+                      const previewIsPure = isUploadedFocused
+                        ? newSlideIsPureBanner
+                        : Boolean(currentPreview?.isPureBanner || (currentPreview?.bgImage && !currentPreview?.title));
                       const active3D = currentPreview?.image3D;
 
                       return (
                         <div className="space-y-3">
+                          {/* Live Switcher between Uploaded Banner and Saved Slides */}
+                          {newSlideImg && (
+                            <div className="flex flex-wrap items-center gap-2 pb-1">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewFocusUploaded(true)}
+                                className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition-all flex items-center space-x-1.5 ${
+                                  previewFocusUploaded
+                                    ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-sm'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                }`}
+                              >
+                                <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                                <span>Preview Uploaded Picture (লাইভ আপনার ছবি)</span>
+                                {previewFocusUploaded && <Check className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewFocusUploaded(false)}
+                                className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition-all flex items-center space-x-1.5 ${
+                                  !previewFocusUploaded
+                                    ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                }`}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Cycle Saved Slides ({previewSlides.length})</span>
+                                {!previewFocusUploaded && <Check className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center space-x-2">
                               <span className="font-bold text-slate-700 text-[11px] bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-                                Slide {previewSlideIndex + 1} of {previewSlides.length}
+                                {isUploadedFocused ? 'Uploaded Draft' : `Slide ${previewSlideIndex + 1} of ${previewSlides.length}`}
                               </span>
                               {editingSlideIndex === previewSlideIndex && (
                                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
                                   Live Editing
+                                </span>
+                              )}
+                              {previewIsPure && (
+                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-300">
+                                  Pure Graphic
                                 </span>
                               )}
                             </div>
@@ -2375,11 +2472,12 @@ export const AdminDashboardPage: React.FC = () => {
                               {/* Slide Prev Button */}
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
+                                  setPreviewFocusUploaded(false);
                                   setPreviewSlideIndex(
                                     (prev) => (prev - 1 + previewSlides.length) % previewSlides.length
-                                  )
-                                }
+                                  );
+                                }}
                                 className="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
                                 title="Previous Slide"
                               >
@@ -2389,15 +2487,18 @@ export const AdminDashboardPage: React.FC = () => {
                               {/* Play / Pause Toggle Button */}
                               <button
                                 type="button"
-                                onClick={() => setPreviewAutoPlay(!previewAutoPlay)}
+                                onClick={() => {
+                                  setPreviewFocusUploaded(false);
+                                  setPreviewAutoPlay(!previewAutoPlay);
+                                }}
                                 className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-colors ${
-                                  previewAutoPlay
+                                  previewAutoPlay && !isUploadedFocused
                                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                     : 'border-slate-200 bg-slate-50 text-slate-600'
                                 }`}
                                 title={previewAutoPlay ? 'Pause Auto Slide' : 'Play Auto Slide'}
                               >
-                                {previewAutoPlay ? (
+                                {previewAutoPlay && !isUploadedFocused ? (
                                   <>
                                     <Pause className="w-3 h-3 text-emerald-600" />
                                     <span>Auto-Slide ON</span>
@@ -2413,9 +2514,10 @@ export const AdminDashboardPage: React.FC = () => {
                               {/* Slide Next Button */}
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length)
-                                }
+                                onClick={() => {
+                                  setPreviewFocusUploaded(false);
+                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length);
+                                }}
                                 className="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
                                 title="Next Slide"
                               >
@@ -2440,7 +2542,7 @@ export const AdminDashboardPage: React.FC = () => {
                             >
                               {/* Ken Burns Animated Background Image */}
                               <div
-                                key={`preview-bg-${previewSlideIndex}`}
+                                key={`preview-bg-${previewSlideIndex}-${isUploadedFocused ? 'up' : 'saved'}`}
                                 className="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-out animate-ken-burns scale-100"
                                 style={
                                   activeBg
@@ -2449,123 +2551,182 @@ export const AdminDashboardPage: React.FC = () => {
                                 }
                               />
 
-                              {/* Dark Gradient Overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-transparent pointer-events-none" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none" />
-                              <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/25 rounded-full blur-2xl pointer-events-none animate-pulse-glow" />
+                              {/* Light Sweep Beam across the banner image */}
+                              <div className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none animate-light-sweep z-10" />
+
+                              {!previewIsPure ? (
+                                <>
+                                  {/* Dark Gradient Overlay for text banner */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-transparent pointer-events-none z-10" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none z-10" />
+                                  <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/25 rounded-full blur-2xl pointer-events-none animate-pulse-glow z-10" />
+                                </>
+                              ) : (
+                                /* Clean bottom subtle vignette for pure graphic banners */
+                                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
+                              )}
 
                               {/* Slide Prev/Next Overlay Buttons inside Mockup */}
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
+                                  setPreviewFocusUploaded(false);
                                   setPreviewSlideIndex(
                                     (prev) => (prev - 1 + previewSlides.length) % previewSlides.length
-                                  )
-                                }
+                                  );
+                                }}
                                 className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all z-30 shadow-md"
                               >
                                 <ChevronLeft className="w-4 h-4" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length)
-                                }
+                                onClick={() => {
+                                  setPreviewFocusUploaded(false);
+                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length);
+                                }}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all z-30 shadow-md"
                               >
                                 <ChevronRight className="w-4 h-4" />
                               </button>
 
-                              {/* Typography & Floating Vectors */}
-                              <div className="relative z-20 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                                <div className="sm:col-span-8 space-y-2 max-w-sm">
-                                  {/* Pop-in Animated Tag Badge */}
-                                  <div
-                                    key={`preview-tag-${previewSlideIndex}`}
-                                    className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-sky-200 animate-pop-in"
-                                  >
-                                    <Sparkles className="w-3 h-3 text-amber-300" />
-                                    <span>
-                                      {currentPreview?.tag || 'Eagle Eye Digital • Featured'}
+                              {!previewIsPure ? (
+                                <>
+                                  {/* Typography & Floating Vectors */}
+                                  <div className="relative z-20 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                                    <div className="sm:col-span-8 space-y-2 max-w-sm">
+                                      {/* Pop-in Animated Tag Badge */}
+                                      <div
+                                        key={`preview-tag-${previewSlideIndex}`}
+                                        className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-sky-200 animate-pop-in"
+                                      >
+                                        <Sparkles className="w-3 h-3 text-amber-300" />
+                                        <span>
+                                          {currentPreview?.tag || 'Eagle Eye Digital • Featured'}
+                                        </span>
+                                      </div>
+
+                                      {/* Animated Color Gradient & Typewriter Title */}
+                                      <h4 className="text-base sm:text-xl font-black tracking-tight leading-tight min-h-[44px]">
+                                        <span className="bg-gradient-to-r from-white via-amber-200 to-cyan-300 bg-clip-text text-transparent animate-gradient-text">
+                                          {previewTypedTitle}
+                                        </span>
+                                        <span className="inline-block w-1 h-4 sm:h-5 ml-1 bg-amber-400 animate-pulse align-middle" />
+                                      </h4>
+
+                                      <p
+                                        key={`preview-desc-${previewSlideIndex}`}
+                                        className="text-[11px] text-slate-200 line-clamp-2 leading-relaxed animate-pop-in"
+                                      >
+                                        {currentPreview?.description ||
+                                          'From performance marketing to ready-to-deploy UI assets and digital products.'}
+                                      </p>
+                                    </div>
+
+                                    {/* Floating 3D Graphic / Pop-up Vectors in Preview */}
+                                    <div className="sm:col-span-4 hidden sm:flex items-center justify-center">
+                                      {active3D ? (
+                                        <div
+                                          key={`preview-3d-${previewSlideIndex}`}
+                                          className="w-24 h-24 rounded-xl overflow-hidden p-1.5 bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-pop-in animate-float"
+                                        >
+                                          <img
+                                            src={active3D}
+                                            alt="3D Preview"
+                                            className="w-full h-full object-cover rounded-lg"
+                                          />
+                                        </div>
+                                      ) : (
+                                        <div
+                                          key={`preview-orb-${previewSlideIndex}`}
+                                          className="relative w-24 h-24 flex items-center justify-center animate-pop-in"
+                                        >
+                                          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-500/30 to-amber-400/20 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg animate-float">
+                                            <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
+                                          </div>
+                                          <div className="absolute -top-1 -left-1 px-2 py-0.5 rounded-lg bg-slate-900/80 border border-amber-400/40 text-[8px] font-black text-amber-300 animate-float flex items-center space-x-1">
+                                            <span>🚀</span>
+                                            <span>Instant</span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Buttons and Indicator Dots */}
+                                  <div className="relative z-20 pt-4 flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-[10px] shadow-sm flex items-center space-x-1">
+                                        <span>Browse Products</span>
+                                        <ArrowRight className="w-3 h-3" />
+                                      </span>
+                                      <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white font-bold text-[10px] backdrop-blur-md">
+                                        Agency Services
+                                      </span>
+                                    </div>
+
+                                    {/* Clickable Slide Indicator Dots in Preview */}
+                                    <div className="flex items-center space-x-1.5 bg-slate-950/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
+                                      {previewSlides.map((_, idx) => (
+                                        <button
+                                          key={idx}
+                                          type="button"
+                                          onClick={() => {
+                                            setPreviewFocusUploaded(false);
+                                            setPreviewSlideIndex(idx);
+                                          }}
+                                          aria-label={`Slide ${idx + 1}`}
+                                          className={`transition-all duration-300 rounded-full ${
+                                            previewSlideIndex === idx && !isUploadedFocused
+                                              ? 'w-5 h-2 bg-gradient-to-r from-amber-400 to-amber-300 shadow-sm'
+                                              : 'w-2 h-2 bg-white/35 hover:bg-white'
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                /* Pure Banner Display in Preview (Clean, unobstructed with animations) */
+                                <div className="relative z-20 h-full flex flex-col justify-between">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-amber-300 border border-white/20 flex items-center space-x-1.5 shadow-md">
+                                      <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin-slow" />
+                                      <span>
+                                        {isUploadedFocused
+                                          ? '✨ Live Uploaded Picture (আপনার ছবি অ্যানিমেশনসহ)'
+                                          : '✨ Clean Graphic Banner (ফুল ব্যানার মোড)'}
+                                      </span>
                                     </span>
                                   </div>
 
-                                  {/* Animated Color Gradient & Typewriter Title */}
-                                  <h4 className="text-base sm:text-xl font-black tracking-tight leading-tight min-h-[44px]">
-                                    <span className="bg-gradient-to-r from-white via-amber-200 to-cyan-300 bg-clip-text text-transparent animate-gradient-text">
-                                      {previewTypedTitle}
+                                  <div className="flex items-center justify-between pt-16">
+                                    <span className="text-[10px] font-bold text-white/80 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/10">
+                                      Click opens: {newSlideLink || '/products'}
                                     </span>
-                                    <span className="inline-block w-1 h-4 sm:h-5 ml-1 bg-amber-400 animate-pulse align-middle" />
-                                  </h4>
 
-                                  <p
-                                    key={`preview-desc-${previewSlideIndex}`}
-                                    className="text-[11px] text-slate-200 line-clamp-2 leading-relaxed animate-pop-in"
-                                  >
-                                    {currentPreview?.description ||
-                                      'From performance marketing to ready-to-deploy UI assets and digital products.'}
-                                  </p>
-                                </div>
-
-                                {/* Floating 3D Graphic / Pop-up Vectors in Preview */}
-                                <div className="sm:col-span-4 hidden sm:flex items-center justify-center">
-                                  {active3D ? (
-                                    <div
-                                      key={`preview-3d-${previewSlideIndex}`}
-                                      className="w-24 h-24 rounded-xl overflow-hidden p-1.5 bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-pop-in animate-float"
-                                    >
-                                      <img
-                                        src={active3D}
-                                        alt="3D Preview"
-                                        className="w-full h-full object-cover rounded-lg"
-                                      />
+                                    {/* Indicator Dots */}
+                                    <div className="flex items-center space-x-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
+                                      {previewSlides.map((_, idx) => (
+                                        <button
+                                          key={idx}
+                                          type="button"
+                                          onClick={() => {
+                                            setPreviewFocusUploaded(false);
+                                            setPreviewSlideIndex(idx);
+                                          }}
+                                          aria-label={`Slide ${idx + 1}`}
+                                          className={`transition-all duration-300 rounded-full ${
+                                            previewSlideIndex === idx && !isUploadedFocused
+                                              ? 'w-5 h-2 bg-gradient-to-r from-amber-400 to-amber-300 shadow-sm'
+                                              : 'w-2 h-2 bg-white/40 hover:bg-white'
+                                          }`}
+                                        />
+                                      ))}
                                     </div>
-                                  ) : (
-                                    <div
-                                      key={`preview-orb-${previewSlideIndex}`}
-                                      className="relative w-24 h-24 flex items-center justify-center animate-pop-in"
-                                    >
-                                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-500/30 to-amber-400/20 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg animate-float">
-                                        <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
-                                      </div>
-                                      <div className="absolute -top-1 -left-1 px-2 py-0.5 rounded-lg bg-slate-900/80 border border-amber-400/40 text-[8px] font-black text-amber-300 animate-float flex items-center space-x-1">
-                                        <span>🚀</span>
-                                        <span>Instant</span>
-                                      </div>
-                                    </div>
-                                  )}
+                                  </div>
                                 </div>
-                              </div>
-
-                              {/* Buttons and Indicator Dots */}
-                              <div className="relative z-20 pt-4 flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-[10px] shadow-sm flex items-center space-x-1">
-                                    <span>Browse Products</span>
-                                    <ArrowRight className="w-3 h-3" />
-                                  </span>
-                                  <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white font-bold text-[10px] backdrop-blur-md">
-                                    Agency Services
-                                  </span>
-                                </div>
-
-                                {/* Clickable Slide Indicator Dots in Preview */}
-                                <div className="flex items-center space-x-1.5 bg-slate-950/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
-                                  {previewSlides.map((_, idx) => (
-                                    <button
-                                      key={idx}
-                                      type="button"
-                                      onClick={() => setPreviewSlideIndex(idx)}
-                                      aria-label={`Slide ${idx + 1}`}
-                                      className={`transition-all duration-300 rounded-full ${
-                                        previewSlideIndex === idx
-                                          ? 'w-5 h-2 bg-gradient-to-r from-amber-400 to-amber-300 shadow-sm'
-                                          : 'w-2 h-2 bg-white/35 hover:bg-white'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
+                              )}
                             </div>
 
                             {/* Side Promo Posters Column (Rendered when in 'full-layout' view) */}
@@ -2646,13 +2807,26 @@ export const AdminDashboardPage: React.FC = () => {
 
                   {/* ACTIVE HERO SLIDER BANNERS LIST */}
                   <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                      <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
-                        ACTIVE HERO SLIDER BANNERS ({(bentoForm.heroSlides || defaultHeroSlides).length})
-                      </h3>
-                      <span className="text-[10px] text-slate-400">
-                        Rotates every 4.5s on Homepage
-                      </span>
+                    <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-3">
+                      <div>
+                        <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
+                          ACTIVE HERO SLIDER BANNERS ({(bentoForm.heroSlides || defaultHeroSlides).length})
+                        </h3>
+                        <span className="text-[10px] text-slate-400">
+                          Rotates automatically on Homepage with smooth animation
+                        </span>
+                      </div>
+
+                      {/* Remove Demo Placeholders button */}
+                      <button
+                        type="button"
+                        onClick={handleClearDemoSlides}
+                        className="text-[11px] font-extrabold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl border border-red-200 transition-colors flex items-center space-x-1 shadow-sm"
+                        title="Remove placeholder demo banners and keep only your custom uploads"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Remove Demo Placeholders</span>
+                      </button>
                     </div>
 
                     {(bentoForm.heroSlides || defaultHeroSlides).length === 0 ? (

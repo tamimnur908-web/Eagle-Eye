@@ -219,6 +219,7 @@ export interface HeroSlide {
   btn2Link: string;
   bgImage?: string;
   image3D?: string;
+  isPureBanner?: boolean;
 }
 
 export interface BentoConfig {
