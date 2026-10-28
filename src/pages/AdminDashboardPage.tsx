@@ -5179,10 +5179,24 @@ export const AdminDashboardPage: React.FC = () => {
 
                                       {/* Animated Color Gradient & Typewriter Title */}
                                       <h4 className="text-base sm:text-xl font-black tracking-tight leading-tight min-h-[44px]">
-                                        <span className="bg-gradient-to-r from-white via-amber-200 to-cyan-300 bg-clip-text text-transparent animate-gradient-text">
-                                          {previewTypedTitle}
+                                        <span className={`bg-clip-text text-transparent transition-all ${
+                                          effectiveTextAnim === 'gradient'
+                                            ? 'bg-gradient-to-r from-amber-200 via-rose-300 to-cyan-300 animate-gradient-text'
+                                            : effectiveTextAnim === 'fade'
+                                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-200 animate-pop-in'
+                                            : effectiveTextAnim === 'bounce'
+                                            ? 'bg-gradient-to-r from-white via-amber-200 to-cyan-300 animate-pop-in'
+                                            : effectiveTextAnim === 'none'
+                                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-100'
+                                            : 'bg-gradient-to-r from-white via-amber-200 to-cyan-300 animate-gradient-text'
+                                        }`}>
+                                          {effectiveTextAnim === 'typewriter'
+                                            ? previewTypedTitle
+                                            : (isUploadedFocused ? (newSlideTitle || 'Preview Headline') : (currentPreview?.title || 'Empower Your Growth With Intelligent Strategy'))}
                                         </span>
-                                        <span className="inline-block w-1 h-4 sm:h-5 ml-1 bg-amber-400 animate-pulse align-middle" />
+                                        {effectiveTextAnim === 'typewriter' && (
+                                          <span className="inline-block w-1 h-4 sm:h-5 ml-1 bg-amber-400 animate-pulse align-middle" />
+                                        )}
                                       </h4>
 
                                       <p
@@ -5194,20 +5208,47 @@ export const AdminDashboardPage: React.FC = () => {
                                       </p>
                                     </div>
 
-                                    {/* Floating 3D Graphic / Pop-up Vectors in Preview */}
+                                    {/* Floating Visual Based on Selected Visual Mode in Preview */}
                                     <div className="sm:col-span-4 hidden sm:flex items-center justify-center">
-                                      {active3D ? (
+                                      {effectiveVisualType === 'image' ? (
                                         <div
                                           key={`preview-3d-${previewSlideIndex}`}
                                           className="w-24 h-24 rounded-xl overflow-hidden p-1.5 bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-pop-in animate-float"
                                         >
                                           <img
-                                            src={active3D}
+                                            src={newSlideImage3D || active3D || activeBg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'}
                                             alt="3D Preview"
                                             className="w-full h-full object-cover rounded-lg"
                                           />
                                         </div>
+                                      ) : effectiveVisualType === 'text' ? (
+                                        <div className="w-28 h-24 rounded-xl bg-slate-950/95 border border-indigo-500/40 p-2 shadow-xl flex flex-col justify-between text-[8px] font-mono animate-pop-in animate-float">
+                                          <div className="flex items-center justify-between border-b border-slate-800 pb-1">
+                                            <div className="flex gap-1">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
+                                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                                            </div>
+                                            <span className="text-[7px] text-slate-500">code</span>
+                                          </div>
+                                          <div className="text-emerald-400 font-bold truncate">
+                                            $ {effectiveTerminal}
+                                          </div>
+                                          <div className="text-amber-300 text-[7px] font-semibold">
+                                            ⚡ Strategy: +320%
+                                          </div>
+                                          <div className="text-emerald-400 text-[7px] border-t border-slate-800/80 pt-0.5">
+                                            ● ONLINE
+                                          </div>
+                                        </div>
+                                      ) : effectiveVisualType === 'hybrid' ? (
+                                        <div className="w-24 h-24 rounded-xl bg-blue-950/80 border border-blue-400/40 p-2 text-center flex flex-col items-center justify-center space-y-1 text-white shadow-xl animate-pop-in animate-float">
+                                          <span className="text-base">🔄</span>
+                                          <span className="text-[9px] font-extrabold text-sky-300">Hybrid Mode</span>
+                                          <span className="text-[7px] text-slate-300 leading-tight">Text ➔ 3D ➔ Pic</span>
+                                        </div>
                                       ) : (
+                                        /* 3D Orb & Floating Badges */
                                         <div
                                           key={`preview-orb-${previewSlideIndex}`}
                                           className="relative w-24 h-24 flex items-center justify-center animate-pop-in"
@@ -5217,12 +5258,17 @@ export const AdminDashboardPage: React.FC = () => {
                                           </div>
                                           <div className="absolute -top-1 -left-1 px-2 py-0.5 rounded-lg bg-slate-900/80 border border-amber-400/40 text-[8px] font-black text-amber-300 animate-float flex items-center space-x-1">
                                             <span>🚀</span>
-                                            <span>Instant</span>
+                                            <span>{effectiveBadge1 || 'Instant'}</span>
+                                          </div>
+                                          <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-lg bg-indigo-950/80 border border-sky-400/40 text-[7px] font-bold text-sky-300 animate-float-reverse">
+                                            {effectiveBadgeCenter || 'Verified 4K'}
                                           </div>
                                         </div>
                                       )}
                                     </div>
                                   </div>
+                                );
+                              })()}
 
                                   {/* Buttons and Indicator Dots */}
                                   <div className="relative z-20 pt-4 flex items-center justify-between">
@@ -5468,9 +5514,35 @@ export const AdminDashboardPage: React.FC = () => {
                                   )}
                                 </div>
                                 <div className="col-span-8 space-y-1">
-                                  <h5 className="font-bold text-slate-900 text-xs line-clamp-1">
-                                    {slide.title}
-                                  </h5>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <h5 className="font-bold text-slate-900 text-xs line-clamp-1">
+                                      {slide.title || 'Pure Graphic Banner'}
+                                    </h5>
+                                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
+                                      {slide.visualType === 'image'
+                                        ? '🖼️ Picture'
+                                        : slide.visualType === 'text'
+                                        ? '💻 Terminal'
+                                        : slide.visualType === 'hybrid'
+                                        ? '🔄 Hybrid'
+                                        : slide.visualType === 'pure-banner' || slide.isPureBanner
+                                        ? '🎨 Pure Banner'
+                                        : '🔮 3D Orb'}
+                                    </span>
+                                    {!(slide.visualType === 'pure-banner' || slide.isPureBanner) && (
+                                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                                        {slide.textAnimation === 'fade'
+                                          ? '🌊 Fade'
+                                          : slide.textAnimation === 'gradient'
+                                          ? '🌈 Gradient'
+                                          : slide.textAnimation === 'bounce'
+                                          ? '⚡ Bounce'
+                                          : slide.textAnimation === 'none'
+                                          ? '⏹️ Static'
+                                          : '⌨️ Typewriter'}
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-[11px] text-slate-500 font-mono line-clamp-1">
                                     Destination: {slide.btn1Link || '/products'}
                                   </p>
