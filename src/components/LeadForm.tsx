@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createLead } from '../services/firestoreService';
-import { Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, Calendar, ArrowRight } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface LeadFormProps {
   initialService?: string;
 }
 
 export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
+  const { currentUser } = useAuth();
+
   const [formData, setFormData] = useState({
     name: '',
     businessName: '',
@@ -20,6 +24,16 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
     projectDescription: '',
     preferredContactMethod: 'WhatsApp' as 'WhatsApp' | 'Email' | 'Phone',
   });
+
+  useEffect(() => {
+    if (currentUser) {
+      setFormData((prev) => ({
+        ...prev,
+        email: prev.email || currentUser.email || '',
+        name: prev.name || currentUser.displayName || ''
+      }));
+    }
+  }, [currentUser]);
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -36,23 +50,24 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
       }
 
       await createLead({
-        name: formData.name,
-        businessName: formData.businessName,
-        email: formData.email,
-        phoneOrWhatsApp: formData.phoneOrWhatsApp,
+        name: formData.name.trim(),
+        businessName: formData.businessName.trim(),
+        email: formData.email.trim(),
+        phoneOrWhatsApp: formData.phoneOrWhatsApp.trim(),
         serviceInterest: formData.serviceInterest,
-        websiteOrSocial: formData.websiteOrSocial,
+        websiteOrSocial: formData.websiteOrSocial.trim(),
         budgetRange: formData.budgetRange,
-        deadline: formData.deadline,
-        projectDescription: formData.projectDescription,
+        deadline: formData.deadline.trim(),
+        projectDescription: formData.projectDescription.trim(),
         preferredContactMethod: formData.preferredContactMethod,
+        ...(currentUser?.uid ? { userId: currentUser.uid } : {})
       });
 
       setSuccess(true);
       setFormData({
-        name: '',
+        name: currentUser?.displayName || '',
         businessName: '',
-        email: '',
+        email: currentUser?.email || '',
         phoneOrWhatsApp: '',
         serviceInterest: 'Digital Marketing & Paid Ads',
         websiteOrSocial: '',
@@ -77,20 +92,28 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <p className="text-slate-600 max-w-md mx-auto text-sm">
             Thank you for reaching out to Eagle Eye Digital. Our strategists will review your project details and contact you via your preferred method shortly.
           </p>
-          <div className="pt-4 flex justify-center space-x-4">
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => setSuccess(false)}
               className="text-xs text-amber-600 font-semibold underline hover:text-amber-700"
             >
               Submit another inquiry
             </button>
+            <Link
+              to="/account"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm flex items-center space-x-1.5"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Track in My Account</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
             <a
               href={`https://wa.me/88${WHATSAPP_NUMBER}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm"
             >
-              Message directly on WhatsApp
+              Message on WhatsApp
             </a>
           </div>
         </div>

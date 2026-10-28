@@ -10,9 +10,26 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { getUserOrders, getUserEntitlements } from '../services/firestoreService';
-import { Order, DownloadEntitlement } from '../types';
-import { User as UserIcon, Package, Download, KeyRound, AlertCircle, CheckCircle } from 'lucide-react';
+import { getUserOrders, getUserEntitlements, getUserLeads, respondToMeeting } from '../services/firestoreService';
+import { Order, DownloadEntitlement, Lead } from '../types';
+import {
+  User as UserIcon,
+  Package,
+  Download,
+  KeyRound,
+  AlertCircle,
+  CheckCircle,
+  Calendar,
+  Video,
+  Clock,
+  ExternalLink,
+  MessageSquare,
+  CheckCircle2,
+  XCircle,
+  Briefcase
+} from 'lucide-react';
+import { WHATSAPP_NUMBER } from '../lib/firebase';
+import { Link, useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../components/EmptyState';
 
 export const AccountPage: React.FC = () => {
@@ -27,26 +44,69 @@ export const AccountPage: React.FC = () => {
   const [resetSent, setResetSent] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
+  const [searchParams] = useSearchParams();
+
   // User Data State
   const [orders, setOrders] = useState<Order[]>([]);
   const [entitlements, setEntitlements] = useState<DownloadEntitlement[]>([]);
+  const [userLeads, setUserLeads] = useState<Lead[]>([]);
   const [loadingData, setLoadingData] = useState(false);
-  const [activeTab, setActiveTab] = useState<'orders' | 'downloads'>('orders');
+  const [actionProcessing, setActionProcessing] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'orders' | 'downloads' | 'inquiries'>('inquiries');
+
+  const loadUserData = async () => {
+    if (!currentUser) return;
+    setLoadingData(true);
+    try {
+      const [userOrders, userEntitlements, leads] = await Promise.all([
+        getUserOrders(currentUser.uid).catch(() => []),
+        getUserEntitlements(currentUser.uid).catch(() => []),
+        getUserLeads(currentUser.uid, currentUser.email || undefined).catch(() => [])
+      ]);
+      setOrders(userOrders);
+      setEntitlements(userEntitlements);
+      setUserLeads(leads);
+
+      // If user has orders but no inquiries, default to orders tab
+      if (leads.length === 0 && userOrders.length > 0) {
+        setActiveTab('orders');
+      }
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   useEffect(() => {
     if (currentUser) {
-      setLoadingData(true);
-      Promise.all([
-        getUserOrders(currentUser.uid).catch(() => []),
-        getUserEntitlements(currentUser.uid).catch(() => [])
-      ])
-        .then(([userOrders, userEntitlements]) => {
-          setOrders(userOrders);
-          setEntitlements(userEntitlements);
-        })
-        .finally(() => setLoadingData(false));
+      loadUserData();
     }
   }, [currentUser]);
+
+  // Handle meeting response from user dashboard
+  const handleConfirmMeeting = async (leadId: string) => {
+    setActionProcessing(leadId);
+    try {
+      await respondToMeeting(leadId, 'accept');
+      await loadUserData();
+    } catch (err: any) {
+      alert('Failed to confirm meeting: ' + (err.message || 'Unknown error'));
+    } finally {
+      setActionProcessing(null);
+    }
+  };
+
+  const handleCancelMeeting = async (leadId: string) => {
+    const reason = window.prompt('Please provide a reason or your preferred alternative time:');
+    setActionProcessing(leadId);
+    try {
+      await respondToMeeting(leadId, 'cancel', reason || undefined);
+      await loadUserData();
+    } catch (err: any) {
+      alert('Failed to cancel meeting: ' + (err.message || 'Unknown error'));
+    } finally {
+      setActionProcessing(null);
+    }
+  };
 
   // Email / Password submission
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -349,6 +409,23 @@ export const AccountPage: React.FC = () => {
       {/* Tabs */}
       <div className="flex space-x-4 border-b border-slate-200">
         <button
+          onClick={() => setActiveTab('inquiries')}
+          className={`pb-3 text-xs font-bold transition-colors flex items-center space-x-2 ${
+            activeTab === 'inquiries'
+              ? 'border-b-2 border-blue-600 text-blue-700'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Calendar className="w-4 h-4" />
+          <span>My Inquiries & Consultations ({userLeads.length})</span>
+          {userLeads.filter((l) => l.meetingDetails?.meetingStatus === 'proposed').length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse">
+              {userLeads.filter((l) => l.meetingDetails?.meetingStatus === 'proposed').length} Action Required
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveTab('orders')}
           className={`pb-3 text-xs font-bold transition-colors flex items-center space-x-2 ${
             activeTab === 'orders'
@@ -380,6 +457,213 @@ export const AccountPage: React.FC = () => {
             <div key={i} className="h-28 bg-slate-200 rounded-xl animate-pulse border border-slate-200" />
           ))}
         </div>
+      ) : activeTab === 'inquiries' ? (
+        userLeads.length > 0 ? (
+          <div className="space-y-6">
+            {userLeads.map((lead) => {
+              const meeting = lead.meetingDetails;
+              const isProposed = meeting && meeting.meetingStatus === 'proposed';
+              const isConfirmed = meeting && meeting.meetingStatus === 'confirmed';
+              const isCancelled = meeting && meeting.meetingStatus === 'cancelled';
+
+              const formattedMeetingTime = meeting?.scheduledTime
+                ? new Date(meeting.scheduledTime).toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })
+                : null;
+
+              return (
+                <div
+                  key={lead.id}
+                  className={`bg-white border rounded-2xl p-6 sm:p-7 space-y-4 shadow-sm transition-all ${
+                    isProposed
+                      ? 'border-amber-300 ring-2 ring-amber-400/20'
+                      : isConfirmed
+                      ? 'border-emerald-300 ring-1 ring-emerald-500/20'
+                      : 'border-slate-200'
+                  }`}
+                >
+                  {/* Top Bar */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Inquiry #{lead.id.substring(0, 8)} • Submitted {new Date(lead.createdAt).toLocaleDateString()}
+                      </span>
+                      <h3 className="text-base font-bold text-slate-900 mt-0.5">
+                        {lead.serviceInterest}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span
+                        className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                          isConfirmed
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : isProposed
+                            ? 'bg-amber-100 text-amber-800 animate-pulse'
+                            : isCancelled
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-blue-50 text-blue-700'
+                        }`}
+                      >
+                        {isConfirmed
+                          ? '✓ Meeting Confirmed'
+                          : isProposed
+                          ? '● Meeting Scheduled (Action Required)'
+                          : isCancelled
+                          ? '✕ Meeting Cancelled'
+                          : lead.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Consultation / Meeting Workflow Area */}
+                  {meeting && (
+                    <div
+                      className={`rounded-xl p-4 sm:p-5 space-y-3 ${
+                        isConfirmed
+                          ? 'bg-emerald-50/70 border border-emerald-200'
+                          : isProposed
+                          ? 'bg-amber-50/70 border border-amber-200'
+                          : 'bg-slate-50 border border-slate-200'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                            Strategic Video Consultation
+                          </span>
+                          <div className="text-sm sm:text-base font-black text-slate-900 flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-blue-600" />
+                            <span>{formattedMeetingTime}</span>
+                          </div>
+                          <span className="text-xs text-slate-600 block">
+                            Host: {meeting.scheduledBy || 'Eagle Eye Digital Strategist'}
+                          </span>
+                        </div>
+
+                        {/* Unlocked Meeting Button when Confirmed */}
+                        {isConfirmed && (
+                          <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
+                            <a
+                              href={meeting.meetingLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 flex items-center space-x-1.5 transition-transform hover:-translate-y-0.5"
+                            >
+                              <Video className="w-4 h-4" />
+                              <span>Join Meeting</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+
+                            <button
+                              onClick={() => handleCancelMeeting(lead.id)}
+                              disabled={actionProcessing === lead.id}
+                              className="px-3 py-2 bg-white hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold rounded-xl"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Accept / Decline Options when Proposed */}
+                        {isProposed && (
+                          <div className="flex items-center space-x-2 pt-2 sm:pt-0">
+                            <button
+                              onClick={() => handleConfirmMeeting(lead.id)}
+                              disabled={actionProcessing === lead.id}
+                              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>{actionProcessing === lead.id ? 'Confirming...' : 'Accept / Confirm Time'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleCancelMeeting(lead.id)}
+                              disabled={actionProcessing === lead.id}
+                              className="px-3.5 py-2.5 bg-white hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200 font-bold text-xs rounded-xl"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              <span>Decline / Cancel</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {meeting.notes && (
+                        <p className="text-xs text-slate-600 italic bg-white/80 p-2.5 rounded-lg border border-slate-200/60">
+                          "{meeting.notes}"
+                        </p>
+                      )}
+
+                      {isProposed && (
+                        <p className="text-[11px] text-amber-800 font-medium">
+                          ⚠️ Please click <strong>Accept / Confirm Time</strong> to lock in your appointment and unlock the direct Video Meeting link.
+                        </p>
+                      )}
+
+                      {isCancelled && (
+                        <div className="flex items-center justify-between pt-1 text-xs">
+                          <span className="text-slate-500">
+                            Meeting was cancelled {meeting.cancellationReason ? `(${meeting.cancellationReason})` : ''}
+                          </span>
+                          <a
+                            href={`https://wa.me/88${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+                              `Hello Eagle Eye Digital, I would like to request a new consultation time for inquiry #${lead.id.substring(0, 8)}.`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-700 hover:underline font-bold flex items-center space-x-1"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Propose New Time on WhatsApp</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Inquiry Spec Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Budget Range</span>
+                      <span className="font-semibold text-slate-800">{lead.budgetRange}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Contact Method</span>
+                      <span className="font-semibold text-slate-800">{lead.preferredContactMethod} ({lead.phoneOrWhatsApp})</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Target Timeline</span>
+                      <span className="font-semibold text-slate-800">{lead.deadline || 'Flexible'}</span>
+                    </div>
+                  </div>
+
+                  {lead.projectDescription && (
+                    <div className="text-xs text-slate-600">
+                      <span className="font-bold text-slate-700 block mb-0.5">Project Scope:</span>
+                      <p className="line-clamp-2 text-slate-500">{lead.projectDescription}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Calendar}
+            title="No Inquiries or Meetings Yet"
+            description="When you submit an agency inquiry or request a strategic consultation, your appointment and video links will appear here."
+            actionText="Request a Consultation"
+            actionLink="/contact"
+          />
+        )
       ) : activeTab === 'orders' ? (
         orders.length > 0 ? (
           <div className="space-y-4">

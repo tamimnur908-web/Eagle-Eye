@@ -11,7 +11,7 @@ import {
   where,
   orderBy
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db, ADMIN_UID, BUSINESS_EMAIL } from '../lib/firebase';
 import {
   Service,
   DigitalProduct,
@@ -19,12 +19,17 @@ import {
   PortfolioItem,
   CaseStudy,
   Lead,
+  MeetingDetails,
+  NotificationSettings,
   Quotation,
   Order,
   DownloadEntitlement,
   FAQ,
   BentoConfig,
-  HeroSlide
+  HeroSlide,
+  AdminUser,
+  AdminRole,
+  AdminPermissions
 } from '../types';
 
 // ================= HOMEPAGE BENTO & COLLECTIONS SETTINGS =================
@@ -289,14 +294,75 @@ export const deleteCaseStudy = async (id: string) => {
   await deleteDoc(doc(db, 'caseStudies', id));
 };
 
-// ================= LEADS & INQUIRIES =================
-export const createLead = async (leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => {
-  const ref = await addDoc(collection(db, 'leads'), {
-    ...leadData,
-    status: 'New',
-    createdAt: Date.now(),
+import {
+  sendLeadNotificationEmails,
+  sendMeetingScheduledEmail,
+  sendMeetingStatusAlert
+} from './emailService';
+
+export const DEFAULT_RECIPIENT_EMAIL = 'tamimnur908@gmail.com';
+
+// ================= NOTIFICATION SETTINGS =================
+export const getNotificationSettings = async (): Promise<NotificationSettings> => {
+  try {
+    const docRef = doc(db, 'settings', 'leadNotifications');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      // Ensure it respects empty array if admin removed all emails
+      const emails = Array.isArray(data.leadRecipientEmails)
+        ? data.leadRecipientEmails
+        : [DEFAULT_RECIPIENT_EMAIL];
+      return {
+        leadRecipientEmails: emails,
+        updatedAt: data.updatedAt,
+        updatedBy: data.updatedBy
+      };
+    }
+  } catch (err) {
+    console.warn('Error reading notification settings:', err);
+  }
+  return {
+    leadRecipientEmails: [DEFAULT_RECIPIENT_EMAIL]
+  };
+};
+
+export const saveNotificationSettings = async (settings: NotificationSettings) => {
+  const docRef = doc(db, 'settings', 'leadNotifications');
+  await setDoc(docRef, {
+    leadRecipientEmails: settings.leadRecipientEmails || [],
     updatedAt: Date.now()
-  });
+  }, { merge: true });
+};
+
+// ================= LEADS & INQUIRIES =================
+export const createLead = async (leadData: Omit<Lead, 'id' | 'createdAt' | 'updatedAt' | 'status'>): Promise<string> => {
+  const now = Date.now();
+  const payload = {
+    ...leadData,
+    status: 'New' as const,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  const ref = await addDoc(collection(db, 'leads'), payload);
+  const createdLead: Lead = {
+    id: ref.id,
+    ...payload
+  };
+
+  // Check Dynamic Notification Recipient Settings
+  try {
+    const settings = await getNotificationSettings();
+    if (settings.leadRecipientEmails && settings.leadRecipientEmails.length > 0) {
+      await sendLeadNotificationEmails(createdLead, settings.leadRecipientEmails);
+    } else {
+      console.info('No email recipient configured. Notification skipped according to settings.');
+    }
+  } catch (err) {
+    console.error('Lead notification email error:', err);
+  }
+
   return ref.id;
 };
 
@@ -304,6 +370,82 @@ export const getAllLeads = async (): Promise<Lead[]> => {
   const q = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Lead));
+};
+
+export const getLeadById = async (id: string): Promise<Lead | null> => {
+  const snap = await getDoc(doc(db, 'leads', id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as Lead;
+};
+
+export const getUserLeads = async (userId?: string, userEmail?: string): Promise<Lead[]> => {
+  const all = await getAllLeads();
+  return all.filter((l) => {
+    if (userId && l.userId === userId) return true;
+    if (userEmail && l.email && l.email.toLowerCase() === userEmail.toLowerCase()) return true;
+    return false;
+  });
+};
+
+export const updateLeadMeeting = async (
+  leadId: string,
+  meeting: Omit<MeetingDetails, 'scheduledAt'>
+): Promise<void> => {
+  const fullMeeting: MeetingDetails = {
+    ...meeting,
+    scheduledAt: Date.now()
+  };
+
+  await updateDoc(doc(db, 'leads', leadId), {
+    meetingDetails: fullMeeting,
+    status: 'Meeting Scheduled',
+    updatedAt: Date.now()
+  });
+
+  const lead = await getLeadById(leadId);
+  if (lead) {
+    await sendMeetingScheduledEmail(lead, fullMeeting);
+  }
+};
+
+export const respondToMeeting = async (
+  leadId: string,
+  action: 'accept' | 'cancel',
+  reason?: string
+): Promise<void> => {
+  const lead = await getLeadById(leadId);
+  if (!lead || !lead.meetingDetails) {
+    throw new Error('Meeting not found for this inquiry.');
+  }
+
+  const isAccept = action === 'accept';
+  const updatedMeeting: MeetingDetails = {
+    ...lead.meetingDetails,
+    meetingStatus: isAccept ? 'confirmed' : 'cancelled',
+    ...(isAccept ? { confirmedAt: Date.now() } : { cancelledAt: Date.now(), cancellationReason: reason })
+  };
+
+  const newStatus: Lead['status'] = isAccept ? 'Meeting Confirmed' : 'Meeting Cancelled';
+
+  await updateDoc(doc(db, 'leads', leadId), {
+    meetingDetails: updatedMeeting,
+    status: newStatus,
+    updatedAt: Date.now()
+  });
+
+  const updatedLead: Lead = {
+    ...lead,
+    meetingDetails: updatedMeeting,
+    status: newStatus
+  };
+
+  const settings = await getNotificationSettings();
+  await sendMeetingStatusAlert(
+    updatedLead,
+    isAccept ? 'confirmed' : 'cancelled',
+    settings.leadRecipientEmails || [],
+    reason
+  );
 };
 
 export const updateLeadStatus = async (leadId: string, status: Lead['status'], internalNotes?: string) => {
@@ -385,3 +527,220 @@ export const saveFAQ = async (faq: Partial<FAQ> & { id?: string }) => {
 export const deleteFAQ = async (id: string) => {
   await deleteDoc(doc(db, 'faqs', id));
 };
+
+// ================= ADMIN & ROLE MANAGEMENT =================
+export const getDefaultRolePermissions = (role: AdminRole): AdminPermissions => {
+  switch (role) {
+    case 'owner':
+      return {
+        canManageAdmins: true,
+        canManageProducts: true,
+        canDeleteProducts: true,
+        canManageServices: true,
+        canManageOrders: true,
+        canManageLeads: true,
+        canManageHomepage: true,
+        canManageSettings: true,
+      };
+    case 'manager':
+      return {
+        canManageAdmins: false,
+        canManageProducts: true,
+        canDeleteProducts: true,
+        canManageServices: true,
+        canManageOrders: true,
+        canManageLeads: true,
+        canManageHomepage: true,
+        canManageSettings: false,
+      };
+    case 'editor':
+      return {
+        canManageAdmins: false,
+        canManageProducts: true,
+        canDeleteProducts: false,
+        canManageServices: true,
+        canManageOrders: false,
+        canManageLeads: false,
+        canManageHomepage: true,
+        canManageSettings: false,
+      };
+    case 'viewer':
+    default:
+      return {
+        canManageAdmins: false,
+        canManageProducts: false,
+        canDeleteProducts: false,
+        canManageServices: false,
+        canManageOrders: false,
+        canManageLeads: true,
+        canManageHomepage: false,
+        canManageSettings: false,
+      };
+  }
+};
+
+export const getAllAdmins = async (): Promise<AdminUser[]> => {
+  try {
+    const snap = await getDocs(collection(db, 'admins'));
+    let adminsList: AdminUser[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+
+    // Check if the primary system owner is in the list; if not, automatically include them
+    const primaryEmail = (BUSINESS_EMAIL || 'Tamimnur908@gmail.com').toLowerCase();
+    const hasPrimaryOwner = adminsList.some(
+      a => a.uid === ADMIN_UID || a.email.toLowerCase() === primaryEmail
+    );
+
+    if (!hasPrimaryOwner) {
+      const defaultOwner: AdminUser = {
+        id: 'primary-owner',
+        uid: ADMIN_UID,
+        email: primaryEmail,
+        name: 'Super Admin / Owner',
+        role: 'owner',
+        designation: 'Founder & CEO',
+        phone: '01836126791',
+        status: 'active',
+        permissions: getDefaultRolePermissions('owner'),
+        createdAt: 1700000000000,
+        addedBy: 'System Default'
+      };
+
+      // Persist in Firestore so rules and other queries find it
+      try {
+        await setDoc(doc(db, 'admins', ADMIN_UID), defaultOwner, { merge: true });
+        adminsList = [defaultOwner, ...adminsList];
+      } catch (e) {
+        adminsList = [defaultOwner, ...adminsList];
+      }
+    }
+
+    return adminsList.sort((a, b) => {
+      // Owners first, then managers, then editors, then viewers
+      const rank: Record<AdminRole, number> = { owner: 4, manager: 3, editor: 2, viewer: 1 };
+      return (rank[b.role] || 0) - (rank[a.role] || 0);
+    });
+  } catch (error) {
+    console.error('Error fetching admins:', error);
+    // Fallback to primary owner in case collection query fails
+    return [
+      {
+        id: 'primary-owner',
+        uid: ADMIN_UID,
+        email: (BUSINESS_EMAIL || 'Tamimnur908@gmail.com').toLowerCase(),
+        name: 'Super Admin / Owner',
+        role: 'owner',
+        designation: 'Founder & CEO',
+        status: 'active',
+        permissions: getDefaultRolePermissions('owner'),
+        createdAt: Date.now(),
+        addedBy: 'System Default'
+      }
+    ];
+  }
+};
+
+export const saveAdmin = async (
+  adminData: Partial<AdminUser> & { email: string; name: string; role: AdminRole }
+): Promise<string> => {
+  const emailClean = adminData.email.trim().toLowerCase();
+  // Safe ID: If user has an ID use it, or clean email as stable ID
+  const docId = adminData.id || adminData.uid || emailClean.replace(/[^a-zA-Z0-9]/g, '_');
+
+  const permissions = adminData.permissions || getDefaultRolePermissions(adminData.role);
+
+  const payload: Partial<AdminUser> = {
+    ...adminData,
+    id: docId,
+    email: emailClean,
+    name: adminData.name.trim(),
+    role: adminData.role,
+    status: adminData.status || 'active',
+    designation: adminData.designation || '',
+    phone: adminData.phone || '',
+    permissions,
+    updatedAt: Date.now()
+  };
+
+  if (!adminData.createdAt) {
+    payload.createdAt = Date.now();
+  }
+
+  // Save to admins collection
+  await setDoc(doc(db, 'admins', docId), payload, { merge: true });
+
+  // If we know the UID or can look up the user, link them
+  if (adminData.uid) {
+    try {
+      await setDoc(
+        doc(db, 'users', adminData.uid),
+        { isAdmin: adminData.status === 'active', role: adminData.role },
+        { merge: true }
+      );
+    } catch {
+      // Ignored if user doc is protected
+    }
+  }
+
+  return docId;
+};
+
+export const deleteAdmin = async (adminId: string): Promise<void> => {
+  if (adminId === ADMIN_UID || adminId === 'primary-owner') {
+    throw new Error('Cannot delete the primary owner account.');
+  }
+  await deleteDoc(doc(db, 'admins', adminId));
+};
+
+export const getAdminByUidOrEmail = async (
+  uid: string,
+  email?: string | null
+): Promise<AdminUser | null> => {
+  const primaryEmail = (BUSINESS_EMAIL || 'Tamimnur908@gmail.com').toLowerCase();
+
+  // 1. Direct match with primary system owner
+  if (uid === ADMIN_UID || (email && email.toLowerCase() === primaryEmail)) {
+    return {
+      id: ADMIN_UID,
+      uid: ADMIN_UID,
+      email: primaryEmail,
+      name: 'Owner / Super Admin',
+      role: 'owner',
+      designation: 'Founder & CEO',
+      status: 'active',
+      permissions: getDefaultRolePermissions('owner'),
+      createdAt: Date.now()
+    };
+  }
+
+  try {
+    // 2. Try doc with ID = uid
+    const uidDocRef = doc(db, 'admins', uid);
+    const uidDocSnap = await getDoc(uidDocRef);
+    if (uidDocSnap.exists()) {
+      return { id: uidDocSnap.id, ...(uidDocSnap.data() as any) } as AdminUser;
+    }
+
+    // 3. Try doc with ID = sanitized email
+    if (email) {
+      const emailClean = email.trim().toLowerCase();
+      const emailDocId = emailClean.replace(/[^a-zA-Z0-9]/g, '_');
+      const emailDocSnap = await getDoc(doc(db, 'admins', emailDocId));
+      if (emailDocSnap.exists()) {
+        return { id: emailDocSnap.id, ...(emailDocSnap.data() as any) } as AdminUser;
+      }
+
+      // 4. Query admins where email == emailClean
+      const q = query(collection(db, 'admins'), where('email', '==', emailClean));
+      const querySnap = await getDocs(q);
+      if (!querySnap.empty) {
+        const first = querySnap.docs[0];
+        return { id: first.id, ...(first.data() as any) } as AdminUser;
+      }
+    }
+  } catch (err) {
+    console.error('Error looking up admin status:', err);
+  }
+
+  return null;
+};
+

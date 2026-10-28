@@ -42,7 +42,25 @@ import {
   Play,
   Pause,
   Eye,
-  Maximize2
+  Maximize2,
+  ShieldCheck,
+  Users,
+  UserCheck,
+  UserPlus,
+  Shield,
+  Crown,
+  Briefcase,
+  Edit3,
+  CheckCircle2,
+  Lock,
+  Mail,
+  Phone,
+  Copy,
+  Calendar,
+  Video,
+  Bell,
+  BellOff,
+  MessageSquare
 } from 'lucide-react';
 import {
   getAllServices,
@@ -56,18 +74,41 @@ import {
   deleteCategory,
   getAllLeads,
   updateLeadStatus,
+  deleteLead,
+  updateLeadMeeting,
+  getNotificationSettings,
+  saveNotificationSettings,
+  DEFAULT_RECIPIENT_EMAIL,
   getAllOrders,
   updateOrderStatus,
   getBentoConfig,
   saveBentoConfig,
   defaultBentoConfig,
-  defaultHeroSlides
+  defaultHeroSlides,
+  getAllAdmins,
+  saveAdmin,
+  deleteAdmin,
+  getDefaultRolePermissions
 } from '../services/firestoreService';
-import { Service, DigitalProduct, ProductCategory, Lead, Order, BentoConfig, HeroSlide } from '../types';
+import {
+  Service,
+  DigitalProduct,
+  ProductCategory,
+  Lead,
+  MeetingDetails,
+  NotificationSettings,
+  Order,
+  BentoConfig,
+  HeroSlide,
+  AdminUser,
+  AdminRole,
+  AdminPermissions
+} from '../types';
+import { ADMIN_UID, BUSINESS_EMAIL } from '../lib/firebase';
 import { EmptyState } from '../components/EmptyState';
 
 export const AdminDashboardPage: React.FC = () => {
-  const { currentUser, isAdmin, logout } = useAuth();
+  const { currentUser, isAdmin, adminRole, logout, refreshAdminStatus } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -80,7 +121,8 @@ export const AdminDashboardPage: React.FC = () => {
     | 'leads'
     | 'homepage'
     | 'footer'
-    | 'settings';
+    | 'settings'
+    | 'admins';
 
   const validTabs: AdminTab[] = [
     'dashboard',
@@ -91,7 +133,8 @@ export const AdminDashboardPage: React.FC = () => {
     'leads',
     'homepage',
     'footer',
-    'settings'
+    'settings',
+    'admins'
   ];
 
   // Active Menu Selection (Defaults to 'dashboard', persists across page reloads via URL & localStorage)
@@ -272,16 +315,72 @@ export const AdminDashboardPage: React.FC = () => {
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Admins & Roles Management States
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [adminSearch, setAdminSearch] = useState('');
+  const [adminRoleFilter, setAdminRoleFilter] = useState<'all' | AdminRole>('all');
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [editingAdminId, setEditingAdminId] = useState<string | null>(null);
+  const [adminForm, setAdminForm] = useState<{
+    name: string;
+    email: string;
+    role: AdminRole;
+    designation: string;
+    phone: string;
+    status: 'active' | 'suspended';
+    permissions: AdminPermissions;
+  }>({
+    name: '',
+    email: '',
+    role: 'editor',
+    designation: '',
+    phone: '',
+    status: 'active',
+    permissions: getDefaultRolePermissions('editor')
+  });
+  const [adminSaving, setAdminSaving] = useState(false);
+  const [adminActionMsg, setAdminActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Notification Recipient Settings State
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    leadRecipientEmails: [DEFAULT_RECIPIENT_EMAIL]
+  });
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [newRecipientInput, setNewRecipientInput] = useState('');
+  const [notificationSaving, setNotificationSaving] = useState(false);
+
+  // Meeting Scheduling Modal State
+  const [selectedLeadForMeeting, setSelectedLeadForMeeting] = useState<Lead | null>(null);
+  const [meetingDate, setMeetingDate] = useState('');
+  const [meetingTime, setMeetingTime] = useState('16:00');
+  const [meetingLink, setMeetingLink] = useState('https://meet.google.com/');
+  const [meetingHost, setMeetingHost] = useState('Eagle Eye Digital Strategist');
+  const [meetingNotes, setMeetingNotes] = useState('');
+  const [isMeetingSubmitting, setIsMeetingSubmitting] = useState(false);
+
+  // Leads Filter & Search State
+  const [leadsFilter, setLeadsFilter] = useState<'all' | 'new' | 'scheduled' | 'confirmed' | 'cancelled' | 'archived'>('all');
+  const [leadsSearch, setLeadsSearch] = useState('');
+  const [copiedLeadId, setCopiedLeadId] = useState<string | null>(null);
+
+  const handleCopyMeetingLink = (leadId: string, link: string) => {
+    navigator.clipboard.writeText(link);
+    setCopiedLeadId(leadId);
+    setTimeout(() => setCopiedLeadId(null), 2500);
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [bData, sData, pData, cData, lData, oData] = await Promise.all([
+      const [bData, sData, pData, cData, lData, oData, aData, nData] = await Promise.all([
         getBentoConfig().catch(() => defaultBentoConfig),
         getAllServices().catch(() => []),
         getAllProducts().catch(() => []),
         getAllCategories().catch(() => []),
         getAllLeads().catch(() => []),
-        getAllOrders().catch(() => [])
+        getAllOrders().catch(() => []),
+        getAllAdmins().catch(() => []),
+        getNotificationSettings().catch(() => ({ leadRecipientEmails: [DEFAULT_RECIPIENT_EMAIL] }))
       ]);
       setBentoForm(bData);
       setServices(sData);
@@ -289,6 +388,8 @@ export const AdminDashboardPage: React.FC = () => {
       setCategories(cData);
       setLeads(lData);
       setOrders(oData);
+      setAdmins(aData);
+      setNotificationSettings(nData);
     } catch (err) {
       console.error('Failed to load admin collections:', err);
     } finally {
@@ -324,6 +425,203 @@ export const AdminDashboardPage: React.FC = () => {
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const pendingOrdersCount = orders.filter((o) => o.paymentStatus === 'pending').length;
   const activeCategoriesCount = categories.length || 1;
+
+  // Real-time Lead & Meeting Stats
+  const totalLeadsCount = leads.length;
+  const newLeadsCount = leads.filter((l) => l.status === 'New').length;
+  const scheduledMeetingsCount = leads.filter(
+    (l) => l.meetingDetails?.meetingStatus === 'proposed' || l.status === 'Meeting Scheduled'
+  ).length;
+  const confirmedMeetingsCount = leads.filter(
+    (l) => l.meetingDetails?.meetingStatus === 'confirmed' || l.status === 'Meeting Confirmed'
+  ).length;
+  const cancelledMeetingsCount = leads.filter(
+    (l) => l.meetingDetails?.meetingStatus === 'cancelled' || l.status === 'Meeting Cancelled'
+  ).length;
+
+  // Filtered Leads
+  const filteredLeads = leads.filter((lead) => {
+    if (leadsFilter === 'new' && lead.status !== 'New') return false;
+    if (leadsFilter === 'scheduled' && lead.meetingDetails?.meetingStatus !== 'proposed' && lead.status !== 'Meeting Scheduled') return false;
+    if (leadsFilter === 'confirmed' && lead.meetingDetails?.meetingStatus !== 'confirmed' && lead.status !== 'Meeting Confirmed') return false;
+    if (leadsFilter === 'cancelled' && lead.meetingDetails?.meetingStatus !== 'cancelled' && lead.status !== 'Meeting Cancelled') return false;
+    if (leadsFilter === 'archived' && lead.status !== 'Archived') return false;
+
+    if (leadsSearch.trim()) {
+      const q = leadsSearch.toLowerCase();
+      const match =
+        lead.name.toLowerCase().includes(q) ||
+        lead.email.toLowerCase().includes(q) ||
+        lead.phoneOrWhatsApp.toLowerCase().includes(q) ||
+        (lead.businessName && lead.businessName.toLowerCase().includes(q)) ||
+        lead.serviceInterest.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  // Notification Recipient Handlers
+  const handleAddRecipientEmail = async () => {
+    const email = newRecipientInput.trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    const currentList = notificationSettings.leadRecipientEmails || [];
+    if (currentList.includes(email)) {
+      alert('This email is already added to recipients.');
+      return;
+    }
+    const updated = [...currentList, email];
+    setNotificationSaving(true);
+    try {
+      await saveNotificationSettings({ leadRecipientEmails: updated });
+      setNotificationSettings({ leadRecipientEmails: updated });
+      setNewRecipientInput('');
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
+
+  const handleRemoveRecipientEmail = async (emailToRemove: string) => {
+    const updated = (notificationSettings.leadRecipientEmails || []).filter((e) => e !== emailToRemove);
+    setNotificationSaving(true);
+    try {
+      await saveNotificationSettings({ leadRecipientEmails: updated });
+      setNotificationSettings({ leadRecipientEmails: updated });
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
+
+  const handleClearAllRecipients = async () => {
+    if (window.confirm('Remove all notification recipient emails? No emails will be sent when new leads are submitted.')) {
+      setNotificationSaving(true);
+      try {
+        await saveNotificationSettings({ leadRecipientEmails: [] });
+        setNotificationSettings({ leadRecipientEmails: [] });
+      } finally {
+        setNotificationSaving(false);
+      }
+    }
+  };
+
+  const handleRestoreDefaultRecipient = async () => {
+    setNotificationSaving(true);
+    try {
+      await saveNotificationSettings({ leadRecipientEmails: [DEFAULT_RECIPIENT_EMAIL] });
+      setNotificationSettings({ leadRecipientEmails: [DEFAULT_RECIPIENT_EMAIL] });
+    } finally {
+      setNotificationSaving(false);
+    }
+  };
+
+  // Meeting Modal Handlers
+  const handleOpenMeetingModal = (lead: Lead) => {
+    setSelectedLeadForMeeting(lead);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setMeetingDate(tomorrow.toISOString().split('T')[0]);
+    setMeetingTime('16:00');
+    if (lead.meetingDetails?.scheduledTime) {
+      const dt = new Date(lead.meetingDetails.scheduledTime);
+      setMeetingDate(dt.toISOString().split('T')[0]);
+      setMeetingTime(dt.toTimeString().substring(0, 5));
+    }
+    setMeetingLink(lead.meetingDetails?.meetingLink || 'https://meet.google.com/');
+    setMeetingHost(lead.meetingDetails?.scheduledBy || currentUser?.displayName || currentUser?.email || 'Eagle Eye Digital Strategist');
+    setMeetingNotes(lead.meetingDetails?.notes || '');
+  };
+
+  const handleSaveMeetingSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLeadForMeeting) return;
+    if (!meetingDate || !meetingTime || !meetingLink.trim()) {
+      alert('Please fill out meeting date, time, and link.');
+      return;
+    }
+
+    setIsMeetingSubmitting(true);
+    try {
+      const combinedDateTime = `${meetingDate}T${meetingTime}:00`;
+      await updateLeadMeeting(selectedLeadForMeeting.id, {
+        scheduledTime: combinedDateTime,
+        meetingLink: meetingLink.trim(),
+        scheduledBy: meetingHost.trim() || 'Admin Strategist',
+        meetingStatus: 'proposed',
+        notes: meetingNotes.trim()
+      });
+
+      setSelectedLeadForMeeting(null);
+      await loadData();
+      alert('Meeting scheduled! Invitation email dispatched to client.');
+    } catch (err: any) {
+      alert('Failed to schedule meeting: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsMeetingSubmitting(false);
+    }
+  };
+
+  const handleDeleteLead = async (lead: Lead) => {
+    if (window.confirm(`Delete inquiry from "${lead.name}"?`)) {
+      await deleteLead(lead.id);
+      await loadData();
+    }
+  };
+
+  const handleUpdateLeadStatus = async (leadId: string, newStatus: Lead['status']) => {
+    await updateLeadStatus(leadId, newStatus);
+    await loadData();
+  };
+
+  // Leads & Consultation Pipeline Stats
+  const leadStats = {
+    total: leads.length,
+    newCount: leads.filter((l) => l.status === 'New').length,
+    scheduledCount: leads.filter((l) => l.status === 'Meeting Scheduled' || l.meetingDetails?.meetingStatus === 'proposed').length,
+    confirmedCount: leads.filter((l) => l.status === 'Meeting Confirmed' || l.meetingDetails?.meetingStatus === 'confirmed').length,
+    cancelledCount: leads.filter((l) => l.status === 'Meeting Cancelled' || l.meetingDetails?.meetingStatus === 'cancelled' || l.status === 'Lost').length,
+    completedCount: leads.filter((l) => l.status === 'Won' || l.meetingDetails?.meetingStatus === 'completed').length,
+  };
+
+  // Filtered Leads for Inquiries Tab & Dashboard
+  const filteredLeads = leads.filter((lead) => {
+    const q = leadsSearch.toLowerCase().trim();
+    const matchesSearch = !q || (
+      (lead.name || '').toLowerCase().includes(q) ||
+      (lead.email || '').toLowerCase().includes(q) ||
+      (lead.phoneOrWhatsApp || '').toLowerCase().includes(q) ||
+      (lead.businessName || '').toLowerCase().includes(q) ||
+      (lead.serviceInterest || '').toLowerCase().includes(q) ||
+      (lead.projectDescription || '').toLowerCase().includes(q)
+    );
+
+    if (!matchesSearch) return false;
+
+    if (leadsFilter === 'all') return true;
+    if (leadsFilter === 'new') return lead.status === 'New';
+    if (leadsFilter === 'scheduled') {
+      return lead.status === 'Meeting Scheduled' || lead.meetingDetails?.meetingStatus === 'proposed';
+    }
+    if (leadsFilter === 'confirmed') {
+      return lead.status === 'Meeting Confirmed' || lead.meetingDetails?.meetingStatus === 'confirmed';
+    }
+    if (leadsFilter === 'cancelled') {
+      return lead.status === 'Meeting Cancelled' || lead.meetingDetails?.meetingStatus === 'cancelled' || lead.status === 'Lost';
+    }
+    if (leadsFilter === 'archived') {
+      return lead.status === 'Won' || lead.status === 'Lost' || lead.meetingDetails?.meetingStatus === 'completed';
+    }
+    return true;
+  });
+
+  const upcomingConsultations = leads
+    .filter((l) => Boolean(l.meetingDetails?.scheduledTime))
+    .sort((a, b) => {
+      const timeA = new Date(a.meetingDetails?.scheduledTime || 0).getTime();
+      const timeB = new Date(b.meetingDetails?.scheduledTime || 0).getTime();
+      return timeA - timeB;
+    });
 
   // Filtered Products for List Table
   const filteredProducts = products.filter(
@@ -436,7 +734,7 @@ export const AdminDashboardPage: React.FC = () => {
   const handleQuickAddCategory = async () => {
     const trimmed = quickCategoryName.trim();
     if (!trimmed) {
-      alert('অনুগ্রহ করে ক্যাটাগরির নাম লিখুন।');
+      alert('αªàαª¿αºüαªùαºìαª░αª╣ αªòαª░αºç αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐αª░ αª¿αª╛αª« αª▓αª┐αªûαºüαª¿αÑñ');
       return;
     }
     const slug = trimmed
@@ -536,9 +834,9 @@ export const AdminDashboardPage: React.FC = () => {
         setProdForm((prev) => ({ ...prev, thumbnailUrl: text.trim() }));
         return;
       }
-      alert('Clipboard-এ কোনো ছবি বা ইমেজ লিংক পাওয়া যায়নি। ছবি কপি করে এখানে Ctrl + V চাপুন।');
+      alert('Clipboard-αªÅ αªòαºïαª¿αºï αª¢αª¼αª┐ αª¼αª╛ αªçαª«αºçαª£ αª▓αª┐αªéαªò αª¬αª╛αªôαª»αª╝αª╛ αª»αª╛αª»αª╝αª¿αª┐αÑñ αª¢αª¼αª┐ αªòαª¬αª┐ αªòαª░αºç αªÅαªûαª╛αª¿αºç Ctrl + V αªÜαª╛αª¬αºüαª¿αÑñ');
     } catch (err) {
-      alert('ছবিটি কপি করে এই বক্সে Ctrl + V চাপুন, স্বয়ংক্রিয়ভাবে অ্যাড হয়ে যাবে!');
+      alert('αª¢αª¼αª┐αªƒαª┐ αªòαª¬αª┐ αªòαª░αºç αªÅαªç αª¼αªòαºìαª╕αºç Ctrl + V αªÜαª╛αª¬αºüαª¿, αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αªàαºìαª»αª╛αªí αª╣αºƒαºç αª»αª╛αª¼αºç!');
     }
   };
 
@@ -742,6 +1040,232 @@ export const AdminDashboardPage: React.FC = () => {
     await saveBentoConfig(updatedBento);
   };
 
+  // ================= ADMIN & ROLES MANAGEMENT HANDLERS =================
+  const handleOpenAddAdmin = () => {
+    setEditingAdminId(null);
+    setAdminForm({
+      name: '',
+      email: '',
+      role: 'editor',
+      designation: '',
+      phone: '',
+      status: 'active',
+      permissions: getDefaultRolePermissions('editor')
+    });
+    setAdminActionMsg(null);
+    setIsAdminModalOpen(true);
+  };
+
+  const handleOpenEditAdmin = (admin: AdminUser) => {
+    setEditingAdminId(admin.id);
+    setAdminForm({
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      designation: admin.designation || '',
+      phone: admin.phone || '',
+      status: admin.status || 'active',
+      permissions: admin.permissions || getDefaultRolePermissions(admin.role)
+    });
+    setAdminActionMsg(null);
+    setIsAdminModalOpen(true);
+  };
+
+  const handleRoleChangeInForm = (newRole: AdminRole) => {
+    setAdminForm((prev) => ({
+      ...prev,
+      role: newRole,
+      permissions: getDefaultRolePermissions(newRole)
+    }));
+  };
+
+  const handleTogglePermission = (key: keyof AdminPermissions) => {
+    setAdminForm((prev) => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [key]: !prev.permissions[key]
+      }
+    }));
+  };
+
+  const handleSaveAdminForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminForm.name.trim() || !adminForm.email.trim()) {
+      alert('দয়া করে নাম এবং সঠিক ইমেইল প্রদান করুন।');
+      return;
+    }
+
+    setAdminSaving(true);
+    try {
+      await saveAdmin({
+        ...(editingAdminId ? { id: editingAdminId } : {}),
+        name: adminForm.name.trim(),
+        email: adminForm.email.trim().toLowerCase(),
+        role: adminForm.role,
+        designation: adminForm.designation.trim(),
+        phone: adminForm.phone.trim(),
+        status: adminForm.status,
+        permissions: adminForm.permissions,
+        addedBy: currentUser?.email || 'Admin'
+      });
+
+      await loadData();
+      await refreshAdminStatus();
+      setIsAdminModalOpen(false);
+      setAdminActionMsg({
+        type: 'success',
+        text: `অ্যাডমিন ${adminForm.name} (${adminForm.role.toUpperCase()}) সফলভাবে সংরক্ষণ করা হয়েছে!`
+      });
+      setTimeout(() => setAdminActionMsg(null), 5000);
+    } catch (err: any) {
+      alert(err.message || 'অ্যাডমিন সংরক্ষণ করতে সমস্যা হয়েছে।');
+    } finally {
+      setAdminSaving(false);
+    }
+  };
+
+  const handleQuickRoleChange = async (admin: AdminUser, newRole: AdminRole) => {
+    const isPrimary =
+      admin.id === 'primary-owner' ||
+      admin.uid === ADMIN_UID ||
+      admin.email.toLowerCase() === (BUSINESS_EMAIL || 'tamimnur908@gmail.com').toLowerCase();
+
+    if (isPrimary && newRole !== 'owner') {
+      alert('সিস্টেমের প্রধান মালিককে (Primary Owner) ওনার রোল ব্যতীত অন্য রোলে পরিবর্তন করা যাবে না।');
+      return;
+    }
+
+    if (!confirm(`${admin.name} (${admin.email})-এর রোল পরিবর্তন করে "${newRole.toUpperCase()}" করতে চান?`)) {
+      return;
+    }
+
+    try {
+      await saveAdmin({
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: newRole,
+        status: admin.status,
+        permissions: getDefaultRolePermissions(newRole)
+      });
+      await loadData();
+      await refreshAdminStatus();
+      setAdminActionMsg({
+        type: 'success',
+        text: `${admin.name}-এর রোল "${newRole.toUpperCase()}" এ পরিবর্তন করা হয়েছে।`
+      });
+      setTimeout(() => setAdminActionMsg(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'রোল আপডেট করতে সমস্যা হয়েছে।');
+    }
+  };
+
+  const handleDeleteAdmin = async (admin: AdminUser) => {
+    const isPrimary =
+      admin.id === 'primary-owner' ||
+      admin.uid === ADMIN_UID ||
+      admin.email.toLowerCase() === (BUSINESS_EMAIL || 'tamimnur908@gmail.com').toLowerCase();
+
+    if (isPrimary) {
+      alert('প্রধান মালিকের অ্যাকাউন্ট ডিলিট করা যাবে না।');
+      return;
+    }
+
+    if (currentUser?.email && currentUser.email.toLowerCase() === admin.email.toLowerCase()) {
+      alert('আপনি বর্তমানে যে অ্যাকাউন্ট দিয়ে লগইন আছেন সেটি ডিলিট করতে পারবেন না।');
+      return;
+    }
+
+    if (!confirm(`আপনি কি নিশ্চিত যে ${admin.name} (${admin.email})-এর অ্যাডমিন এক্সেস সম্পূর্ণরূপে বাতিল করতে চান?`)) {
+      return;
+    }
+
+    try {
+      await deleteAdmin(admin.id);
+      await loadData();
+      await refreshAdminStatus();
+      setAdminActionMsg({
+        type: 'success',
+        text: `${admin.name}-এর অ্যাডমিন এক্সেস রিমুভ করা হয়েছে।`
+      });
+      setTimeout(() => setAdminActionMsg(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'অ্যাডমিন ডিলিট করতে সমস্যা হয়েছে।');
+    }
+  };
+
+  const handleToggleAdminStatus = async (admin: AdminUser) => {
+    const isPrimary =
+      admin.id === 'primary-owner' ||
+      admin.uid === ADMIN_UID ||
+      admin.email.toLowerCase() === (BUSINESS_EMAIL || 'tamimnur908@gmail.com').toLowerCase();
+
+    if (isPrimary) {
+      alert('প্রধান মালিকের অ্যাকাউন্ট স্থগিত (Suspend) করা যাবে না।');
+      return;
+    }
+
+    const nextStatus = admin.status === 'active' ? 'suspended' : 'active';
+    try {
+      await saveAdmin({
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        status: nextStatus,
+        permissions: admin.permissions
+      });
+      await loadData();
+      await refreshAdminStatus();
+    } catch (err: any) {
+      alert(err.message || 'স্ট্যাটাস পরিবর্তন করতে সমস্যা হয়েছে।');
+    }
+  };
+
+  const renderRoleBadge = (role: AdminRole) => {
+    switch (role) {
+      case 'owner':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-500/15 to-purple-500/15 text-amber-700 border border-amber-300">
+            <Crown className="w-3 h-3 text-amber-600" />
+            <span>Owner (মালিক)</span>
+          </span>
+        );
+      case 'manager':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <Briefcase className="w-3 h-3 text-blue-600" />
+            <span>Manager (ম্যানেজার)</span>
+          </span>
+        );
+      case 'editor':
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <Edit3 className="w-3 h-3 text-emerald-600" />
+            <span>Editor (এডিটর)</span>
+          </span>
+        );
+      case 'viewer':
+      default:
+        return (
+          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+            <Eye className="w-3 h-3 text-slate-500" />
+            <span>Viewer (সাপোর্ট)</span>
+          </span>
+        );
+    }
+  };
+
+  const filteredAdmins = admins.filter((a) => {
+    const matchesSearch =
+      a.name.toLowerCase().includes(adminSearch.toLowerCase()) ||
+      a.email.toLowerCase().includes(adminSearch.toLowerCase()) ||
+      (a.designation && a.designation.toLowerCase().includes(adminSearch.toLowerCase()));
+    const matchesRole = adminRoleFilter === 'all' || a.role === adminRoleFilter;
+    return matchesSearch && matchesRole;
+  });
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
       
@@ -776,6 +1300,7 @@ export const AdminDashboardPage: React.FC = () => {
               { id: 'products', label: 'Products', icon: Package },
               { id: 'services', label: 'Agency Services', icon: Layers },
               { id: 'categories', label: 'Categories', icon: FolderTree },
+              { id: 'admins', label: 'Admins & Roles', icon: ShieldCheck, badge: admins.length || null },
               { id: 'leads', label: 'Leads & Inquiries', icon: Inbox, badge: leads.filter(l => l.status === 'New').length || null },
               { id: 'homepage', label: 'Homepage Banners', icon: Image },
               { id: 'footer', label: 'Footer & Social', icon: Globe },
@@ -811,7 +1336,28 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         {/* Sidebar Bottom */}
-        <div className="space-y-1 pt-4 border-t border-slate-100 text-xs">
+        <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
+          {/* Logged in Admin Profile Card */}
+          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                {(currentUser?.displayName || currentUser?.email || 'A').charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-xs text-slate-800 block truncate">
+                  {currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Admin'}
+                </span>
+                <span className="text-[10px] text-slate-400 block truncate">
+                  {currentUser?.email}
+                </span>
+              </div>
+            </div>
+            <div className="pt-1 flex items-center justify-between border-t border-slate-200/60 text-[10px]">
+              <span className="text-slate-500 font-medium">Logged in:</span>
+              <div>{renderRoleBadge(adminRole || 'owner')}</div>
+            </div>
+          </div>
+
           <Link
             to="/"
             target="_blank"
@@ -942,7 +1488,7 @@ export const AdminDashboardPage: React.FC = () => {
                                   FREE
                                 </span>
                               ) : (
-                                <span className="font-extrabold text-slate-900">৳{p.salePrice ?? p.price}</span>
+                                <span className="font-extrabold text-slate-900">αº│{p.salePrice ?? p.price}</span>
                               )}
                             </td>
                             <td className="py-3.5 px-5">
@@ -957,11 +1503,11 @@ export const AdminDashboardPage: React.FC = () => {
                                   <span>Drive</span>
                                 </a>
                               ) : (
-                                <span className="text-slate-400 text-[11px]">—</span>
+                                <span className="text-slate-400 text-[11px]">ΓÇö</span>
                               )}
                             </td>
                             <td className="py-3.5 px-5 font-medium text-slate-600 text-[11px]">
-                              <strong className="text-slate-900">{p.salesCount || 0}</strong> orders • <strong className="text-slate-900">{p.downloadsCount || 0}</strong> dl
+                              <strong className="text-slate-900">{p.salesCount || 0}</strong> orders ΓÇó <strong className="text-slate-900">{p.downloadsCount || 0}</strong> dl
                             </td>
                             <td className="py-3.5 px-5">
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -1098,10 +1644,10 @@ export const AdminDashboardPage: React.FC = () => {
                         onChange={(e) => setProdForm({ ...prodForm, productType: e.target.value as any })}
                         className="w-full sm:w-64 bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-blue-600 focus:bg-white"
                       >
-                        <option value="Template">📄 Template</option>
-                        <option value="Graphic Asset">🎨 Graphic Asset</option>
-                        <option value="Software">💻 Software</option>
-                        <option value="Game">🎮 Game</option>
+                        <option value="Template">≡ƒôä Template</option>
+                        <option value="Graphic Asset">≡ƒÄ¿ Graphic Asset</option>
+                        <option value="Software">≡ƒÆ╗ Software</option>
+                        <option value="Game">≡ƒÄ« Game</option>
                       </select>
                     </div>
 
@@ -1145,7 +1691,7 @@ export const AdminDashboardPage: React.FC = () => {
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        PAID PRODUCT (BDT ৳)
+                        PAID PRODUCT (BDT αº│)
                       </button>
                       <button
                         type="button"
@@ -1156,14 +1702,14 @@ export const AdminDashboardPage: React.FC = () => {
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        FREE GIVEAWAY (৳0)
+                        FREE GIVEAWAY (αº│0)
                       </button>
                     </div>
 
                     {!prodForm.isFree && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                         <div>
-                          <label className="block font-bold text-slate-700 mb-1">Selling Price (BDT ৳) *</label>
+                          <label className="block font-bold text-slate-700 mb-1">Selling Price (BDT αº│) *</label>
                           <input
                             type="number"
                             value={prodForm.price ?? 0}
@@ -1199,7 +1745,7 @@ export const AdminDashboardPage: React.FC = () => {
                             Show Offer / Discount Badge (% OFF) on Product Card
                           </label>
                           <p className="text-[10px] text-slate-500">
-                            টিক চিহ্ন দিলে কার্ডের উপর "50% OFF" স্টিকার শো করবে। আনচেক রাখলে কোনো অফার ব্যাজ দেখাবে না।
+                            αªƒαª┐αªò αªÜαª┐αª╣αºìαª¿ αªªαª┐αª▓αºç αªòαª╛αª░αºìαªíαºçαª░ αªëαª¬αª░ "50% OFF" αª╕αºìαªƒαª┐αªòαª╛αª░ αª╢αºï αªòαª░αª¼αºçαÑñ αªåαª¿αªÜαºçαªò αª░αª╛αªûαª▓αºç αªòαºïαª¿αºï αªàαª½αª╛αª░ αª¼αºìαª»αª╛αª£ αªªαºçαªûαª╛αª¼αºç αª¿αª╛αÑñ
                           </p>
                         </div>
                       </div>
@@ -1217,7 +1763,7 @@ export const AdminDashboardPage: React.FC = () => {
                           3. DIGITAL DELIVERY METHOD & DOWNLOAD SETTINGS
                         </h3>
                         <p className="text-[11px] text-slate-500">
-                          Google Drive লিংক এবং কাস্টমার কী ধরনের আইটেম (Game, Software নাকি Graphic Resource) ডাউনলোড করবে তা নির্ধারণ করুন।
+                          Google Drive αª▓αª┐αªéαªò αªÅαª¼αªé αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªòαºÇ αªºαª░αª¿αºçαª░ αªåαªçαªƒαºçαª« (Game, Software αª¿αª╛αªòαª┐ Graphic Resource) αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αª¼αºç αªñαª╛ αª¿αª┐αª░αºìαªºαª╛αª░αªú αªòαª░αºüαª¿αÑñ
                         </p>
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">
@@ -1225,27 +1771,27 @@ export const AdminDashboardPage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* এটি কী ধরনের আইটেম? (Game, Software নাকি Graphic Asset) */}
+                    {/* αªÅαªƒαª┐ αªòαºÇ αªºαª░αª¿αºçαª░ αªåαªçαªƒαºçαª«? (Game, Software αª¿αª╛αªòαª┐ Graphic Asset) */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <label className="font-bold text-slate-700">
-                          এটি কী ধরনের আইটেম? (Game, Software নাকি Graphic Asset) *
+                          αªÅαªƒαª┐ αªòαºÇ αªºαª░αª¿αºçαª░ αªåαªçαªƒαºçαª«? (Game, Software αª¿αª╛αªòαª┐ Graphic Asset) *
                         </label>
                         <span className="text-[11px] text-purple-600 font-semibold">
-                          সিলেক্ট করলে বাটনের লিখা স্বয়ংক্রিয়ভাবে সেট হবে
+                          αª╕αª┐αª▓αºçαªòαºìαªƒ αªòαª░αª▓αºç αª¼αª╛αªƒαª¿αºçαª░ αª▓αª┐αªûαª╛ αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αª╕αºçαªƒ αª╣αª¼αºç
                         </span>
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                          { id: 'Game', label: 'Game', sub: 'PC / Mobile গেম', icon: Gamepad2 },
-                          { id: 'Software', label: 'Software', sub: 'টুলস বা সফটওয়্যার', icon: Laptop },
-                          { id: 'Graphic Asset', label: 'Graphic Asset', sub: 'গ্রাফিক্স বা ডিজাইন', icon: Palette },
-                          { id: 'Template', label: 'Template', sub: 'টেমপ্লেট বা থিম', icon: FileCode },
+                          { id: 'Game', label: 'Game', sub: 'PC / Mobile αªùαºçαª«', icon: Gamepad2 },
+                          { id: 'Software', label: 'Software', sub: 'αªƒαºüαª▓αª╕ αª¼αª╛ αª╕αª½αªƒαªôαºƒαºìαª»αª╛αª░', icon: Laptop },
+                          { id: 'Graphic Asset', label: 'Graphic Asset', sub: 'αªùαºìαª░αª╛αª½αª┐αªòαºìαª╕ αª¼αª╛ αªíαª┐αª£αª╛αªçαª¿', icon: Palette },
+                          { id: 'Template', label: 'Template', sub: 'αªƒαºçαª«αª¬αºìαª▓αºçαªƒ αª¼αª╛ αªÑαª┐αª«', icon: FileCode },
                           ...customTypes.map((ct) => ({
                             id: ct,
                             label: ct,
-                            sub: 'কাস্টম আইটেম',
+                            sub: 'αªòαª╛αª╕αºìαªƒαª« αªåαªçαªƒαºçαª«',
                             icon: Sparkles
                           }))
                         ].map((item) => {
@@ -1284,8 +1830,8 @@ export const AdminDashboardPage: React.FC = () => {
                           className="p-3.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-amber-500 bg-slate-50/60 hover:bg-amber-50/30 text-left transition-all flex flex-col justify-center items-center text-center group"
                         >
                           <Plus className="w-5 h-5 text-slate-400 group-hover:text-amber-600 transition-colors" />
-                          <span className="font-bold text-slate-700 group-hover:text-amber-700 text-xs mt-1">+ কাস্টম টাইপ</span>
-                          <span className="text-[10px] text-slate-400">নতুন টাইপ যোগ করুন</span>
+                          <span className="font-bold text-slate-700 group-hover:text-amber-700 text-xs mt-1">+ αªòαª╛αª╕αºìαªƒαª« αªƒαª╛αªçαª¬</span>
+                          <span className="text-[10px] text-slate-400">αª¿αªñαºüαª¿ αªƒαª╛αªçαª¬ αª»αºïαªù αªòαª░αºüαª¿</span>
                         </button>
                       </div>
 
@@ -1294,7 +1840,7 @@ export const AdminDashboardPage: React.FC = () => {
                         <div className="flex items-center space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-xl mt-3 animate-fadeIn">
                           <input
                             type="text"
-                            placeholder="নতুন আইটেম টাইপের নাম লিখুন (যেমন: eBook, Plugin, Presets, Course)..."
+                            placeholder="αª¿αªñαºüαª¿ αªåαªçαªƒαºçαª« αªƒαª╛αªçαª¬αºçαª░ αª¿αª╛αª« αª▓αª┐αªûαºüαª¿ (αª»αºçαª«αª¿: eBook, Plugin, Presets, Course)..."
                             value={newCustomTypeName}
                             onChange={(e) => setNewCustomTypeName(e.target.value)}
                             className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-amber-600 font-semibold"
@@ -1312,7 +1858,7 @@ export const AdminDashboardPage: React.FC = () => {
                             className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center space-x-1"
                           >
                             <Check className="w-3.5 h-3.5" />
-                            <span>যোগ করুন</span>
+                            <span>αª»αºïαªù αªòαª░αºüαª¿</span>
                           </button>
                           <button
                             type="button"
@@ -1342,18 +1888,18 @@ export const AdminDashboardPage: React.FC = () => {
                         className="w-full bg-white border border-slate-300 rounded-lg p-2.5 font-mono text-xs focus:outline-none focus:border-blue-600"
                       />
                       <p className="text-[10px] text-slate-500">
-                        Google Drive-এ ফাইল (গেম, সফটওয়্যার, অথবা জিপ ফাইল) আপলোড করে "Anyone with the link can view" পারমিশন দিয়ে শেয়ার লিংকটি এখানে দিন। কাস্টমার অর্ডার কনফার্ম হলে এই সুরক্ষিত লিংক থেকে ফাইল ডাউনলোড করতে পারবেন।
+                        Google Drive-αªÅ αª½αª╛αªçαª▓ (αªùαºçαª«, αª╕αª½αªƒαªôαºƒαºìαª»αª╛αª░, αªàαªÑαª¼αª╛ αª£αª┐αª¬ αª½αª╛αªçαª▓) αªåαª¬αª▓αºïαªí αªòαª░αºç "Anyone with the link can view" αª¬αª╛αª░αª«αª┐αª╢αª¿ αªªαª┐αºƒαºç αª╢αºçαºƒαª╛αª░ αª▓αª┐αªéαªòαªƒαª┐ αªÅαªûαª╛αª¿αºç αªªαª┐αª¿αÑñ αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªàαª░αºìαªíαª╛αª░ αªòαª¿αª½αª╛αª░αºìαª« αª╣αª▓αºç αªÅαªç αª╕αºüαª░αªòαºìαª╖αª┐αªñ αª▓αª┐αªéαªò αªÑαºçαªòαºç αª½αª╛αªçαª▓ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αªñαºç αª¬αª╛αª░αª¼αºçαª¿αÑñ
                       </p>
                     </div>
 
-                    {/* ডাউনলোড বাটন লিখা / Download Button Text */}
+                    {/* αªíαª╛αªëαª¿αª▓αºïαªí αª¼αª╛αªƒαª¿ αª▓αª┐αªûαª╛ / Download Button Text */}
                     <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/30 space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-purple-900">
-                          🏷️ ডাউনলোড বাটন লিখা / Download Button Text (কাস্টমাইজেশন)
+                          ≡ƒÅ╖∩╕Å αªíαª╛αªëαª¿αª▓αºïαªí αª¼αª╛αªƒαª¿ αª▓αª┐αªûαª╛ / Download Button Text (αªòαª╛αª╕αºìαªƒαª«αª╛αªçαª£αºçαª╢αª¿)
                         </span>
                         <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-semibold">
-                          ওয়েবসাইটে বাটনের উপর সরাসরি দেখাবে
+                          αªôαºƒαºçαª¼αª╕αª╛αªçαªƒαºç αª¼αª╛αªƒαª¿αºçαª░ αªëαª¬αª░ αª╕αª░αª╛αª╕αª░αª┐ αªªαºçαªûαª╛αª¼αºç
                         </span>
                       </div>
 
@@ -1367,7 +1913,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                       {/* Quick Select Buttons */}
                       <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold text-slate-600 block">এক ক্লিকে বাটনের টেক্সট পছন্দ করুন:</span>
+                        <span className="text-[10px] font-bold text-slate-600 block">αªÅαªò αªòαºìαª▓αª┐αªòαºç αª¼αª╛αªƒαª¿αºçαª░ αªƒαºçαªòαºìαª╕αªƒ αª¬αª¢αª¿αºìαªª αªòαª░αºüαª¿:</span>
                         <div className="flex flex-wrap gap-1.5">
                           {[
                             'Download Free Game',
@@ -1390,80 +1936,80 @@ export const AdminDashboardPage: React.FC = () => {
                           ))}
                         </div>
                         <p className="text-[10px] text-slate-500 pt-1">
-                          💡 ফাঁকা রাখলে প্রোডাক্টের টাইপ (Game / Software / Resource) অনুযায়ী স্বয়ংক্রিয়ভাবে সঠিক নাম বাটনে চলে আসবে।
+                          ≡ƒÆí αª½αª╛αªüαªòαª╛ αª░αª╛αªûαª▓αºç αª¬αºìαª░αºïαªíαª╛αªòαºìαªƒαºçαª░ αªƒαª╛αªçαª¬ (Game / Software / Resource) αªàαª¿αºüαª»αª╛αºƒαºÇ αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αª╕αªáαª┐αªò αª¿αª╛αª« αª¼αª╛αªƒαª¿αºç αªÜαª▓αºç αªåαª╕αª¼αºçαÑñ
                         </p>
                       </div>
                     </div>
 
-                    {/* ZIP / ফাইল আনজিপ করার পাসওয়ার্ড (ঐচ্ছিক / Optional) */}
+                    {/* ZIP / αª½αª╛αªçαª▓ αªåαª¿αª£αª┐αª¬ αªòαª░αª╛αª░ αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional) */}
                     <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/20 space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-purple-900 flex items-center space-x-1.5">
                           <KeyRound className="w-3.5 h-3.5 text-purple-600" />
-                          <span>ZIP / ফাইল আনজিপ করার পাসওয়ার্ড (ঐচ্ছিক / Optional)</span>
+                          <span>ZIP / αª½αª╛αªçαª▓ αªåαª¿αª£αª┐αª¬ αªòαª░αª╛αª░ αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional)</span>
                         </span>
                         <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded font-semibold">
-                          পাসওয়ার্ড না থাকলে ফাঁকা রাখুন
+                          αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí αª¿αª╛ αªÑαª╛αªòαª▓αºç αª½αª╛αªüαªòαª╛ αª░αª╛αªûαºüαª¿
                         </span>
                       </div>
                       <input
                         type="text"
                         value={prodForm.zipPassword || ''}
                         onChange={(e) => setProdForm({ ...prodForm, zipPassword: e.target.value })}
-                        placeholder="যেমন: 1234 বা MG2026 (না থাকলে খালি রাখুন)"
+                        placeholder="αª»αºçαª«αª¿: 1234 αª¼αª╛ MG2026 (αª¿αª╛ αªÑαª╛αªòαª▓αºç αªûαª╛αª▓αª┐ αª░αª╛αªûαºüαª¿)"
                         className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-purple-600"
                       />
                       <p className="text-[10px] text-slate-500">
-                        💡 <strong>কখন দিবেন?</strong> ফাইলটিতে যদি আনজিপ করার কোনো পাসওয়ার্ড থাকে (যেমন ৪ সংখ্যার পাসওয়ার্ড), তবে সেটি এখানে দিন। কাস্টমার অর্ডার সফল হওয়ার পর স্বয়ংক্রিয়ভাবে একটি সুন্দর নোটিশে পাসওয়ার্ড ও কপি বাটন দেখতে পাবে।
+                        ≡ƒÆí <strong>αªòαªûαª¿ αªªαª┐αª¼αºçαª¿?</strong> αª½αª╛αªçαª▓αªƒαª┐αªñαºç αª»αªªαª┐ αªåαª¿αª£αª┐αª¬ αªòαª░αª╛αª░ αªòαºïαª¿αºï αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí αªÑαª╛αªòαºç (αª»αºçαª«αª¿ αº¬ αª╕αªéαªûαºìαª»αª╛αª░ αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí), αªñαª¼αºç αª╕αºçαªƒαª┐ αªÅαªûαª╛αª¿αºç αªªαª┐αª¿αÑñ αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªàαª░αºìαªíαª╛αª░ αª╕αª½αª▓ αª╣αªôαºƒαª╛αª░ αª¬αª░ αª╕αºìαª¼αºƒαªéαªòαºìαª░αª┐αºƒαª¡αª╛αª¼αºç αªÅαªòαªƒαª┐ αª╕αºüαª¿αºìαªªαª░ αª¿αºïαªƒαª┐αª╢αºç αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí αªô αªòαª¬αª┐ αª¼αª╛αªƒαª¿ αªªαºçαªûαªñαºç αª¬αª╛αª¼αºçαÑñ
                       </p>
                     </div>
 
-                    {/* কীভাবে কি করতে হবে / ইন্সটলেশন গাইড (ঐচ্ছিক / Optional) */}
+                    {/* αªòαºÇαª¡αª╛αª¼αºç αªòαª┐ αªòαª░αªñαºç αª╣αª¼αºç / αªçαª¿αºìαª╕αªƒαª▓αºçαª╢αª¿ αªùαª╛αªçαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional) */}
                     <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/30 space-y-2.5">
                       <div className="flex justify-between items-center">
                         <span className="font-bold text-amber-900 flex items-center space-x-1.5">
                           <FileText className="w-3.5 h-3.5 text-amber-600" />
-                          <span>কীভাবে কি করতে হবে / ইন্সটলেশন গাইড (ঐচ্ছিক / Optional)</span>
+                          <span>αªòαºÇαª¡αª╛αª¼αºç αªòαª┐ αªòαª░αªñαºç αª╣αª¼αºç / αªçαª¿αºìαª╕αªƒαª▓αºçαª╢αª¿ αªùαª╛αªçαªí (αªÉαªÜαºìαª¢αª┐αªò / Optional)</span>
                         </span>
                         <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded font-semibold">
-                          ডাউনলোড পপআপে কাস্টমার দেখতে পাবে
+                          αªíαª╛αªëαª¿αª▓αºïαªí αª¬αª¬αªåαª¬αºç αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αªªαºçαªûαªñαºç αª¬αª╛αª¼αºç
                         </span>
                       </div>
                       <textarea
                         rows={3}
                         value={prodForm.installGuide || ''}
                         onChange={(e) => setProdForm({ ...prodForm, installGuide: e.target.value })}
-                        placeholder="যেমন: ১. জিপ ফাইলটি ডাউনলোড করে আনজিপ করুন। ২. আনজিপ করতে পাসওয়ার্ড MG2026 দিন। ৩. Setup.exe রান করে ইন্সটল করুন..."
+                        placeholder="αª»αºçαª«αª¿: αºº. αª£αª┐αª¬ αª½αª╛αªçαª▓αªƒαª┐ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αºç αªåαª¿αª£αª┐αª¬ αªòαª░αºüαª¿αÑñ αº¿. αªåαª¿αª£αª┐αª¬ αªòαª░αªñαºç αª¬αª╛αª╕αªôαºƒαª╛αª░αºìαªí MG2026 αªªαª┐αª¿αÑñ αº⌐. Setup.exe αª░αª╛αª¿ αªòαª░αºç αªçαª¿αºìαª╕αªƒαª▓ αªòαª░αºüαª¿..."
                         className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs text-slate-900 focus:outline-none focus:border-amber-600"
                       />
 
                       {/* Quick preset guidelines */}
                       <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <span className="text-[10px] font-bold text-slate-600">দ্রুত গাইডলাইন সিলেক্ট করুন:</span>
+                        <span className="text-[10px] font-bold text-slate-600">αªªαºìαª░αºüαªñ αªùαª╛αªçαªíαª▓αª╛αªçαª¿ αª╕αª┐αª▓αºçαªòαºìαªƒ αªòαª░αºüαª¿:</span>
                         <button
                           type="button"
-                          onClick={() => setProdForm({ ...prodForm, installGuide: '১. ফাইলটি ডাউনলোড করে আনজিপ করুন।\n২. প্রয়োজনীয় ফোল্ডার এক্সট্রাক্ট করে গেমটি চালু করুন।' })}
+                          onClick={() => setProdForm({ ...prodForm, installGuide: 'αºº. αª½αª╛αªçαª▓αªƒαª┐ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αºç αªåαª¿αª£αª┐αª¬ αªòαª░αºüαª¿αÑñ\nαº¿. αª¬αºìαª░αª»αª╝αºïαª£αª¿αºÇαª»αª╝ αª½αºïαª▓αºìαªíαª╛αª░ αªÅαªòαºìαª╕αªƒαºìαª░αª╛αªòαºìαªƒ αªòαª░αºç αªùαºçαª«αªƒαª┐ αªÜαª╛αª▓αºü αªòαª░αºüαª¿αÑñ' })}
                           className="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-amber-500 text-[10px] font-semibold text-slate-700"
                         >
-                          🎮 গেম ইন্সটল গাইড
+                          ≡ƒÄ« αªùαºçαª« αªçαª¿αºìαª╕αªƒαª▓ αªùαª╛αªçαªí
                         </button>
                         <button
                           type="button"
-                          onClick={() => setProdForm({ ...prodForm, installGuide: '১. জিপ ফাইলটি ডাউনলোড করুন।\n২. সেটআপ ফাইলটি রান করে নির্দেশনা অনুযায়ী ইন্সটল সম্পন্ন করুন।' })}
+                          onClick={() => setProdForm({ ...prodForm, installGuide: 'αºº. αª£αª┐αª¬ αª½αª╛αªçαª▓αªƒαª┐ αªíαª╛αªëαª¿αª▓αºïαªí αªòαª░αºüαª¿αÑñ\nαº¿. αª╕αºçαªƒαªåαª¬ αª½αª╛αªçαª▓αªƒαª┐ αª░αª╛αª¿ αªòαª░αºç αª¿αª┐αª░αºìαªªαºçαª╢αª¿αª╛ αªàαª¿αºüαª»αª╛αºƒαºÇ αªçαª¿αºìαª╕αªƒαª▓ αª╕αª«αºìαª¬αª¿αºìαª¿ αªòαª░αºüαª¿αÑñ' })}
                           className="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-amber-500 text-[10px] font-semibold text-slate-700"
                         >
-                          💻 সফটওয়্যার গাইড
+                          ≡ƒÆ╗ αª╕αª½αªƒαªôαºƒαºìαª»αª╛αª░ αªùαª╛αªçαªí
                         </button>
                         <button
                           type="button"
-                          onClick={() => setProdForm({ ...prodForm, installGuide: '১. ভেক্টর বা টেমপ্লেট ফাইলটি ওপেন করুন।\n২. ফন্ট ও কালার আপনার ব্র্যান্ড অনুযায়ী পরিবর্তন করুন।' })}
+                          onClick={() => setProdForm({ ...prodForm, installGuide: 'αºº. αª¡αºçαªòαºìαªƒαª░ αª¼αª╛ αªƒαºçαª«αª¬αºìαª▓αºçαªƒ αª½αª╛αªçαª▓αªƒαª┐ αªôαª¬αºçαª¿ αªòαª░αºüαª¿αÑñ\nαº¿. αª½αª¿αºìαªƒ αªô αªòαª╛αª▓αª╛αª░ αªåαª¬αª¿αª╛αª░ αª¼αºìαª░αºìαª»αª╛αª¿αºìαªí αªàαª¿αºüαª»αª╛αºƒαºÇ αª¬αª░αª┐αª¼αª░αºìαªñαª¿ αªòαª░αºüαª¿αÑñ' })}
                           className="px-2.5 py-1 rounded bg-white border border-slate-200 hover:border-amber-500 text-[10px] font-semibold text-slate-700"
                         >
-                          🎨 গ্রাফিক্স / ডিজাইন গাইড
+                          ≡ƒÄ¿ αªùαºìαª░αª╛αª½αª┐αªòαºìαª╕ / αªíαª┐αª£αª╛αªçαª¿ αªùαª╛αªçαªí
                         </button>
                       </div>
                       <p className="text-[10px] text-slate-500">
-                        💡 কাস্টমার যখন ডাউনলোড বাটনে ক্লিক করবে, তখন এই নিয়মাবলীটি পপআপে দেখতে পাবে।
+                        ≡ƒÆí αªòαª╛αª╕αºìαªƒαª«αª╛αª░ αª»αªûαª¿ αªíαª╛αªëαª¿αª▓αºïαªí αª¼αª╛αªƒαª¿αºç αªòαºìαª▓αª┐αªò αªòαª░αª¼αºç, αªñαªûαª¿ αªÅαªç αª¿αª┐αºƒαª«αª╛αª¼αª▓αºÇαªƒαª┐ αª¬αª¬αªåαª¬αºç αªªαºçαªûαªñαºç αª¬αª╛αª¼αºçαÑñ
                       </p>
                     </div>
 
@@ -1473,10 +2019,10 @@ export const AdminDashboardPage: React.FC = () => {
                         <div>
                           <span className="font-bold text-slate-800 text-xs flex items-center space-x-1.5">
                             <FolderTree className="w-3.5 h-3.5 text-blue-600" />
-                            <span>ক্যাটাগরি নির্বাচন / Category Selection (আপনার সমস্ত তৈরি করা ক্যাটাগরি) *</span>
+                            <span>αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª¿αª┐αª░αºìαª¼αª╛αªÜαª¿ / Category Selection (αªåαª¬αª¿αª╛αª░ αª╕αª«αª╕αºìαªñ αªñαºêαª░αª┐ αªòαª░αª╛ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐) *</span>
                           </span>
                           <p className="text-[10px] text-slate-500">
-                            আগে তৈরি করা যেকোনো ক্যাটাগরি নির্বাচন করুন অথবা নতুন ক্যাটাগরি যোগ করুন।
+                            αªåαªùαºç αªñαºêαª░αª┐ αªòαª░αª╛ αª»αºçαªòαºïαª¿αºï αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª¿αª┐αª░αºìαª¼αª╛αªÜαª¿ αªòαª░αºüαª¿ αªàαªÑαª¼αª╛ αª¿αªñαºüαª¿ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª»αºïαªù αªòαª░αºüαª¿αÑñ
                           </p>
                         </div>
                         
@@ -1493,11 +2039,11 @@ export const AdminDashboardPage: React.FC = () => {
                       {/* Quick Category Add Input if open */}
                       {isAddingQuickCategory && (
                         <div className="p-3 bg-white border border-blue-200 rounded-xl space-y-2 shadow-sm animate-fadeIn">
-                          <span className="text-[11px] font-bold text-blue-900 block">নতুন ক্যাটাগরি যোগ করুন:</span>
+                          <span className="text-[11px] font-bold text-blue-900 block">αª¿αªñαºüαª¿ αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐ αª»αºïαªù αªòαª░αºüαª¿:</span>
                           <div className="flex items-center space-x-2">
                             <input
                               type="text"
-                              placeholder="ক্যাটাগরির নাম লিখুন (যেমন: Gaming Mods, Software Tools)..."
+                              placeholder="αªòαºìαª»αª╛αªƒαª╛αªùαª░αª┐αª░ αª¿αª╛αª« αª▓αª┐αªûαºüαª¿ (αª»αºçαª«αª¿: Gaming Mods, Software Tools)..."
                               value={quickCategoryName}
                               onChange={(e) => setQuickCategoryName(e.target.value)}
                               className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600 font-semibold"
@@ -1549,7 +2095,7 @@ export const AdminDashboardPage: React.FC = () => {
                               {c.iconUrl ? (
                                 <img src={c.iconUrl} alt={c.name} className="w-3.5 h-3.5 rounded object-cover" />
                               ) : (
-                                <span>📁</span>
+                                <span>≡ƒôü</span>
                               )}
                               <span>{c.name}</span>
                               {isSel && <Check className="w-3 h-3 text-white" />}
@@ -1573,11 +2119,11 @@ export const AdminDashboardPage: React.FC = () => {
                           <span>4. PREVIEW IMAGES & PHOTOS</span>
                         </h3>
                         <p className="text-[11px] text-slate-500">
-                          ছবি ড্র্যাগ ও ড্রপ করুন, সরাসরি <strong className="text-blue-700">Ctrl + V দিয়ে পেস্ট</strong> করুন, অথবা কম্পিউটার থেকে সিলেক্ট করুন (1080×1080 রেশিও)।
+                          αª¢αª¼αª┐ αªíαºìαª░αºìαª»αª╛αªù αªô αªíαºìαª░αª¬ αªòαª░αºüαª¿, αª╕αª░αª╛αª╕αª░αª┐ <strong className="text-blue-700">Ctrl + V αªªαª┐αºƒαºç αª¬αºçαª╕αºìαªƒ</strong> αªòαª░αºüαª¿, αªàαªÑαª¼αª╛ αªòαª«αºìαª¬αª┐αªëαªƒαª╛αª░ αªÑαºçαªòαºç αª╕αª┐αª▓αºçαªòαºìαªƒ αªòαª░αºüαª¿ (1080├ù1080 αª░αºçαª╢αª┐αªô)αÑñ
                         </p>
                       </div>
                       <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px] self-start sm:self-auto">
-                        {prodForm.thumbnailUrl ? '✅ 1 Photo Active' : '0 Photos Selected'}
+                        {prodForm.thumbnailUrl ? 'Γ£à 1 Photo Active' : '0 Photos Selected'}
                       </span>
                     </div>
 
@@ -1635,7 +2181,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Click to Upload Photo
                             </span>
                             <span className="text-[10px] text-slate-400 block">
-                              বা ড্র্যাগ করে ফাইল ছাড়ুন
+                              αª¼αª╛ αªíαºìαª░αºìαª»αª╛αªù αªòαª░αºç αª½αª╛αªçαª▓ αª¢αª╛αº£αºüαª¿
                             </span>
                           </div>
                         )}
@@ -1677,13 +2223,13 @@ export const AdminDashboardPage: React.FC = () => {
                         {/* Direct URL input */}
                         <div>
                           <label className="block font-bold text-slate-600 mb-1 text-[11px]">
-                            অথবা সরাসরি ইমেজ লিংক (Image URL) পেস্ট করুন:
+                            αªàαªÑαª¼αª╛ αª╕αª░αª╛αª╕αª░αª┐ αªçαª«αºçαª£ αª▓αª┐αªéαªò (Image URL) αª¬αºçαª╕αºìαªƒ αªòαª░αºüαª¿:
                           </label>
                           <input
                             type="text"
                             value={prodForm.thumbnailUrl || ''}
                             onChange={(e) => setProdForm({ ...prodForm, thumbnailUrl: e.target.value })}
-                            placeholder="https://images.unsplash.com/... অথবা যেকোনো ছবি URL"
+                            placeholder="https://images.unsplash.com/... αªàαªÑαª¼αª╛ αª»αºçαªòαºïαª¿αºï αª¢αª¼αª┐ URL"
                             className="w-full bg-slate-50/60 border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-600 focus:bg-white"
                           />
                         </div>
@@ -1694,7 +2240,7 @@ export const AdminDashboardPage: React.FC = () => {
                             <span className="font-bold animate-pulse">{imageUploadStatus}</span>
                           ) : (
                             <span>
-                              💡 <strong>টিপস:</strong> আপনি Snipping Tool, Photoshop বা ওয়েবসাইট থেকে যেকোনো ছবি কপি করে সরাসরি এই পেজে <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono font-bold text-slate-700">Ctrl + V</kbd> প্রেস করলেই ছবি তাৎক্ষণিক যুক্ত হয়ে যাবে!
+                              ≡ƒÆí <strong>αªƒαª┐αª¬αª╕:</strong> αªåαª¬αª¿αª┐ Snipping Tool, Photoshop αª¼αª╛ αªôαºƒαºçαª¼αª╕αª╛αªçαªƒ αªÑαºçαªòαºç αª»αºçαªòαºïαª¿αºï αª¢αª¼αª┐ αªòαª¬αª┐ αªòαª░αºç αª╕αª░αª╛αª╕αª░αª┐ αªÅαªç αª¬αºçαª£αºç <kbd className="px-1.5 py-0.5 bg-white border border-blue-200 rounded font-mono font-bold text-slate-700">Ctrl + V</kbd> αª¬αºìαª░αºçαª╕ αªòαª░αª▓αºçαªç αª¢αª¼αª┐ αªñαª╛αºÄαªòαºìαª╖αªúαª┐αªò αª»αºüαªòαºìαªñ αª╣αºƒαºç αª»αª╛αª¼αºç!
                             </span>
                           )}
                         </div>
@@ -1799,7 +2345,7 @@ export const AdminDashboardPage: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <label className="font-bold text-slate-700">Category Photo / Icon *</label>
                       <span className="text-[10px] text-purple-600 bg-purple-50 border border-purple-200/60 px-2 py-0.5 rounded font-bold">
-                        300×225 (4:3 Card)
+                        300├ù225 (4:3 Card)
                       </span>
                     </div>
 
@@ -2008,7 +2554,7 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">VERIFIED REVENUE</span>
-                <div className="text-3xl font-black text-emerald-600 mt-2">৳{verifiedRevenue}</div>
+                <div className="text-3xl font-black text-emerald-600 mt-2">αº│{verifiedRevenue}</div>
                 <span className="text-[11px] text-slate-400 mt-1 block">From {orders.filter(o => o.paymentStatus === 'verified').length} orders</span>
               </div>
               <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
@@ -2122,7 +2668,7 @@ export const AdminDashboardPage: React.FC = () => {
                         <span className="font-semibold text-slate-900 block">{ord.customerName}</span>
                         <span className="text-[11px] text-slate-400">{ord.customerEmail}</span>
                       </td>
-                      <td className="py-3.5 px-5 font-black text-slate-900">৳{ord.totalAmount}</td>
+                      <td className="py-3.5 px-5 font-black text-slate-900">αº│{ord.totalAmount}</td>
                       <td className="py-3.5 px-5 text-slate-600 font-medium">
                         {ord.paymentMethod}
                         {ord.paymentDetails?.transactionId && (
@@ -2261,7 +2807,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {/* Slide Image Box */}
                     <div className="space-y-2">
                       <label className="block font-bold text-slate-700">
-                        Slide Image (Recommended: 1200×520px or 1024×440px | 2.3:1 Wide Ratio) *
+                        Slide Image (Recommended: 1200├ù520px or 1024├ù440px | 2.3:1 Wide Ratio) *
                       </label>
 
                       <input
@@ -2292,7 +2838,7 @@ export const AdminDashboardPage: React.FC = () => {
                             className="px-3.5 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-full font-bold text-[11px] hover:bg-purple-100 transition-colors flex items-center space-x-1"
                           >
                             <Sparkles className="w-3 h-3 text-purple-600" />
-                            <span>Use Perfect 1200×520 Banner</span>
+                            <span>Use Perfect 1200├ù520 Banner</span>
                           </button>
                         </div>
 
@@ -2334,10 +2880,10 @@ export const AdminDashboardPage: React.FC = () => {
                       />
                       <label htmlFor="pureBannerCheckbox" className="text-xs text-slate-800 cursor-pointer">
                         <span className="font-extrabold text-amber-950 block">
-                          Full Banner Graphic (ছবিতেই ডিজাইন ও লেখা আছে)
+                          Full Banner Graphic (αª¢αª¼αª┐αªñαºçαªç αªíαª┐αª£αª╛αªçαª¿ αªô αª▓αºçαªûαª╛ αªåαª¢αºç)
                         </span>
                         <span className="text-[11px] text-slate-500 block mt-0.5">
-                          টিক দেওয়া থাকলে ছবির ওপর আলাদা কোনো কালো শ্যাডো বা ডুপ্লিকেট লেখা বসবে না। আপনার আপলোড করা ছবিটি ফুল ক্লিয়ার থাকবে এবং অ্যানিমেশন হবে।
+                          αªƒαª┐αªò αªªαºçαªôαºƒαª╛ αªÑαª╛αªòαª▓αºç αª¢αª¼αª┐αª░ αªôαª¬αª░ αªåαª▓αª╛αªªαª╛ αªòαºïαª¿αºï αªòαª╛αª▓αºï αª╢αºìαª»αª╛αªíαºï αª¼αª╛ αªíαºüαª¬αºìαª▓αª┐αªòαºçαªƒ αª▓αºçαªûαª╛ αª¼αª╕αª¼αºç αª¿αª╛αÑñ αªåαª¬αª¿αª╛αª░ αªåαª¬αª▓αºïαªí αªòαª░αª╛ αª¢αª¼αª┐αªƒαª┐ αª½αºüαª▓ αªòαºìαª▓αª┐αºƒαª╛αª░ αªÑαª╛αªòαª¼αºç αªÅαª¼αªé αªàαºìαª»αª╛αª¿αª┐αª«αºçαª╢αª¿ αª╣αª¼αºçαÑñ
                         </span>
                       </label>
                     </div>
@@ -2410,10 +2956,10 @@ export const AdminDashboardPage: React.FC = () => {
                       <div>
                         <h3 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-indigo-700">
                           <Sparkles className="w-4 h-4 text-indigo-600 animate-spin-slow" />
-                          <span>LIVE HOMEPAGE PREVIEW (ওয়েবসাইটে যেমন দেখাবে)</span>
+                          <span>LIVE HOMEPAGE PREVIEW (αªôαºƒαºçαª¼αª╕αª╛αªçαªƒαºç αª»αºçαª«αª¿ αªªαºçαªûαª╛αª¼αºç)</span>
                         </h3>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          স্লাইড করে দেখুন, লেখা ও ছবির অ্যানিমেশন দেখুন এবং ফুল ওয়েব লেআউট প্রিভিউ করুন:
+                          αª╕αºìαª▓αª╛αªçαªí αªòαª░αºç αªªαºçαªûαºüαª¿, αª▓αºçαªûαª╛ αªô αª¢αª¼αª┐αª░ αªàαºìαª»αª╛αª¿αª┐αª«αºçαª╢αª¿ αªªαºçαªûαºüαª¿ αªÅαª¼αªé αª½αºüαª▓ αªôαºƒαºçαª¼ αª▓αºçαªåαªëαªƒ αª¬αºìαª░αª┐αª¡αª┐αªë αªòαª░αºüαª¿:
                         </p>
                       </div>
 
@@ -2478,7 +3024,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 }`}
                               >
                                 <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                                <span>Preview Uploaded Picture (লাইভ আপনার ছবি)</span>
+                                <span>Preview Uploaded Picture (αª▓αª╛αªçαª¡ αªåαª¬αª¿αª╛αª░ αª¢αª¼αª┐)</span>
                                 {previewFocusUploaded && <Check className="w-3.5 h-3.5" />}
                               </button>
                               <button
@@ -2648,7 +3194,7 @@ export const AdminDashboardPage: React.FC = () => {
                                       >
                                         <Sparkles className="w-3 h-3 text-amber-300" />
                                         <span>
-                                          {currentPreview?.tag || 'Eagle Eye Digital • Featured'}
+                                          {currentPreview?.tag || 'Eagle Eye Digital ΓÇó Featured'}
                                         </span>
                                       </div>
 
@@ -2691,7 +3237,7 @@ export const AdminDashboardPage: React.FC = () => {
                                             <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
                                           </div>
                                           <div className="absolute -top-1 -left-1 px-2 py-0.5 rounded-lg bg-slate-900/80 border border-amber-400/40 text-[8px] font-black text-amber-300 animate-float flex items-center space-x-1">
-                                            <span>🚀</span>
+                                            <span>≡ƒÜÇ</span>
                                             <span>Instant</span>
                                           </div>
                                         </div>
@@ -2740,8 +3286,8 @@ export const AdminDashboardPage: React.FC = () => {
                                       <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin-slow" />
                                       <span>
                                         {isUploadedFocused
-                                          ? '✨ Live Uploaded Picture (আপনার ছবি অ্যানিমেশনসহ)'
-                                          : '✨ Clean Graphic Banner (ফুল ব্যানার মোড)'}
+                                          ? 'Γ£¿ Live Uploaded Picture (αªåαª¬αª¿αª╛αª░ αª¢αª¼αª┐ αªàαºìαª»αª╛αª¿αª┐αª«αºçαª╢αª¿αª╕αª╣)'
+                                          : 'Γ£¿ Clean Graphic Banner (αª½αºüαª▓ αª¼αºìαª»αª╛αª¿αª╛αª░ αª«αºïαªí)'}
                                       </span>
                                     </span>
                                   </div>
@@ -2788,7 +3334,7 @@ export const AdminDashboardPage: React.FC = () => {
                                       {bentoForm.card1Title || 'Social Growth & Media'}
                                     </h5>
                                     <span className="text-[9px] text-sky-400 font-bold block">
-                                      {bentoForm.card1LinkText || 'Explore Retainers →'}
+                                      {bentoForm.card1LinkText || 'Explore Retainers ΓåÆ'}
                                     </span>
                                   </div>
                                   <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
@@ -2810,7 +3356,7 @@ export const AdminDashboardPage: React.FC = () => {
                                       {bentoForm.card2Title || 'Deployable UI Assets'}
                                     </h5>
                                     <span className="text-[9px] text-amber-400 font-bold block">
-                                      Get Products →
+                                      Get Products ΓåÆ
                                     </span>
                                   </div>
                                   <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
@@ -2832,7 +3378,7 @@ export const AdminDashboardPage: React.FC = () => {
                                       {bentoForm.card3Title || 'Official Digital Store'}
                                     </h5>
                                     <span className="text-[9px] text-emerald-400 font-bold block">
-                                      {bentoForm.card3LinkText || 'Shop Store →'}
+                                      {bentoForm.card3LinkText || 'Shop Store ΓåÆ'}
                                     </span>
                                   </div>
                                   <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
@@ -3008,7 +3554,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Top Poster (Wide Banner)
                             </span>
                             <span className="text-[11px] text-slate-400 block">
-                              e.g. LinkedIn Premium Up To 90% Discount (~800×380px)
+                              e.g. LinkedIn Premium Up To 90% Discount (~800├ù380px)
                             </span>
                           </div>
                         </div>
@@ -3034,7 +3580,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Bottom-Left Poster
                             </span>
                             <span className="text-[11px] text-slate-400 block">
-                              e.g. Canva / Promo (~400×320px or 16:10)
+                              e.g. Canva / Promo (~400├ù320px or 16:10)
                             </span>
                           </div>
                         </div>
@@ -3060,7 +3606,7 @@ export const AdminDashboardPage: React.FC = () => {
                               Bottom-Right Poster
                             </span>
                             <span className="text-[11px] text-slate-400 block">
-                              e.g. Adobe / Promo (~400×320px or 16:10)
+                              e.g. Adobe / Promo (~400├ù320px or 16:10)
                             </span>
                           </div>
                         </div>
@@ -3101,7 +3647,7 @@ export const AdminDashboardPage: React.FC = () => {
                             className="px-3.5 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-full font-bold text-[11px] hover:bg-purple-100 transition-colors flex items-center space-x-1"
                           >
                             <Sparkles className="w-3 h-3 text-purple-600" />
-                            <span>Use Perfect 720×380 Side Poster</span>
+                            <span>Use Perfect 720├ù380 Side Poster</span>
                           </button>
                         </div>
 
@@ -3320,6 +3866,537 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
+        {/* ================= ADMINS & ROLE MANAGEMENT ================= */}
+        {activeMenu === 'admins' && (
+          <div className="space-y-6">
+            {/* Top Bar */}
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                    Admins & Roles Management
+                  </h1>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-blue-50 text-blue-700 border border-blue-200">
+                    {admins.length} Staff
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  নতুন অ্যাডমিন যুক্ত করুন, রোল নির্ধারণ করুন (Owner, Manager, Editor, Viewer) এবং পারমিশন নিয়ন্ত্রণ করুন
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleOpenAddAdmin}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-2 transition-all shadow-blue-600/20 active:scale-95"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>+ Add New Admin (নতুন অ্যাডমিন)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Notification Alert Message */}
+            {adminActionMsg && (
+              <div
+                className={`p-3.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
+                  adminActionMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-red-50 border-red-200 text-red-800'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>{adminActionMsg.text}</span>
+                </div>
+                <button
+                  onClick={() => setAdminActionMsg(null)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Metrics Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center space-x-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 border border-amber-500/20">
+                  <Crown className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    OWNERS (মালিক)
+                  </span>
+                  <span className="text-xl font-black text-slate-900 block">
+                    {admins.filter((a) => a.role === 'owner').length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center space-x-3.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 border border-blue-500/20">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    MANAGERS (ম্যানেজার)
+                  </span>
+                  <span className="text-xl font-black text-slate-900 block">
+                    {admins.filter((a) => a.role === 'manager').length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center space-x-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 border border-emerald-500/20">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    EDITORS (এডিটর)
+                  </span>
+                  <span className="text-xl font-black text-slate-900 block">
+                    {admins.filter((a) => a.role === 'editor').length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center space-x-3.5">
+                <div className="w-10 h-10 rounded-xl bg-slate-500/10 flex items-center justify-center text-slate-600 border border-slate-500/20">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    VIEWERS (সাপোর্ট)
+                  </span>
+                  <span className="text-xl font-black text-slate-900 block">
+                    {admins.filter((a) => a.role === 'viewer').length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Role Guide Cards */}
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                  Role & Permissions Guide (অ্যাডমিন রোলের ক্ষমতা ও সুবিধা)
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/40 space-y-1.5">
+                  <div className="flex items-center space-x-1.5 font-bold text-amber-900">
+                    <Crown className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Owner (প্রধান মালিক)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    সম্পূর্ণ অ্যাক্সেস। নতুন অ্যাডমিন যোগ, এডিট ও ডিলিট, সেটিংস পরিবর্তন, পণ্য ও অর্ডার মুছে ফেলা সহ সব নিয়ন্ত্রণ।
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 space-y-1.5">
+                  <div className="flex items-center space-x-1.5 font-bold text-blue-900">
+                    <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Manager (ম্যানেজার)</span>
+                  </div>
+                  <p className="text-[11px] text-blue-800 leading-relaxed">
+                    অপারেশন ও ক্যাটালগ। প্রোডাক্ট, সার্ভিস, ক্যাটাগরি, হোমপেজ ব্যানার ম্যানেজ এবং অর্ডার ভেরিফাই ও লিডস প্রসেস।
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 space-y-1.5">
+                  <div className="flex items-center space-x-1.5 font-bold text-emerald-900">
+                    <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Editor (কনটেন্ট এডিটর)</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-800 leading-relaxed">
+                    কনটেন্ট তৈরি ও এডিট। নতুন প্রোডাক্ট যোগ, ইমেজ আপলোড, ড্রাইভ লিংক বসানো ও সার্ভিস আপডেট (ডিলিট বা অর্ডারে হাত দেওয়া নিষেধ)।
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+                  <div className="flex items-center space-x-1.5 font-bold text-slate-800">
+                    <Eye className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Viewer / Support (সাপোর্ট)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    কাস্টমার সার্ভিস। ইনকোয়ারি ও লিডস হ্যান্ডল করা, নোট লেখা এবং অর্ডার দেখা (রিড-অনলি ক্যাটালগ এক্সেস)।
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="খুঁজুন - নাম, ইমেইল বা পদবী দিয়ে..."
+                  value={adminSearch}
+                  onChange={(e) => setAdminSearch(e.target.value)}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 placeholder-slate-400 shadow-sm"
+                />
+              </div>
+
+              <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {(['all', 'owner', 'manager', 'editor', 'viewer'] as const).map((role) => (
+                  <button
+                    key={role}
+                    onClick={() => setAdminRoleFilter(role)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-colors whitespace-nowrap ${
+                      adminRoleFilter === role
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {role === 'all' ? 'All Roles' : role}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Admins Table */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      <th className="py-3.5 px-5">Admin / Staff Member</th>
+                      <th className="py-3.5 px-5">Email & Contact</th>
+                      <th className="py-3.5 px-5">Assigned Role</th>
+                      <th className="py-3.5 px-5">Permissions</th>
+                      <th className="py-3.5 px-5">Status</th>
+                      <th className="py-3.5 px-5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {filteredAdmins.length > 0 ? (
+                      filteredAdmins.map((admin) => {
+                        const isPrimary =
+                          admin.id === 'primary-owner' ||
+                          admin.uid === ADMIN_UID ||
+                          admin.email.toLowerCase() === (BUSINESS_EMAIL || 'tamimnur908@gmail.com').toLowerCase();
+                        const isMe = Boolean(currentUser?.email && currentUser.email.toLowerCase() === admin.email.toLowerCase());
+
+                        return (
+                          <tr key={admin.id} className="hover:bg-slate-50/50 transition-colors">
+                            {/* Member */}
+                            <td className="py-4 px-5">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+                                  {admin.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center space-x-1.5">
+                                    <span className="font-bold text-slate-900 block truncate">
+                                      {admin.name}
+                                    </span>
+                                    {isMe && (
+                                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-700">
+                                        You
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-slate-400 block truncate">
+                                    {admin.designation || (isPrimary ? 'Founder & CEO' : 'Staff Admin')}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Email */}
+                            <td className="py-4 px-5 text-slate-600">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center space-x-1.5">
+                                  <Mail className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                                  <span className="font-mono text-slate-800 text-[11px]">{admin.email}</span>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(admin.email);
+                                      alert(`Copied ${admin.email} to clipboard!`);
+                                    }}
+                                    className="text-slate-300 hover:text-slate-600 p-0.5"
+                                    title="Copy Email"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                {admin.phone && (
+                                  <div className="flex items-center space-x-1.5 text-[10px] text-slate-400">
+                                    <Phone className="w-2.5 h-2.5" />
+                                    <span>{admin.phone}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Role */}
+                            <td className="py-4 px-5">
+                              <div className="space-y-1.5">
+                                <div>{renderRoleBadge(admin.role)}</div>
+                                {!isPrimary && (
+                                  <select
+                                    value={admin.role}
+                                    onChange={(e) => handleQuickRoleChange(admin, e.target.value as AdminRole)}
+                                    className="text-[10px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-slate-700 font-semibold focus:outline-none"
+                                  >
+                                    <option value="owner">Change to Owner</option>
+                                    <option value="manager">Change to Manager</option>
+                                    <option value="editor">Change to Editor</option>
+                                    <option value="viewer">Change to Viewer</option>
+                                  </select>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Permissions */}
+                            <td className="py-4 px-5">
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {admin.role === 'owner' ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    Full Access (All Permissions)
+                                  </span>
+                                ) : (
+                                  <>
+                                    {admin.permissions?.canManageProducts && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-700">
+                                        Products
+                                      </span>
+                                    )}
+                                    {admin.permissions?.canDeleteProducts && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-50 text-red-700">
+                                        Delete Prod
+                                      </span>
+                                    )}
+                                    {admin.permissions?.canManageServices && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-700">
+                                        Services
+                                      </span>
+                                    )}
+                                    {admin.permissions?.canManageOrders && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-50 text-blue-700">
+                                        Orders
+                                      </span>
+                                    )}
+                                    {admin.permissions?.canManageLeads && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 text-emerald-700">
+                                        Leads
+                                      </span>
+                                    )}
+                                    {admin.permissions?.canManageHomepage && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-50 text-indigo-700">
+                                        Banners
+                                      </span>
+                                    )}
+                                    {admin.permissions?.canManageSettings && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-50 text-purple-700">
+                                        Settings
+                                      </span>
+                                    )}
+                                    {admin.permissions?.canManageAdmins && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-50 text-amber-700">
+                                        Admins
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-4 px-5">
+                              {admin.status === 'suspended' ? (
+                                <button
+                                  onClick={() => handleToggleAdminStatus(admin)}
+                                  className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                                  title="Click to Activate"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                                  <span>Suspended</span>
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => !isPrimary && handleToggleAdminStatus(admin)}
+                                  disabled={isPrimary}
+                                  className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 ${
+                                    isPrimary ? 'cursor-default' : 'hover:bg-emerald-100 transition-colors'
+                                  }`}
+                                  title={isPrimary ? 'Primary Owner is always active' : 'Click to Suspend'}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                  <span>Active</span>
+                                </button>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-4 px-5 text-right">
+                              <div className="flex items-center justify-end space-x-1.5">
+                                <button
+                                  onClick={() => handleOpenEditAdmin(admin)}
+                                  className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Edit Permissions & Details"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  onClick={() => handleDeleteAdmin(admin)}
+                                  disabled={Boolean(isPrimary || isMe)}
+                                  className={`p-1.5 rounded-lg transition-colors ${
+                                    isPrimary || isMe
+                                      ? 'text-slate-200 cursor-not-allowed'
+                                      : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                  }`}
+                                  title={
+                                    isPrimary
+                                      ? 'Primary Owner cannot be deleted'
+                                      : isMe
+                                      ? 'Cannot delete your own account while logged in'
+                                      : 'Revoke Admin Access'
+                                  }
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400 text-xs italic">
+                          কোনো অ্যাডমিন পাওয়া যায়নি। "+ Add New Admin" বাটনে ক্লিক করে নতুন অ্যাডমিন যুক্ত করুন।
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ================= LEADS & INQUIRIES TAB ================= */}
+        {activeMenu === 'leads' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Leads & Client Inquiries ({leads.length})
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Review customer project inquiries and change follow-up status
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      <th className="py-3.5 px-5">Client / Business</th>
+                      <th className="py-3.5 px-5">Contact Info</th>
+                      <th className="py-3.5 px-5">Service & Budget</th>
+                      <th className="py-3.5 px-5">Message</th>
+                      <th className="py-3.5 px-5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium">
+                    {leads.length > 0 ? (
+                      leads.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-slate-50/50">
+                          <td className="py-4 px-5">
+                            <span className="font-bold text-slate-900 block">{lead.name}</span>
+                            <span className="text-[10px] text-slate-400 block">{lead.businessName || 'Individual'}</span>
+                          </td>
+                          <td className="py-4 px-5 text-slate-600">
+                            <div className="space-y-0.5">
+                              <span className="block font-mono text-[11px]">{lead.email}</span>
+                              <span className="block text-[10px] text-slate-400">{lead.phoneOrWhatsApp}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-5">
+                            <span className="font-bold text-slate-800 block">{lead.serviceInterest}</span>
+                            <span className="text-[10px] text-blue-600 font-semibold block">{lead.budgetRange}</span>
+                          </td>
+                          <td className="py-4 px-5 max-w-xs text-slate-600">
+                            <p className="truncate text-[11px]">{lead.projectDescription}</p>
+                          </td>
+                          <td className="py-4 px-5">
+                            <select
+                              value={lead.status}
+                              onChange={async (e) => {
+                                await updateLeadStatus(lead.id, e.target.value as any);
+                                loadData();
+                              }}
+                              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-bold text-slate-800 focus:outline-none"
+                            >
+                              <option value="New">New</option>
+                              <option value="Contacted">Contacted</option>
+                              <option value="Qualified">Qualified</option>
+                              <option value="Proposal Sent">Proposal Sent</option>
+                              <option value="Negotiation">Negotiation</option>
+                              <option value="Won">Won</option>
+                              <option value="Lost">Lost</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-400 text-xs italic">
+                          No leads submitted yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= SITE SETTINGS & FOOTER TABS ================= */}
+        {(activeMenu === 'settings' || activeMenu === 'footer') && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                {activeMenu === 'settings' ? 'Site & System Settings' : 'Footer & Social Presence'}
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Centralized brand credentials and store metadata
+              </p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4 max-w-2xl text-xs">
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <span className="font-bold text-slate-700 block">Brand & Agency Name</span>
+                  <span className="text-slate-900 font-black text-sm">Eagle Eye Digital</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <span className="font-bold text-slate-700 block">Official Support Email</span>
+                  <span className="text-slate-900 font-mono">{BUSINESS_EMAIL}</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <span className="font-bold text-slate-700 block">WhatsApp Helpline</span>
+                  <span className="text-slate-900 font-mono">01836126791</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <span className="font-bold text-slate-700 block">Primary Super Admin UID</span>
+                  <span className="text-slate-900 font-mono text-[11px]">{ADMIN_UID}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* SERVICE MODAL */}
@@ -3394,7 +4471,7 @@ export const AdminDashboardPage: React.FC = () => {
             </h3>
             <div className="space-y-2 text-slate-600">
               <p><strong>Customer:</strong> {selectedOrder.customerName} ({selectedOrder.customerEmail})</p>
-              <p><strong>Total Amount:</strong> ৳{selectedOrder.totalAmount} BDT</p>
+              <p><strong>Total Amount:</strong> αº│{selectedOrder.totalAmount} BDT</p>
               <p><strong>Payment Method:</strong> {selectedOrder.paymentMethod}</p>
               {selectedOrder.paymentDetails?.transactionId && (
                 <p><strong>Trx ID:</strong> <span className="font-mono text-blue-600">{selectedOrder.paymentDetails.transactionId}</span></p>
@@ -3408,6 +4485,531 @@ export const AdminDashboardPage: React.FC = () => {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= NOTIFICATION RECIPIENT SETTINGS MODAL ================= */}
+      {isNotificationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Lead Notification Email Settings</h3>
+                  <p className="text-[11px] text-slate-500">Configure who receives incoming inquiry alerts</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsNotificationModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Notification Logic Explanation Card */}
+            <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-1.5 text-slate-700">
+              <span className="font-bold text-[11px] uppercase tracking-wider text-slate-500 block">Notification Rules:</span>
+              <p className="leading-relaxed">
+                • <strong>If 1 or more emails are listed:</strong> Every newly submitted client inquiry automatically sends an email with full details and a 1-click scheduling link to ALL listed emails.
+              </p>
+              <p className="leading-relaxed text-amber-800">
+                • <strong>If NO emails are listed:</strong> Notification emails are strictly disabled until an address is configured.
+              </p>
+            </div>
+
+            {/* Recipient Emails List */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-700">
+                  Active Recipient Emails ({(notificationSettings.leadRecipientEmails || []).length}):
+                </label>
+                {(notificationSettings.leadRecipientEmails || []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllRecipients}
+                    className="text-[10px] text-red-600 hover:underline font-bold"
+                  >
+                    Remove All
+                  </button>
+                )}
+              </div>
+
+              {(notificationSettings.leadRecipientEmails || []).length > 0 ? (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {(notificationSettings.leadRecipientEmails || []).map((email) => (
+                    <div
+                      key={email}
+                      className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Mail className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span className="font-semibold text-slate-800">{email}</span>
+                        {email === DEFAULT_RECIPIENT_EMAIL && (
+                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRecipientEmail(email)}
+                        className="text-slate-400 hover:text-red-600 p-1 transition-colors"
+                        title="Remove Recipient"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-center text-amber-800 font-semibold">
+                  No recipient emails configured. Inquiry notification emails are currently PAUSED.
+                </div>
+              )}
+            </div>
+
+            {/* Add New Email Form */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <label className="font-bold text-slate-700 block">Add Recipient Email Address</label>
+              <div className="flex space-x-2">
+                <input
+                  type="email"
+                  value={newRecipientInput}
+                  onChange={(e) => setNewRecipientInput(e.target.value)}
+                  placeholder="e.g. support@eagleeyedigital.com"
+                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddRecipientEmail}
+                  disabled={notificationSaving || !newRecipientInput.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm whitespace-nowrap"
+                >
+                  {notificationSaving ? 'Saving...' : 'Add Email'}
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleRestoreDefaultRecipient}
+                className="text-[11px] font-bold text-blue-600 hover:underline"
+              >
+                Reset to Default ({DEFAULT_RECIPIENT_EMAIL})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsNotificationModalOpen(false)}
+                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+              >
+                Close Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MEETING SCHEDULING MODAL ================= */}
+      {selectedLeadForMeeting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Schedule Consultation: {selectedLeadForMeeting.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Service: {selectedLeadForMeeting.serviceInterest}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedLeadForMeeting(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMeetingSchedule} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Meeting Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={meetingDate}
+                    onChange={(e) => setMeetingDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">
+                    Meeting Time <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={meetingTime}
+                    onChange={(e) => setMeetingTime(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-bold text-slate-700">
+                    Meeting Link (Google Meet, Zoom) <span className="text-red-500">*</span>
+                  </label>
+                  <a
+                    href="https://meet.google.com/new"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-blue-600 hover:underline font-bold flex items-center space-x-1"
+                  >
+                    <span>Create in Google Meet</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <div className="relative">
+                  <Video className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="url"
+                    required
+                    value={meetingLink}
+                    onChange={(e) => setMeetingLink(e.target.value)}
+                    placeholder="https://meet.google.com/... or Zoom link"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  This video link unlocks on the client portal once they click "Accept / Confirm".
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Host / Strategist Name</label>
+                <input
+                  type="text"
+                  value={meetingHost}
+                  onChange={(e) => setMeetingHost(e.target.value)}
+                  placeholder="e.g. Tamim Nur"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Session Agenda / Notes (Visible to Client)</label>
+                <textarea
+                  rows={2}
+                  value={meetingNotes}
+                  onChange={(e) => setMeetingNotes(e.target.value)}
+                  placeholder="e.g. 30-min discovery call to discuss campaign targets and monthly deliverables."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSelectedLeadForMeeting(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isMeetingSubmitting}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center space-x-1.5"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{isMeetingSubmitting ? 'Dispatching...' : 'Save & Send Client Invitation'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= ADD / EDIT ADMIN MODAL ================= */}
+      {isAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-xl w-full p-6 sm:p-7 space-y-5 text-xs animate-in fade-in zoom-in duration-150 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/25">
+                  <UserPlus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    {editingAdminId ? 'Edit Administrator / অ্যাডমিন এডিট' : 'Add New Admin / নতুন অ্যাডমিন যোগ করুন'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Assign role and permissions for store and agency management
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAdminModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAdminForm} className="space-y-4">
+              {/* Name & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Full Name (পুরো নাম) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Tanvir Ahmed"
+                    value={adminForm.name}
+                    onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Email Address (ইমেইল এড্রেস) *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. tanvir@example.com"
+                    value={adminForm.email}
+                    onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Designation & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Designation (পদবী / ডিপার্টমেন্ট)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Operations Lead, Lead Editor"
+                    value={adminForm.designation}
+                    onChange={(e) => setAdminForm({ ...adminForm, designation: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Phone / WhatsApp (মোবাইল নম্বর)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 01700000000"
+                    value={adminForm.phone}
+                    onChange={(e) => setAdminForm({ ...adminForm, phone: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Role Selection */}
+              <div>
+                <label className="block text-slate-800 font-bold mb-1.5">
+                  Select Role (অ্যাডমিন রোল নির্বাচন করুন) *
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    {
+                      id: 'owner' as const,
+                      title: 'Owner',
+                      bn: 'মালিক',
+                      icon: Crown,
+                      desc: 'Full Control'
+                    },
+                    {
+                      id: 'manager' as const,
+                      title: 'Manager',
+                      bn: 'ম্যানেজার',
+                      icon: Briefcase,
+                      desc: 'Operations'
+                    },
+                    {
+                      id: 'editor' as const,
+                      title: 'Editor',
+                      bn: 'এডিটর',
+                      icon: Edit3,
+                      desc: 'Catalog/Content'
+                    },
+                    {
+                      id: 'viewer' as const,
+                      title: 'Viewer',
+                      bn: 'সাপোর্ট',
+                      icon: Eye,
+                      desc: 'Leads & Read'
+                    }
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    const isSelected = adminForm.role === item.id;
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={() => handleRoleChangeInForm(item.id)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'border-blue-600 bg-blue-50/60 ring-2 ring-blue-500/20 shadow-sm'
+                            : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <Icon
+                            className={`w-4 h-4 ${
+                              isSelected ? 'text-blue-600' : 'text-slate-400'
+                            }`}
+                          />
+                          {isSelected && (
+                            <Check className="w-3.5 h-3.5 text-blue-600 font-black" />
+                          )}
+                        </div>
+                        <span className="font-bold text-xs text-slate-900 block">
+                          {item.title}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {item.bn} • {item.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Permissions Checklist */}
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 text-xs">
+                    Granular Permissions (কাস্টম পারমিশন)
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Pre-selected based on role, customizable
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50/70 p-3 rounded-xl border border-slate-200/80">
+                  {[
+                    { key: 'canManageAdmins' as const, label: 'Admins & Role Management', bn: 'অ্যাডমিন পরিচালনা' },
+                    { key: 'canManageProducts' as const, label: 'Create & Edit Products', bn: 'পণ্য তৈরি ও এডিট' },
+                    { key: 'canDeleteProducts' as const, label: 'Delete Products', bn: 'পণ্য মুছে ফেলা' },
+                    { key: 'canManageServices' as const, label: 'Agency Services', bn: 'সার্ভিস প্যাকেজ' },
+                    { key: 'canManageOrders' as const, label: 'Verify & Manage Orders', bn: 'অর্ডার ভেরিফিকেশন' },
+                    { key: 'canManageLeads' as const, label: 'Customer Leads & Queries', bn: 'লিডস ও মেসেজ' },
+                    { key: 'canManageHomepage' as const, label: 'Homepage Banners', bn: 'ব্যানার ও স্লাইডার' },
+                    { key: 'canManageSettings' as const, label: 'Site & Brand Settings', bn: 'সাইট সেটিংস' }
+                  ].map((p) => {
+                    const isChecked = !!adminForm.permissions[p.key];
+                    return (
+                      <label
+                        key={p.key}
+                        className="flex items-start space-x-2 text-[11px] text-slate-700 cursor-pointer select-none p-1 rounded hover:bg-slate-100/60"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleTogglePermission(p.key)}
+                          className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <div className="min-w-0">
+                          <span className="font-bold block leading-tight">{p.label}</span>
+                          <span className="text-[10px] text-slate-400 leading-none">{p.bn}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status Radio */}
+              <div className="flex items-center space-x-6 pt-1">
+                <span className="font-bold text-slate-800 text-xs">Account Status:</span>
+                <label className="flex items-center space-x-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="adminStatus"
+                    value="active"
+                    checked={adminForm.status === 'active'}
+                    onChange={() => setAdminForm({ ...adminForm, status: 'active' })}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs font-semibold text-emerald-700">Active (সক্রিয়)</span>
+                </label>
+                <label className="flex items-center space-x-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="adminStatus"
+                    value="suspended"
+                    checked={adminForm.status === 'suspended'}
+                    onChange={() => setAdminForm({ ...adminForm, status: 'suspended' })}
+                    className="text-red-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs font-semibold text-red-600">Suspended (স্থগিত)</span>
+                </label>
+              </div>
+
+              {/* Info Note */}
+              <div className="p-3 bg-blue-50 border border-blue-200/80 rounded-xl text-[11px] text-blue-900 leading-relaxed flex items-start space-x-2">
+                <Sparkles className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <p>
+                  <strong>নির্দেশনা:</strong> নতুন অ্যাডমিন ওয়েবসাইটের <code>/account</code> পেজে গিয়ে এই ইমেইল দিয়ে লগইন বা গুগল সাইন-ইন করলেই স্বয়ংক্রিয়ভাবে তার নির্ধারিত রোলের ক্ষমতা পেয়ে যাবেন।
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end space-x-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAdminModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={adminSaving}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/25 transition-all flex items-center space-x-1.5 disabled:opacity-50"
+                >
+                  {adminSaving ? (
+                    <span>Saving...</span>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>{editingAdminId ? 'Update Admin' : 'Save & Assign Role'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

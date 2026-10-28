@@ -6,6 +6,7 @@ interface EmptyStateProps {
   title: string;
   description: string;
   actionText?: string;
+  actionLink?: string;
   onAction?: () => void;
 }
 
@@ -14,6 +15,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
   actionText,
+  actionLink,
   onAction,
 }) => {
   return (
@@ -23,13 +25,22 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       </div>
       <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
       <p className="text-sm text-slate-500 max-w-md mb-6">{description}</p>
-      {actionText && onAction && (
-        <button
-          onClick={onAction}
-          className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-lg hover:bg-amber-600 transition-colors shadow-sm"
-        >
-          {actionText}
-        </button>
+      {actionText && (actionLink || onAction) && (
+        actionLink ? (
+          <a
+            href={actionLink}
+            className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-lg hover:bg-amber-600 transition-colors shadow-sm inline-block"
+          >
+            {actionText}
+          </a>
+        ) : (
+          <button
+            onClick={onAction}
+            className="px-4 py-2 bg-amber-500 text-white font-bold text-xs rounded-lg hover:bg-amber-600 transition-colors shadow-sm"
+          >
+            {actionText}
+          </button>
+        )
       )}
     </div>
   );

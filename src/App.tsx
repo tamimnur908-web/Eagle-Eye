@@ -19,6 +19,8 @@ import { ContactPage } from './pages/ContactPage';
 import { AccountPage } from './pages/AccountPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { LegalPage } from './pages/LegalPage';
+import { ScheduleMeetingPage } from './pages/ScheduleMeetingPage';
+import { MeetingResponsePage } from './pages/MeetingResponsePage';
 
 export function App() {
   return (
@@ -41,6 +43,8 @@ export function App() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/account" element={<AccountPage />} />
+                <Route path="/schedule-meeting" element={<ScheduleMeetingPage />} />
+                <Route path="/meeting-response" element={<MeetingResponsePage />} />
 
                 {/* Admin Dashboard */}
                 <Route path="/admin" element={<AdminDashboardPage />} />

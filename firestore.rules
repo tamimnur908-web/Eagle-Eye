@@ -12,7 +12,12 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.uid == "cOpR7FgKjGeBkeWwIysygHvswwv1" ||
-        request.auth.token.admin == true
+        request.auth.token.admin == true ||
+        request.auth.token.email == "Tamimnur908@gmail.com" ||
+        request.auth.token.email == "tamimnur908@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
       );
     }
 
@@ -136,6 +141,12 @@ service cloud.firestore {
 
     match /notifications/{notifId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Admins & Role Permissions
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == adminId);
       allow write: if isAdmin();
     }
   }
