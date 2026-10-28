@@ -1,9 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MessageSquare, Shield } from 'lucide-react';
-import { WHATSAPP_NUMBER, BUSINESS_EMAIL } from '../lib/firebase';
+import { Mail, Phone, MessageSquare, Shield, Clock, Globe } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
+import { SocialIcon } from './SocialIcon';
 
 export const Footer: React.FC = () => {
+  const { settings, footerConfig, socialLinks } = useSettings();
+
+  const footerSocials = (socialLinks || []).filter(
+    (s) => s.isActive && s.showInFooter && Boolean(s.url?.trim())
+  );
+
   return (
     <footer className="bg-slate-50 border-t border-slate-200 text-slate-600">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -13,51 +20,66 @@ export const Footer: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <img
-                src="/logo.jpg"
-                alt="Eagle Eye Digital"
-                className="h-10 w-auto rounded border border-slate-300 bg-white p-0.5 shadow-sm"
+                src={settings.logoUrl || '/logo.jpg'}
+                alt={settings.brandName || 'Eagle Eye Digital'}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/logo.jpg';
+                }}
+                className="h-10 w-auto max-w-[120px] rounded border border-slate-300 bg-white p-0.5 shadow-sm object-contain"
               />
               <span className="text-lg font-bold tracking-wider text-slate-900">
-                EAGLE EYE <span className="text-amber-600">DIGITAL</span>
+                {settings.brandName || 'Eagle Eye Digital'}
               </span>
             </div>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Your marketing partner. Specialized in digital marketing, full-funnel agency execution, performance ads, web development, and high-converting digital assets.
+              {footerConfig?.aboutText ||
+                'Your dedicated commercial partner. Specialized in digital marketing, full-funnel agency execution, performance ads, web development, and high-converting digital assets.'}
             </p>
             <div className="text-xs text-amber-600 font-bold">
-              Focus • Strategy • Growth
+              {footerConfig?.tagline || settings.tagline || 'Focus • Strategy • Growth'}
             </div>
+
+            {/* Social Icons in Footer */}
+            {footerSocials.length > 0 && (
+              <div className="pt-2">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Follow Our Socials
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {footerSocials.map((item) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:border-indigo-600 text-slate-600 hover:text-indigo-600 flex items-center justify-center transition-all shadow-sm hover:scale-105"
+                      title={item.platform}
+                    >
+                      <SocialIcon link={item} size={16} />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Quick Links */}
+          {/* Quick Links: Services */}
           <div className="space-y-3">
             <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">Agency Services</h4>
             <ul className="space-y-2 text-sm font-medium">
-              <li>
-                <Link to="/services" className="hover:text-amber-600 transition-colors">
-                  Digital Marketing & Ads
-                </Link>
-              </li>
-              <li>
-                <Link to="/services" className="hover:text-amber-600 transition-colors">
-                  Social Media Management
-                </Link>
-              </li>
-              <li>
-                <Link to="/services" className="hover:text-amber-600 transition-colors">
-                  Web & E-Commerce Development
-                </Link>
-              </li>
-              <li>
-                <Link to="/services" className="hover:text-amber-600 transition-colors">
-                  Branding & Visual Design
-                </Link>
-              </li>
-              <li>
-                <Link to="/services" className="hover:text-amber-600 transition-colors">
-                  Consultation & Strategy
-                </Link>
-              </li>
+              {(footerConfig?.servicesLinks || [
+                { label: 'Digital Marketing & Ads', path: '/services' },
+                { label: 'Social Media Management', path: '/services' },
+                { label: 'Web & E-Commerce Development', path: '/services' },
+                { label: 'Branding & Visual Design', path: '/services' },
+                { label: 'Consultation & Strategy', path: '/services' },
+              ]).map((link, idx) => (
+                <li key={idx}>
+                  <Link to={link.path} className="hover:text-amber-600 transition-colors">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -65,31 +87,19 @@ export const Footer: React.FC = () => {
           <div className="space-y-3">
             <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">Resources & Work</h4>
             <ul className="space-y-2 text-sm font-medium">
-              <li>
-                <Link to="/products" className="hover:text-amber-600 transition-colors">
-                  Digital Products Store
-                </Link>
-              </li>
-              <li>
-                <Link to="/portfolio" className="hover:text-amber-600 transition-colors">
-                  Client Portfolio
-                </Link>
-              </li>
-              <li>
-                <Link to="/case-studies" className="hover:text-amber-600 transition-colors">
-                  Case Studies
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq" className="hover:text-amber-600 transition-colors">
-                  Agency FAQ
-                </Link>
-              </li>
-              <li>
-                <Link to="/support" className="hover:text-amber-600 transition-colors">
-                  Client Support Desk
-                </Link>
-              </li>
+              {(footerConfig?.resourcesLinks || [
+                { label: 'Digital Products Store', path: '/products' },
+                { label: 'Client Portfolio', path: '/portfolio' },
+                { label: 'Case Studies', path: '/case-studies' },
+                { label: 'Agency FAQ', path: '/faq' },
+                { label: 'Client Support Desk', path: '/support' },
+              ]).map((link, idx) => (
+                <li key={idx}>
+                  <Link to={link.path} className="hover:text-amber-600 transition-colors">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -98,31 +108,37 @@ export const Footer: React.FC = () => {
             <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">Direct Connect</h4>
             <div className="space-y-2 text-sm font-medium">
               <a
-                href={`mailto:${BUSINESS_EMAIL}`}
+                href={`mailto:${footerConfig?.contactEmail || settings.businessEmail || 'Tamimnur908@gmail.com'}`}
                 className="flex items-center space-x-2 text-slate-700 hover:text-amber-600 transition-colors"
               >
                 <Mail className="w-4 h-4 text-amber-600" />
-                <span>{BUSINESS_EMAIL}</span>
+                <span className="truncate">{footerConfig?.contactEmail || settings.businessEmail || 'Tamimnur908@gmail.com'}</span>
               </a>
               <a
-                href={`https://wa.me/88${WHATSAPP_NUMBER}`}
+                href={`https://wa.me/88${(footerConfig?.contactWhatsapp || settings.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2 text-emerald-700 hover:text-emerald-800 transition-colors"
               >
                 <MessageSquare className="w-4 h-4 text-emerald-600" />
-                <span>WhatsApp: {WHATSAPP_NUMBER}</span>
+                <span>WhatsApp: {footerConfig?.contactWhatsapp || settings.whatsappNumber || '01836126791'}</span>
               </a>
               <div className="flex items-center space-x-2 text-slate-600">
                 <Phone className="w-4 h-4 text-slate-500" />
-                <span>+880 {WHATSAPP_NUMBER}</span>
+                <span>+880 {footerConfig?.contactPhone || settings.whatsappNumber || '01836126791'}</span>
               </div>
             </div>
 
-            {/* Timezone & Currency Note */}
-            <div className="pt-2 text-xs text-slate-500">
-              <p>Operating Timezone: Asia/Dhaka (GMT+6)</p>
-              <p>Primary Currency: BDT (৳) & USD ($)</p>
+            {/* Operating Hours & Timezone */}
+            <div className="pt-2 text-xs text-slate-500 space-y-1">
+              {footerConfig?.operatingHours && (
+                <p className="flex items-center space-x-1">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{footerConfig.operatingHours}</span>
+                </p>
+              )}
+              <p>{footerConfig?.timezoneText || 'Operating Timezone: Asia/Dhaka (GMT+6)'}</p>
+              <p>{footerConfig?.currencyText || `Primary Currency: ${settings.currency || 'BDT'} (৳)`}</p>
             </div>
           </div>
         </div>
@@ -130,7 +146,7 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar & Legal */}
         <div className="mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 space-y-4 md:space-y-0">
           <div>
-            © {new Date().getFullYear()} Eagle Eye Digital. All rights reserved.
+            © {new Date().getFullYear()} {footerConfig?.copyrightText || `${settings.brandName || 'Eagle Eye Digital'}. All rights reserved.`}
           </div>
           <div className="flex space-x-6 font-medium">
             <Link to="/privacy-policy" className="hover:text-slate-900">Privacy Policy</Link>

@@ -2,8 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { SettingsProvider } from './context/SettingsContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { FloatingSocialBar } from './components/FloatingSocialBar';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -28,12 +30,13 @@ export function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <CartProvider>
-          <Router>
-            <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
-              <Navbar />
-              <main className="flex-grow">
-                <Routes>
+        <SettingsProvider>
+          <CartProvider>
+            <Router>
+              <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] relative">
+                <Navbar />
+                <main className="flex-grow">
+                  <Routes>
                 {/* Customer-Facing Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/services" element={<ServicesPage />} />
@@ -77,9 +80,11 @@ export function App() {
               </Routes>
             </main>
             <Footer />
+            <FloatingSocialBar />
           </div>
         </Router>
       </CartProvider>
+    </SettingsProvider>
     </AuthProvider>
     </ErrorBoundary>
   );

@@ -29,7 +29,12 @@ import {
   HeroSlide,
   AdminUser,
   AdminRole,
-  AdminPermissions
+  AdminPermissions,
+  PasswordChangeRequest,
+  SocialLink,
+  HeaderConfig,
+  FooterConfig,
+  SiteSettings
 } from '../types';
 
 // ================= HOMEPAGE BENTO & COLLECTIONS SETTINGS =================
@@ -134,6 +139,162 @@ export const getBentoConfig = async (): Promise<BentoConfig> => {
 export const saveBentoConfig = async (config: BentoConfig) => {
   const docRef = doc(db, 'settings', 'homepage_bento');
   await setDoc(docRef, config, { merge: true });
+};
+
+// ================= SITE SETTINGS, HEADER, FOOTER & SOCIAL =================
+export const defaultSocialLinks: SocialLink[] = [
+  {
+    id: 'facebook',
+    platform: 'Facebook',
+    url: 'https://facebook.com/eagleeyedigital',
+    iconKey: 'facebook',
+    isActive: true,
+    showInHeader: false,
+    showInFooter: true,
+    showInFloatingSidebar: true,
+  },
+  {
+    id: 'whatsapp',
+    platform: 'WhatsApp',
+    url: 'https://wa.me/8801836126791',
+    iconKey: 'whatsapp',
+    isActive: true,
+    showInHeader: true,
+    showInFooter: true,
+    showInFloatingSidebar: true,
+  },
+  {
+    id: 'instagram',
+    platform: 'Instagram',
+    url: 'https://instagram.com/eagleeyedigital',
+    iconKey: 'instagram',
+    isActive: true,
+    showInHeader: false,
+    showInFooter: true,
+    showInFloatingSidebar: true,
+  },
+  {
+    id: 'linkedin',
+    platform: 'LinkedIn',
+    url: 'https://linkedin.com/company/eagleeyedigital',
+    iconKey: 'linkedin',
+    isActive: true,
+    showInHeader: false,
+    showInFooter: true,
+    showInFloatingSidebar: true,
+  },
+  {
+    id: 'youtube',
+    platform: 'YouTube',
+    url: 'https://youtube.com/@eagleeyedigital',
+    iconKey: 'youtube',
+    isActive: true,
+    showInHeader: false,
+    showInFooter: true,
+    showInFloatingSidebar: true,
+  },
+];
+
+export const defaultHeaderConfig: HeaderConfig = {
+  announcementText: '⚡ Special Offer: Up to 50% discount on UI Kits & Software resources! Instant Digital Delivery.',
+  showAnnouncement: true,
+  announcementLink: '/products',
+  showChatSupport: true,
+  chatSupportText: 'Chat Support',
+  chatSupportNumber: '01836126791',
+  navLinks: [
+    { label: 'Home', path: '/' },
+    { label: 'Shop', path: '/products' },
+    { label: 'Services', path: '/services' },
+    { label: 'Portfolio', path: '/portfolio' },
+    { label: 'Case Studies', path: '/case-studies' },
+    { label: 'About', path: '/about' },
+    { label: 'Our Contacts', path: '/contact' },
+  ],
+};
+
+export const defaultFooterConfig: FooterConfig = {
+  aboutText: 'Your dedicated commercial partner. Specialized in performance marketing, growth retainers, bespoke web development, and production-ready digital assets.',
+  tagline: 'Focus • Strategy • Growth',
+  copyrightText: 'Eagle Eye Digital. All rights reserved.',
+  contactEmail: 'Tamimnur908@gmail.com',
+  contactPhone: '01836126791',
+  contactWhatsapp: '01836126791',
+  operatingHours: 'Saturday - Thursday: 10:00 AM - 8:00 PM',
+  timezoneText: 'Operating Timezone: Asia/Dhaka (GMT+6)',
+  currencyText: 'Primary Currency: BDT (৳) & USD ($)',
+  servicesLinks: [
+    { label: 'Digital Marketing & Ads', path: '/services' },
+    { label: 'Social Media Management', path: '/services' },
+    { label: 'Web & E-Commerce Development', path: '/services' },
+    { label: 'Branding & Visual Design', path: '/services' },
+    { label: 'Consultation & Strategy', path: '/services' },
+  ],
+  resourcesLinks: [
+    { label: 'Digital Products Store', path: '/products' },
+    { label: 'Client Portfolio', path: '/portfolio' },
+    { label: 'Case Studies', path: '/case-studies' },
+    { label: 'Agency FAQ', path: '/faq' },
+    { label: 'Client Support Desk', path: '/support' },
+  ],
+};
+
+export const defaultSiteSettings: SiteSettings = {
+  brandName: 'Eagle Eye Digital',
+  tagline: 'YOUR DIGITAL WORLD',
+  logoUrl: '/logo.jpg',
+  businessEmail: 'Tamimnur908@gmail.com',
+  whatsappNumber: '01836126791',
+  currency: 'BDT',
+  headerConfig: defaultHeaderConfig,
+  footerConfig: defaultFooterConfig,
+  socialLinks: defaultSocialLinks,
+};
+
+export const getSiteSettings = async (): Promise<SiteSettings> => {
+  try {
+    const docRef = doc(db, 'settings', 'site_settings');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      return {
+        brandName: data.brandName || defaultSiteSettings.brandName,
+        tagline: data.tagline || defaultSiteSettings.tagline,
+        logoUrl: data.logoUrl || defaultSiteSettings.logoUrl,
+        businessEmail: data.businessEmail || defaultSiteSettings.businessEmail,
+        whatsappNumber: data.whatsappNumber || defaultSiteSettings.whatsappNumber,
+        currency: data.currency || defaultSiteSettings.currency,
+        headerConfig: {
+          ...defaultHeaderConfig,
+          ...(data.headerConfig || {}),
+          navLinks: data.headerConfig?.navLinks && data.headerConfig.navLinks.length > 0
+            ? data.headerConfig.navLinks
+            : defaultHeaderConfig.navLinks
+        },
+        footerConfig: {
+          ...defaultFooterConfig,
+          ...(data.footerConfig || {}),
+          servicesLinks: data.footerConfig?.servicesLinks && data.footerConfig.servicesLinks.length > 0
+            ? data.footerConfig.servicesLinks
+            : defaultFooterConfig.servicesLinks,
+          resourcesLinks: data.footerConfig?.resourcesLinks && data.footerConfig.resourcesLinks.length > 0
+            ? data.footerConfig.resourcesLinks
+            : defaultFooterConfig.resourcesLinks
+        },
+        socialLinks: data.socialLinks && data.socialLinks.length > 0
+          ? data.socialLinks
+          : defaultSocialLinks,
+      };
+    }
+  } catch (err) {
+    console.error('Failed to load site settings from Firestore:', err);
+  }
+  return defaultSiteSettings;
+};
+
+export const saveSiteSettings = async (settings: Partial<SiteSettings>) => {
+  const docRef = doc(db, 'settings', 'site_settings');
+  await setDoc(docRef, settings, { merge: true });
 };
 
 // ================= SERVICES =================
@@ -716,6 +877,45 @@ export const deleteAdmin = async (adminId: string): Promise<void> => {
     throw new Error('Cannot delete the primary owner account.');
   }
   await deleteDoc(doc(db, 'admins', adminId));
+};
+
+export const requestAdminPasswordChange = async (
+  adminId: string,
+  newRequestedPassword: string
+): Promise<void> => {
+  const req: PasswordChangeRequest = {
+    requestedPassword: newRequestedPassword,
+    requestedAt: Date.now(),
+    status: 'pending'
+  };
+  await updateDoc(doc(db, 'admins', adminId), {
+    pendingPasswordRequest: req,
+    updatedAt: Date.now()
+  });
+};
+
+export const approveAdminPasswordChange = async (adminId: string): Promise<void> => {
+  const adminSnap = await getDoc(doc(db, 'admins', adminId));
+  if (!adminSnap.exists()) {
+    throw new Error('Admin account not found.');
+  }
+  const data = adminSnap.data() as AdminUser;
+  if (!data.pendingPasswordRequest?.requestedPassword) {
+    throw new Error('No pending password request found for this admin.');
+  }
+
+  await updateDoc(doc(db, 'admins', adminId), {
+    adminPassword: data.pendingPasswordRequest.requestedPassword,
+    pendingPasswordRequest: null,
+    updatedAt: Date.now()
+  });
+};
+
+export const rejectAdminPasswordChange = async (adminId: string, reason?: string): Promise<void> => {
+  await updateDoc(doc(db, 'admins', adminId), {
+    pendingPasswordRequest: null,
+    updatedAt: Date.now()
+  });
 };
 
 export const getAdminByUidOrEmail = async (

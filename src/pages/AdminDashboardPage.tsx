@@ -31,6 +31,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Sparkles,
+  RotateCcw,
   X,
   Clipboard,
   ImagePlus,
@@ -61,7 +62,11 @@ import {
   Bell,
   BellOff,
   MessageSquare,
-  AlertTriangle
+  AlertTriangle,
+  EyeOff,
+  Unlock,
+  Key,
+  Send
 } from 'lucide-react';
 import {
   getAllServices,
@@ -90,7 +95,14 @@ import {
   saveAdmin,
   deleteAdmin,
   getDefaultRolePermissions,
-  findRegisteredUserByEmail
+  findRegisteredUserByEmail,
+  requestAdminPasswordChange,
+  approveAdminPasswordChange,
+  rejectAdminPasswordChange,
+  defaultSocialLinks,
+  defaultHeaderConfig,
+  defaultFooterConfig,
+  defaultSiteSettings
 } from '../services/firestoreService';
 import {
   Service,
@@ -104,8 +116,15 @@ import {
   HeroSlide,
   AdminUser,
   AdminRole,
-  AdminPermissions
+  AdminPermissions,
+  PasswordChangeRequest,
+  SocialLink,
+  HeaderConfig,
+  FooterConfig,
+  SiteSettings
 } from '../types';
+import { useSettings } from '../context/SettingsContext';
+import { SocialIcon, SOCIAL_ICON_OPTIONS } from '../components/SocialIcon';
 import { ADMIN_UID, BUSINESS_EMAIL } from '../lib/firebase';
 import { EmptyState } from '../components/EmptyState';
 
@@ -330,6 +349,7 @@ export const AdminDashboardPage: React.FC = () => {
     designation: string;
     phone: string;
     status: 'active' | 'suspended';
+    adminPassword: string;
     permissions: AdminPermissions;
   }>({
     name: '',
@@ -338,6 +358,7 @@ export const AdminDashboardPage: React.FC = () => {
     designation: '',
     phone: '',
     status: 'active',
+    adminPassword: '',
     permissions: getDefaultRolePermissions('editor')
   });
   const [adminSaving, setAdminSaving] = useState(false);
@@ -345,6 +366,39 @@ export const AdminDashboardPage: React.FC = () => {
   const [adminFormError, setAdminFormError] = useState<string | null>(null);
   const [userCheckStatus, setUserCheckStatus] = useState<'idle' | 'checking' | 'registered' | 'not-registered'>('idle');
   const [registeredUserInfo, setRegisteredUserInfo] = useState<{ name?: string; uid?: string } | null>(null);
+
+  // Dedicated Admin Passwords & Visibility States
+  const [showAdminFormPass, setShowAdminFormPass] = useState(false);
+  const [showAdminTablePasswords, setShowAdminTablePasswords] = useState<Record<string, boolean>>({});
+  const [showRequestedPasswords, setShowRequestedPasswords] = useState<Record<string, boolean>>({});
+
+  // Super Admin check
+  const isSuperAdminUser =
+    currentUser?.uid === 'CopR7FgKjGeBkeWwIysygHvswwv1' ||
+    currentUser?.uid === 'cOpR7FgKjGeBkeWwIysygHvswwv1' ||
+    currentUser?.uid === ADMIN_UID ||
+    (currentUser?.email && currentUser.email.toLowerCase() === (BUSINESS_EMAIL || 'tamimnur908@gmail.com').toLowerCase());
+
+  const currentAdminProfile = admins.find(
+    (a) =>
+      a.uid === currentUser?.uid ||
+      (currentUser?.email && a.email.toLowerCase() === currentUser.email.toLowerCase())
+  );
+
+  // Admin Security Password Gate (Unlocked for Super Admin, requires passkey for other admins)
+  const [isGateUnlocked, setIsGateUnlocked] = useState<boolean>(() => {
+    return sessionStorage.getItem('eagle_admin_unlocked_' + (currentUser?.uid || 'guest')) === 'true';
+  });
+  const [gatePasswordInput, setGatePasswordInput] = useState('');
+  const [showGatePassword, setShowGatePassword] = useState(false);
+  const [gatePasswordError, setGatePasswordError] = useState<string | null>(null);
+
+  // Staff Admin Password Change Request Modal
+  const [isPassChangeModalOpen, setIsPassChangeModalOpen] = useState(false);
+  const [newRequestedPassInput, setNewRequestedPassInput] = useState('');
+  const [showNewRequestedPass, setShowNewRequestedPass] = useState(false);
+  const [passRequestSubmitting, setPassRequestSubmitting] = useState(false);
+  const [passRequestMsg, setPassRequestMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Notification Recipient Settings State
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -389,6 +443,238 @@ export const AdminDashboardPage: React.FC = () => {
     } catch {
       return String(dateVal);
     }
+  };
+
+  // Global Dynamic Site Settings & Header/Footer Context
+  const {
+    settings: globalSiteSettings,
+    headerConfig: globalHeaderConfig,
+    footerConfig: globalFooterConfig,
+    socialLinks: globalSocialLinks,
+    saveSettings: persistSiteSettings
+  } = useSettings();
+
+  // Site Settings Form State
+  const [siteForm, setSiteForm] = useState<SiteSettings>(globalSiteSettings || defaultSiteSettings);
+  const [siteSettingsSaved, setSiteSettingsSaved] = useState(false);
+  const [copiedUid, setCopiedUid] = useState(false);
+  const logoFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (globalSiteSettings) {
+      setSiteForm(globalSiteSettings);
+    }
+  }, [globalSiteSettings]);
+
+  // Header, Footer & Social Sub-tabs
+  const [headerFooterActiveTab, setHeaderFooterActiveTab] = useState<'social' | 'header' | 'footer'>('social');
+
+  // Header Config Form State
+  const [headerForm, setHeaderForm] = useState<HeaderConfig>(globalHeaderConfig || defaultHeaderConfig);
+  const [headerSaved, setHeaderSaved] = useState(false);
+  const [newNavLink, setNewNavLink] = useState({ label: '', path: '' });
+
+  useEffect(() => {
+    if (globalHeaderConfig) {
+      setHeaderForm(globalHeaderConfig);
+    }
+  }, [globalHeaderConfig]);
+
+  // Footer Config Form State
+  const [footerForm, setFooterForm] = useState<FooterConfig>(globalFooterConfig || defaultFooterConfig);
+  const [footerSaved, setFooterSaved] = useState(false);
+  const [newServiceLink, setNewServiceLink] = useState({ label: '', path: '/services' });
+  const [newResourceLink, setNewResourceLink] = useState({ label: '', path: '/products' });
+
+  useEffect(() => {
+    if (globalFooterConfig) {
+      setFooterForm(globalFooterConfig);
+    }
+  }, [globalFooterConfig]);
+
+  // Social Media Manager State
+  const [socialList, setSocialList] = useState<SocialLink[]>(globalSocialLinks || defaultSocialLinks);
+  const [socialSaved, setSocialSaved] = useState(false);
+  const [isAddingSocial, setIsAddingSocial] = useState(false);
+  const [newSocialForm, setNewSocialForm] = useState<Partial<SocialLink>>({
+    platform: '',
+    url: '',
+    iconKey: 'facebook',
+    isActive: true,
+    showInHeader: false,
+    showInFooter: true,
+    showInFloatingSidebar: true,
+  });
+
+  useEffect(() => {
+    if (globalSocialLinks) {
+      setSocialList(globalSocialLinks);
+    }
+  }, [globalSocialLinks]);
+
+  // Handler: Save Site Settings
+  const handleSaveSiteSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await persistSiteSettings(siteForm);
+    setSiteSettingsSaved(true);
+    setTimeout(() => setSiteSettingsSaved(false), 3000);
+  };
+
+  // Handler: Logo file upload
+  const handleLogoUpload = (file?: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Logo file size should be under 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSiteForm((prev) => ({ ...prev, logoUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handler: Save Header Settings
+  const handleSaveHeaderConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await persistSiteSettings({ headerConfig: headerForm });
+    setHeaderSaved(true);
+    setTimeout(() => setHeaderSaved(false), 3000);
+  };
+
+  // Handler: Add Nav Link
+  const handleAddNavLink = () => {
+    if (!newNavLink.label.trim() || !newNavLink.path.trim()) {
+      alert('Please enter both navigation label and link path.');
+      return;
+    }
+    setHeaderForm((prev) => ({
+      ...prev,
+      navLinks: [...(prev.navLinks || []), { label: newNavLink.label.trim(), path: newNavLink.path.trim() }]
+    }));
+    setNewNavLink({ label: '', path: '' });
+  };
+
+  // Handler: Remove Nav Link
+  const handleRemoveNavLink = (index: number) => {
+    setHeaderForm((prev) => ({
+      ...prev,
+      navLinks: prev.navLinks.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Handler: Save Footer Settings
+  const handleSaveFooterConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await persistSiteSettings({ footerConfig: footerForm });
+    setFooterSaved(true);
+    setTimeout(() => setFooterSaved(false), 3000);
+  };
+
+  // Handler: Add Service Link in Footer
+  const handleAddServiceLink = () => {
+    if (!newServiceLink.label.trim() || !newServiceLink.path.trim()) return;
+    setFooterForm((prev) => ({
+      ...prev,
+      servicesLinks: [...(prev.servicesLinks || []), { ...newServiceLink }]
+    }));
+    setNewServiceLink({ label: '', path: '/services' });
+  };
+
+  // Handler: Remove Service Link in Footer
+  const handleRemoveServiceLink = (index: number) => {
+    setFooterForm((prev) => ({
+      ...prev,
+      servicesLinks: prev.servicesLinks.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Handler: Add Resource Link in Footer
+  const handleAddResourceLink = () => {
+    if (!newResourceLink.label.trim() || !newResourceLink.path.trim()) return;
+    setFooterForm((prev) => ({
+      ...prev,
+      resourcesLinks: [...(prev.resourcesLinks || []), { ...newResourceLink }]
+    }));
+    setNewResourceLink({ label: '', path: '/products' });
+  };
+
+  // Handler: Remove Resource Link in Footer
+  const handleRemoveResourceLink = (index: number) => {
+    setFooterForm((prev) => ({
+      ...prev,
+      resourcesLinks: prev.resourcesLinks.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Handler: Save Social Links
+  const handleSaveSocialLinks = async (updatedList?: SocialLink[]) => {
+    const listToSave = updatedList || socialList;
+    await persistSiteSettings({ socialLinks: listToSave });
+    setSocialSaved(true);
+    setTimeout(() => setSocialSaved(false), 3000);
+  };
+
+  // Handler: Add Custom Social Media
+  const handleAddNewSocial = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSocialForm.platform?.trim() || !newSocialForm.url?.trim()) {
+      alert('Please enter platform name and URL.');
+      return;
+    }
+    const newLink: SocialLink = {
+      id: 'social-' + Date.now(),
+      platform: newSocialForm.platform.trim(),
+      url: newSocialForm.url.trim(),
+      iconKey: newSocialForm.iconKey || 'globe',
+      customIconUrl: newSocialForm.customIconUrl?.trim() || '',
+      isActive: newSocialForm.isActive ?? true,
+      showInHeader: newSocialForm.showInHeader ?? false,
+      showInFooter: newSocialForm.showInFooter ?? true,
+      showInFloatingSidebar: newSocialForm.showInFloatingSidebar ?? true,
+    };
+    const updated = [...socialList, newLink];
+    setSocialList(updated);
+    handleSaveSocialLinks(updated);
+    setIsAddingSocial(false);
+    setNewSocialForm({
+      platform: '',
+      url: '',
+      iconKey: 'facebook',
+      isActive: true,
+      showInHeader: false,
+      showInFooter: true,
+      showInFloatingSidebar: true,
+    });
+  };
+
+  // Handler: Delete Social Link
+  const handleDeleteSocial = (id: string) => {
+    if (confirm('Delete this social media item?')) {
+      const updated = socialList.filter((s) => s.id !== id);
+      setSocialList(updated);
+      handleSaveSocialLinks(updated);
+    }
+  };
+
+  // Handler: Toggle Social Active
+  const handleToggleSocialActive = (id: string) => {
+    const updated = socialList.map((s) => (s.id === id ? { ...s, isActive: !s.isActive } : s));
+    setSocialList(updated);
+  };
+
+  // Handler: Toggle Social Placement
+  const handleToggleSocialPlacement = (id: string, placement: 'header' | 'footer' | 'sidebar') => {
+    const updated = socialList.map((s) => {
+      if (s.id !== id) return s;
+      if (placement === 'header') return { ...s, showInHeader: !s.showInHeader };
+      if (placement === 'footer') return { ...s, showInFooter: !s.showInFooter };
+      if (placement === 'sidebar') return { ...s, showInFloatingSidebar: !s.showInFloatingSidebar };
+      return s;
+    });
+    setSocialList(updated);
   };
 
   const loadData = async () => {
@@ -445,6 +731,112 @@ export const AdminDashboardPage: React.FC = () => {
         <Link to="/account" className="inline-block px-5 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-lg shadow-sm">
           Sign In as Admin
         </Link>
+      </div>
+    );
+  }
+
+  // Check Admin Security Password Gate
+  // If user is not the permanent Super Admin, and they have an adminPassword assigned,
+  // they must enter the password assigned by Super Admin to unlock the console.
+  const isSessionUnlocked = isSuperAdminUser || isGateUnlocked || !currentAdminProfile?.adminPassword;
+
+  if (!isSessionUnlocked && currentAdminProfile) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div className="bg-white border border-slate-200/90 shadow-2xl rounded-3xl max-w-md w-full p-8 text-center space-y-5 animate-in fade-in zoom-in duration-150">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-600/30">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 block mb-1">
+              Admin Access Verification
+            </span>
+            <h2 className="text-xl font-black text-slate-900">
+              Enter Admin Security Password
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              স্বাগতম, <strong>{currentAdminProfile.name}</strong> ({currentAdminProfile.email})। অ্যাডমিন প্যানেলে ঢুকতে সুপার অ্যাডমিন কর্তৃক প্রদত্ত পাসওয়ার্ডটি দিন।
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (
+                gatePasswordInput.trim() === currentAdminProfile.adminPassword?.trim()
+              ) {
+                sessionStorage.setItem(
+                  'eagle_admin_unlocked_' + (currentUser?.uid || 'guest'),
+                  'true'
+                );
+                setIsGateUnlocked(true);
+                setGatePasswordError(null);
+              } else {
+                setGatePasswordError(
+                  'ভুল পাসওয়ার্ড! সুপার অ্যাডমিন কর্তৃক প্রদত্ত সঠিক পাসওয়ার্ডটি লিখুন।'
+                );
+              }
+            }}
+            className="space-y-4 text-left"
+          >
+            {gatePasswordError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <span>{gatePasswordError}</span>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-slate-700 font-bold text-xs mb-1">
+                Admin Panel Security Password *
+              </label>
+              <div className="relative">
+                <input
+                  type={showGatePassword ? 'text' : 'password'}
+                  required
+                  placeholder="Enter your security password..."
+                  value={gatePasswordInput}
+                  onChange={(e) => {
+                    setGatePasswordInput(e.target.value);
+                    setGatePasswordError(null);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowGatePassword(!showGatePassword)}
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
+                >
+                  {showGatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 transition-all flex items-center justify-center space-x-2 active:scale-[0.99]"
+            >
+              <Unlock className="w-4 h-4" />
+              <span>Unlock Admin Panel (প্যানেলে প্রবেশ করুন)</span>
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+            <button
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+              className="text-slate-400 hover:text-slate-600 font-semibold"
+            >
+              Sign Out
+            </button>
+            <span className="text-[11px] text-slate-400">
+              Role: <strong className="capitalize text-slate-700">{currentAdminProfile.role}</strong>
+            </span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1040,6 +1432,7 @@ export const AdminDashboardPage: React.FC = () => {
   // ================= ADMIN & ROLES MANAGEMENT HANDLERS =================
   const handleOpenAddAdmin = () => {
     setEditingAdminId(null);
+    const generatedPass = 'EED@' + Math.floor(100000 + Math.random() * 900000);
     setAdminForm({
       name: '',
       email: '',
@@ -1047,8 +1440,10 @@ export const AdminDashboardPage: React.FC = () => {
       designation: '',
       phone: '',
       status: 'active',
+      adminPassword: generatedPass,
       permissions: getDefaultRolePermissions('editor')
     });
+    setShowAdminFormPass(true);
     setAdminFormError(null);
     setUserCheckStatus('idle');
     setRegisteredUserInfo(null);
@@ -1065,8 +1460,10 @@ export const AdminDashboardPage: React.FC = () => {
       designation: admin.designation || '',
       phone: admin.phone || '',
       status: admin.status || 'active',
+      adminPassword: admin.adminPassword || '',
       permissions: admin.permissions || getDefaultRolePermissions(admin.role)
     });
+    setShowAdminFormPass(false);
     setAdminFormError(null);
     setUserCheckStatus('registered');
     setRegisteredUserInfo({ name: admin.name, uid: admin.uid });
@@ -1131,6 +1528,12 @@ export const AdminDashboardPage: React.FC = () => {
       return;
     }
 
+    const passClean = adminForm.adminPassword.trim();
+    if (!passClean) {
+      setAdminFormError('অনুগ্রহ করে এই অ্যাডমিনের জন্য একটি সিকিউরিটি পাসওয়ার্ড নির্ধারণ করুন।');
+      return;
+    }
+
     // Step: Verify that the user has registered or logged in
     if (!editingAdminId) {
       setAdminSaving(true);
@@ -1153,6 +1556,7 @@ export const AdminDashboardPage: React.FC = () => {
         designation: adminForm.designation.trim(),
         phone: adminForm.phone.trim(),
         status: adminForm.status,
+        adminPassword: passClean,
         permissions: adminForm.permissions,
         addedBy: currentUser?.email || 'Admin'
       });
@@ -1162,13 +1566,80 @@ export const AdminDashboardPage: React.FC = () => {
       setIsAdminModalOpen(false);
       setAdminActionMsg({
         type: 'success',
-        text: `অ্যাডমিন ${adminForm.name || emailClean} (${adminForm.role.toUpperCase()}) সফলভাবে সংরক্ষণ করা হয়েছে!`
+        text: `অ্যাডমিন ${adminForm.name || emailClean} (${adminForm.role.toUpperCase()}) সফলভাবে পাসওয়ার্ডসহ সংরক্ষণ করা হয়েছে!`
       });
       setTimeout(() => setAdminActionMsg(null), 5000);
     } catch (err: any) {
       setAdminFormError(err.message || 'অ্যাডমিন সংরক্ষণ করতে সমস্যা হয়েছে।');
     } finally {
       setAdminSaving(false);
+    }
+  };
+
+  // Super Admin Password Approval Handlers
+  const handleApprovePassword = async (adminId: string, adminName: string) => {
+    if (!confirm(`${adminName}-এর নতুন পাসওয়ার্ড কি অনুমোদন (Approve) করতে চান?`)) return;
+    try {
+      await approveAdminPasswordChange(adminId);
+      await loadData();
+      setAdminActionMsg({
+        type: 'success',
+        text: `${adminName}-এর নতুন পাসওয়ার্ড সফলভাবে অনুমোদন করা হয়েছে!`
+      });
+      setTimeout(() => setAdminActionMsg(null), 5000);
+    } catch (err: any) {
+      alert('অনুমোদন ব্যর্থ হয়েছে: ' + (err.message || 'ত্রুটি'));
+    }
+  };
+
+  const handleRejectPassword = async (adminId: string, adminName: string) => {
+    if (!confirm(`${adminName}-এর পাসওয়ার্ড পরিবর্তনের আবেদন বাতিল (Reject) করবেন?`)) return;
+    try {
+      await rejectAdminPasswordChange(adminId);
+      await loadData();
+      setAdminActionMsg({
+        type: 'success',
+        text: `${adminName}-এর পাসওয়ার্ড পরিবর্তনের আবেদন বাতিল করা হয়েছে।`
+      });
+      setTimeout(() => setAdminActionMsg(null), 5000);
+    } catch (err: any) {
+      alert('বাতিল করতে ব্যর্থ হয়েছে: ' + (err.message || 'ত্রুটি'));
+    }
+  };
+
+  // Staff Admin Password Change Request Handler
+  const handleRequestOwnPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const pass = newRequestedPassInput.trim();
+    if (!pass) {
+      setPassRequestMsg({ type: 'error', text: 'অনুগ্রহ করে নতুন পাসওয়ার্ডটি লিখুন।' });
+      return;
+    }
+    if (pass.length < 4) {
+      setPassRequestMsg({ type: 'error', text: 'পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।' });
+      return;
+    }
+    if (!currentAdminProfile?.id) {
+      setPassRequestMsg({ type: 'error', text: 'অ্যাডমিন প্রোফাইল পাওয়া যায়নি।' });
+      return;
+    }
+    setPassRequestSubmitting(true);
+    try {
+      await requestAdminPasswordChange(currentAdminProfile.id, pass);
+      await loadData();
+      setPassRequestMsg({
+        type: 'success',
+        text: 'পাসওয়ার্ড পরিবর্তনের আবেদন সুপার অ্যাডমিনের কাছে পাঠানো হয়েছে! সুপার অ্যাডমিন অনুমোদন দিলে এটি পরিবর্তন হবে।'
+      });
+      setTimeout(() => {
+        setIsPassChangeModalOpen(false);
+        setPassRequestMsg(null);
+        setNewRequestedPassInput('');
+      }, 3500);
+    } catch (err: any) {
+      setPassRequestMsg({ type: 'error', text: err.message || 'আবেদন পাঠাতে সমস্যা হয়েছে।' });
+    } finally {
+      setPassRequestSubmitting(false);
     }
   };
 
@@ -1347,10 +1818,17 @@ export const AdminDashboardPage: React.FC = () => {
               { id: 'products', label: 'Products', icon: Package },
               { id: 'services', label: 'Agency Services', icon: Layers },
               { id: 'categories', label: 'Categories', icon: FolderTree },
-              { id: 'admins', label: 'Admins & Roles', icon: ShieldCheck, badge: admins.length || null },
+              {
+                id: 'admins',
+                label: 'Admins & Roles',
+                icon: ShieldCheck,
+                badge: admins.filter((a) => a.pendingPasswordRequest?.status === 'pending').length > 0
+                  ? `🔔 ${admins.filter((a) => a.pendingPasswordRequest?.status === 'pending').length}`
+                  : (admins.length || null)
+              },
               { id: 'leads', label: 'Leads & Inquiries', icon: Inbox, badge: leads.filter(l => l.status === 'New').length || null },
               { id: 'homepage', label: 'Homepage Banners', icon: Image },
-              { id: 'footer', label: 'Footer & Social', icon: Globe },
+              { id: 'footer', label: 'Header, Footer & Social', icon: Globe },
               { id: 'settings', label: 'Site Settings', icon: Settings },
             ].map((item) => {
               const Icon = item.icon;
@@ -1403,6 +1881,24 @@ export const AdminDashboardPage: React.FC = () => {
               <span className="text-slate-500 font-medium">Logged in:</span>
               <div>{renderRoleBadge(adminRole || 'owner')}</div>
             </div>
+
+            {/* Password Change Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsPassChangeModalOpen(true);
+                setPassRequestMsg(null);
+                setNewRequestedPassInput('');
+              }}
+              className="w-full mt-2 py-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg text-[10px] font-bold text-slate-700 hover:text-blue-600 flex items-center justify-center space-x-1.5 transition-all shadow-xs"
+            >
+              <Key className="w-3 h-3 text-blue-500" />
+              <span>
+                {currentAdminProfile?.pendingPasswordRequest?.status === 'pending'
+                  ? 'Password Pending ⏳'
+                  : 'Change Password (পাসওয়ার্ড বদল)'}
+              </span>
+            </button>
           </div>
 
           <Link
@@ -4166,6 +4662,101 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             )}
 
+            {/* Pending Password Change Requests Alert Section */}
+            {admins.filter((a) => a.pendingPasswordRequest?.status === 'pending').length > 0 && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm space-y-4 animate-in fade-in">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25">
+                    <Key className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-amber-950 flex items-center space-x-2">
+                      <span>পাসওয়ার্ড পরিবর্তনের মেসেজ ও আবেদন ({admins.filter((a) => a.pendingPasswordRequest?.status === 'pending').length} টি)</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200 text-amber-900 animate-pulse">
+                        Pending Approval
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-amber-800 mt-0.5">
+                      অ্যাডমিন তাদের পাসওয়ার্ড পরিবর্তন করতে চেয়ে আবেদন করেছেন। নিচে তাদের নতুন পাসওয়ার্ডটি দেখে অনুমোদন (Approve) বা বাতিল (Reject) করুন:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {admins
+                    .filter((a) => a.pendingPasswordRequest?.status === 'pending')
+                    .map((reqAdmin) => {
+                      const req = reqAdmin.pendingPasswordRequest!;
+                      const isRevealed = !!showRequestedPasswords[reqAdmin.id];
+                      return (
+                        <div
+                          key={reqAdmin.id}
+                          className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold text-slate-900 text-xs">{reqAdmin.name}</span>
+                              <span className="text-[11px] text-slate-500 font-mono">({reqAdmin.email})</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 capitalize">
+                                {reqAdmin.role}
+                              </span>
+                            </div>
+
+                            {/* Show the requested password with eye toggle */}
+                            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                              <span className="text-[11px] font-bold text-slate-600">
+                                কাঙ্ক্ষিত নতুন পাসওয়ার্ড:
+                              </span>
+                              <div className="inline-flex items-center space-x-1.5 bg-slate-100 border border-slate-300 px-2.5 py-1 rounded-lg">
+                                <span className="font-mono text-xs font-black text-slate-900 tracking-wider">
+                                  {isRevealed ? req.requestedPassword : '••••••••••••'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowRequestedPasswords((prev) => ({
+                                      ...prev,
+                                      [reqAdmin.id]: !prev[reqAdmin.id]
+                                    }))
+                                  }
+                                  className="text-slate-500 hover:text-slate-800 p-0.5"
+                                  title={isRevealed ? 'পাসওয়ার্ড লুকান' : 'পাসওয়ার্ড দেখুন'}
+                                >
+                                  {isRevealed ? <EyeOff className="w-3.5 h-3.5 text-blue-600" /> : <Eye className="w-3.5 h-3.5" />}
+                                </button>
+                              </div>
+                              <span className="text-[10px] text-slate-400">
+                                (আবেদনের সময়: {new Date(req.requestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleApprovePassword(reqAdmin.id, reqAdmin.name)}
+                              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-all shadow-emerald-600/20 active:scale-95"
+                            >
+                              <Check className="w-4 h-4" />
+                              <span>Approve (অনুমোদন করুন)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRejectPassword(reqAdmin.id, reqAdmin.name)}
+                              className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs rounded-xl transition-all active:scale-95"
+                            >
+                              <X className="w-4 h-4" />
+                              <span>Reject (বাতিল)</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* Metrics Row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm flex items-center space-x-3.5">
@@ -4315,6 +4906,7 @@ export const AdminDashboardPage: React.FC = () => {
                       <th className="py-3.5 px-5">Admin / Staff Member</th>
                       <th className="py-3.5 px-5">Email & Contact</th>
                       <th className="py-3.5 px-5">Assigned Role</th>
+                      <th className="py-3.5 px-5">Access Password</th>
                       <th className="py-3.5 px-5">Permissions</th>
                       <th className="py-3.5 px-5">Status</th>
                       <th className="py-3.5 px-5 text-right">Actions</th>
@@ -4396,6 +4988,68 @@ export const AdminDashboardPage: React.FC = () => {
                                     <option value="editor">Change to Editor</option>
                                     <option value="viewer">Change to Viewer</option>
                                   </select>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Access Password */}
+                            <td className="py-4 px-5">
+                              <div className="space-y-1">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                    {showAdminTablePasswords[admin.id]
+                                      ? (admin.adminPassword || 'None')
+                                      : (admin.adminPassword ? '••••••••' : 'None')}
+                                  </span>
+                                  {admin.adminPassword && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setShowAdminTablePasswords((prev) => ({
+                                          ...prev,
+                                          [admin.id]: !prev[admin.id]
+                                        }))
+                                      }
+                                      className="text-slate-400 hover:text-slate-700 p-0.5"
+                                      title={showAdminTablePasswords[admin.id] ? 'পাসওয়ার্ড লুকান' : 'পাসওয়ার্ড দেখুন'}
+                                    >
+                                      {showAdminTablePasswords[admin.id] ? (
+                                        <EyeOff className="w-3.5 h-3.5 text-blue-600" />
+                                      ) : (
+                                        <Eye className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                                {admin.pendingPasswordRequest?.status === 'pending' && (
+                                  <div className="flex items-center space-x-1 text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-semibold">
+                                    <span>Req:</span>
+                                    <span className="font-mono font-bold">
+                                      {showRequestedPasswords[admin.id]
+                                        ? admin.pendingPasswordRequest.requestedPassword
+                                        : '••••••'}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setShowRequestedPasswords((prev) => ({
+                                          ...prev,
+                                          [admin.id]: !prev[admin.id]
+                                        }))
+                                      }
+                                      className="text-amber-600 hover:text-amber-800"
+                                      title="Toggle reveal"
+                                    >
+                                      {showRequestedPasswords[admin.id] ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApprovePassword(admin.id, admin.name)}
+                                      className="ml-1 text-[9px] bg-emerald-600 text-white px-1.5 py-0.5 rounded font-bold hover:bg-emerald-700"
+                                    >
+                                      Approve
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </td>
@@ -4516,7 +5170,7 @@ export const AdminDashboardPage: React.FC = () => {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400 text-xs italic">
+                        <td colSpan={7} className="py-12 text-center text-slate-400 text-xs italic">
                           কোনো অ্যাডমিন পাওয়া যায়নি। "+ Add New Admin" বাটনে ক্লিক করে নতুন অ্যাডমিন যুক্ত করুন।
                         </td>
                       </tr>
@@ -5004,38 +5658,1162 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* ================= SITE SETTINGS & FOOTER TABS ================= */}
-        {(activeMenu === 'settings' || activeMenu === 'footer') && (
+        {/* ================= SITE SETTINGS TAB ================= */}
+        {activeMenu === 'settings' && (
           <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                {activeMenu === 'settings' ? 'Site & System Settings' : 'Footer & Social Presence'}
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Centralized brand credentials and store metadata
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-indigo-600" />
+                  Site & Brand Settings
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Dynamic brand identity, agency logo, support credentials, and store configurations.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {siteSettingsSaved && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs animate-in fade-in">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    Saved & Synced Live!
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSaveSiteSettings}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </button>
+              </div>
             </div>
 
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4 max-w-2xl text-xs">
-              <div className="space-y-3">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <span className="font-bold text-slate-700 block">Brand & Agency Name</span>
-                  <span className="text-slate-900 font-black text-sm">Eagle Eye Digital</span>
+            {/* Settings Form Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left 2 Cols: Editable Fields */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Brand Identity Card */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    Brand Identity & Logo
+                  </h2>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Brand & Agency Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={siteForm.brandName || ''}
+                        onChange={(e) => setSiteForm({ ...siteForm, brandName: e.target.value })}
+                        placeholder="Eagle Eye Digital"
+                        className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">Renders across Navbar, Footer, and page metadata.</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Brand Tagline <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={siteForm.tagline || ''}
+                        onChange={(e) => setSiteForm({ ...siteForm, tagline: e.target.value })}
+                        placeholder="YOUR DIGITAL WORLD"
+                        className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-slate-900"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">Sub-badge beneath the brand name in Header & Footer.</span>
+                    </div>
+                  </div>
+
+                  {/* Brand Logo Upload & URL */}
+                  <div className="pt-2 border-t border-slate-100 space-y-3">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Brand Logo (Image or URL)
+                    </label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-xl bg-slate-50/70 border border-slate-200/80">
+                      {/* Logo Preview */}
+                      <div className="w-16 h-16 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-2 shadow-sm overflow-hidden flex-shrink-0">
+                        {siteForm.logoUrl ? (
+                          <img src={siteForm.logoUrl} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                        ) : (
+                          <span className="text-[10px] font-black text-indigo-600 text-center leading-tight">EAGLE EYE</span>
+                        )}
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex-1 space-y-2 w-full">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="file"
+                            ref={logoFileInputRef}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleLogoUpload(e.target.files?.[0])}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => logoFileInputRef.current?.click()}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition-colors"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            Upload Logo Image
+                          </button>
+                          {siteForm.logoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setSiteForm({ ...siteForm, logoUrl: '' })}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition-colors"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Reset to Default
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="url"
+                          value={siteForm.logoUrl || ''}
+                          onChange={(e) => setSiteForm({ ...siteForm, logoUrl: e.target.value })}
+                          placeholder="Or paste direct image URL (https://...)"
+                          className="w-full text-xs px-3 py-2 rounded-lg bg-white border border-slate-200 focus:border-indigo-500 text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <span className="font-bold text-slate-700 block">Official Support Email</span>
-                  <span className="text-slate-900 font-mono">{BUSINESS_EMAIL}</span>
+
+                {/* Helplines & Contact Card */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Phone className="w-4 h-4 text-emerald-500" />
+                    Official Support & Helplines
+                  </h2>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Official Support Email <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                        <input
+                          type="email"
+                          required
+                          value={siteForm.businessEmail || ''}
+                          onChange={(e) => setSiteForm({ ...siteForm, businessEmail: e.target.value })}
+                          placeholder="support@eagleeyedigital.com"
+                          className="w-full text-xs font-semibold pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-slate-900 font-mono"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Receives client contacts and displays in footer.</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        WhatsApp Helpline Number <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                        <input
+                          type="text"
+                          required
+                          value={siteForm.whatsappNumber || ''}
+                          onChange={(e) => setSiteForm({ ...siteForm, whatsappNumber: e.target.value })}
+                          placeholder="01836126791"
+                          className="w-full text-xs font-semibold pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-slate-900 font-mono"
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Live WhatsApp click-to-chat across Navbar and Footer.</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Currency Symbol
+                      </label>
+                      <input
+                        type="text"
+                        value={siteForm.currency || '৳'}
+                        onChange={(e) => setSiteForm({ ...siteForm, currency: e.target.value })}
+                        placeholder="৳"
+                        className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all text-slate-900 font-mono"
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1 block">Currency displayed across services & products (e.g. ৳ or $).</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <span className="font-bold text-slate-700 block">WhatsApp Helpline</span>
-                  <span className="text-slate-900 font-mono">01836126791</span>
+
+                {/* Primary Super Admin UID (Read-Only Security) */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-amber-600" />
+                      <h2 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                        Primary Super Admin UID
+                      </h2>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                      Read-Only Security Safeguard
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-500">
+                    For system safety, the root Super Admin UID is protected in configuration and cannot be modified from the browser.
+                  </p>
+
+                  <div className="p-3.5 rounded-xl bg-white border border-slate-200/90 flex items-center justify-between gap-3">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Super Admin UID</span>
+                      <span className="text-slate-900 font-mono text-xs font-bold select-all">{ADMIN_UID}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(ADMIN_UID);
+                        setCopiedUid(true);
+                        setTimeout(() => setCopiedUid(false), 2000);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                    >
+                      {copiedUid ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copiedUid ? 'Copied!' : 'Copy UID'}
+                    </button>
+                  </div>
                 </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <span className="font-bold text-slate-700 block">Primary Super Admin UID</span>
-                  <span className="text-slate-900 font-mono text-[11px]">{ADMIN_UID}</span>
+              </div>
+
+              {/* Right Column: Live Mockup & Quick Actions */}
+              <div className="space-y-6">
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4 sticky top-6">
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Eye className="w-4 h-4 text-indigo-600" />
+                    Live Brand Preview
+                  </h2>
+
+                  <p className="text-xs text-slate-500">
+                    Real-time preview of your brand identity as rendered in the live header.
+                  </p>
+
+                  {/* Header Brand Unit Mockup */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm space-y-3">
+                    <div className="text-[10px] uppercase font-bold text-slate-400">Navbar Brand Appearance</div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-md flex items-center justify-center">
+                        {siteForm.logoUrl ? (
+                          <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-[10px]" />
+                        ) : (
+                          <div className="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-white font-black text-xs">
+                            EE
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-base font-black tracking-tight text-slate-900 flex items-center gap-1">
+                          <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
+                          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                            {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
+                          </span>
+                        </div>
+                        <div className="text-[9px] font-extrabold tracking-widest text-slate-400 uppercase">
+                          {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Chat Support Pill Mockup */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm space-y-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-400">Header Chat Support Button</div>
+                    <a
+                      href={`https://wa.me/${(siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Chat Support</span>
+                      <span className="font-mono text-[11px] text-emerald-800">({siteForm.whatsappNumber || '01836126791'})</span>
+                    </a>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveSiteSettings}
+                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save & Publish Settings
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ================= HEADER, FOOTER & SOCIAL TAB ================= */}
+        {activeMenu === 'footer' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <Globe className="w-6 h-6 text-indigo-600" />
+                  Header, Footer & Social Presence
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Manage social links with placement controls (Header, Footer, Floating Sidebar), announcement banner, and footer navigation.
+                </p>
+              </div>
+            </div>
+
+            {/* Sub-tab Navigation */}
+            <div className="flex items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 w-fit">
+              <button
+                type="button"
+                onClick={() => setHeaderFooterActiveTab('social')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  headerFooterActiveTab === 'social'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                Social Media Manager
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-indigo-100 text-indigo-700">
+                  {socialList.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHeaderFooterActiveTab('header')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  headerFooterActiveTab === 'header'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Sliders className="w-4 h-4" />
+                Header & Announcement
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHeaderFooterActiveTab('footer')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  headerFooterActiveTab === 'footer'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                Footer & Navigation
+              </button>
+            </div>
+
+            {/* ================= SUB-TAB 1: SOCIAL MEDIA MANAGER ================= */}
+            {headerFooterActiveTab === 'social' && (
+              <div className="space-y-6">
+                {/* Header Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
+                  <div>
+                    <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-indigo-600" />
+                      Dynamic Social Channels ({socialList.length})
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Toggle active channels and choose where each icon appears: Header, Footer, and Sticky Floating Sidebar.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    {socialSaved && (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs animate-in fade-in">
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        Saved & Published!
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingSocial(!isAddingSocial)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {isAddingSocial ? 'Close Form' : 'Add Platform'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSaveSocialLinks()}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Social Links
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add New Social Drawer Form */}
+                {isAddingSocial && (
+                  <form
+                    onSubmit={handleAddNewSocial}
+                    className="bg-indigo-50/70 border border-indigo-200 rounded-2xl p-5 shadow-sm space-y-4 animate-in fade-in"
+                  >
+                    <div className="flex items-center justify-between border-b border-indigo-200/80 pb-3">
+                      <h3 className="text-xs font-black text-indigo-950 uppercase tracking-wider flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-indigo-600" />
+                        Add New Social Platform
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingSocial(false)}
+                        className="text-slate-400 hover:text-slate-600 text-xs"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Platform Name <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={newSocialForm.platform || ''}
+                          onChange={(e) => setNewSocialForm({ ...newSocialForm, platform: e.target.value })}
+                          placeholder="e.g. TikTok, Behance, X"
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-xl bg-white border border-indigo-200 focus:border-indigo-500 text-slate-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Select Icon
+                        </label>
+                        <select
+                          value={newSocialForm.iconKey || 'globe'}
+                          onChange={(e) => setNewSocialForm({ ...newSocialForm, iconKey: e.target.value })}
+                          className="w-full text-xs font-semibold px-3 py-2 rounded-xl bg-white border border-indigo-200 focus:border-indigo-500 text-slate-900"
+                        >
+                          {SOCIAL_ICON_OPTIONS.map((opt) => (
+                            <option key={opt.key} value={opt.key}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Profile / Page URL <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="url"
+                          required
+                          value={newSocialForm.url || ''}
+                          onChange={(e) => setNewSocialForm({ ...newSocialForm, url: e.target.value })}
+                          placeholder="https://tiktok.com/@eagleeye"
+                          className="w-full text-xs px-3 py-2 rounded-xl bg-white border border-indigo-200 focus:border-indigo-500 text-slate-900 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {newSocialForm.iconKey === 'custom' && (
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Custom Icon Image URL / SVG
+                        </label>
+                        <input
+                          type="url"
+                          value={newSocialForm.customIconUrl || ''}
+                          onChange={(e) => setNewSocialForm({ ...newSocialForm, customIconUrl: e.target.value })}
+                          placeholder="https://example.com/icon.svg"
+                          className="w-full text-xs px-3 py-2 rounded-xl bg-white border border-indigo-200 text-slate-900 font-mono"
+                        />
+                      </div>
+                    )}
+
+                    {/* Placements */}
+                    <div className="pt-2 border-t border-indigo-200/80 flex flex-wrap items-center gap-6 text-xs font-bold text-slate-700">
+                      <span className="text-slate-500 text-[11px] uppercase tracking-wider">Placement Options:</span>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newSocialForm.showInHeader ?? false}
+                          onChange={(e) => setNewSocialForm({ ...newSocialForm, showInHeader: e.target.checked })}
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        Show in Header
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newSocialForm.showInFooter ?? true}
+                          onChange={(e) => setNewSocialForm({ ...newSocialForm, showInFooter: e.target.checked })}
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        Show in Footer
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newSocialForm.showInFloatingSidebar ?? true}
+                          onChange={(e) => setNewSocialForm({ ...newSocialForm, showInFloatingSidebar: e.target.checked })}
+                          className="rounded text-indigo-600 focus:ring-indigo-500"
+                        />
+                        Show in Sticky Sidebar
+                      </label>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingSocial(false)}
+                        className="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-white text-xs font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm"
+                      >
+                        Add Platform
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Social Links List */}
+                <div className="space-y-3">
+                  {socialList.map((item) => {
+                    const iconOpt = SOCIAL_ICON_OPTIONS.find((o) => o.key === item.iconKey);
+                    return (
+                      <div
+                        key={item.id}
+                        className={`bg-white border rounded-2xl p-4 shadow-sm transition-all ${
+                          item.isActive ? 'border-slate-200/90' : 'border-slate-200 bg-slate-50/60 opacity-60'
+                        }`}
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          {/* Left: Icon, Platform name, and URL */}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* Icon preview badge */}
+                            <div
+                              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-sm"
+                              style={{ backgroundColor: iconOpt?.color || '#4F46E5' }}
+                            >
+                              <SocialIcon link={item} className="w-5 h-5" size={20} />
+                            </div>
+
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={item.platform}
+                                  onChange={(e) => {
+                                    const updated = socialList.map((s) =>
+                                      s.id === item.id ? { ...s, platform: e.target.value } : s
+                                    );
+                                    setSocialList(updated);
+                                  }}
+                                  className="text-xs font-black text-slate-900 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-600 focus:outline-none w-36"
+                                />
+
+                                {/* Icon selector */}
+                                <select
+                                  value={item.iconKey}
+                                  onChange={(e) => {
+                                    const updated = socialList.map((s) =>
+                                      s.id === item.id ? { ...s, iconKey: e.target.value } : s
+                                    );
+                                    setSocialList(updated);
+                                  }}
+                                  className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:border-indigo-500"
+                                >
+                                  {SOCIAL_ICON_OPTIONS.map((opt) => (
+                                    <option key={opt.key} value={opt.key}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="url"
+                                  value={item.url}
+                                  onChange={(e) => {
+                                    const updated = socialList.map((s) =>
+                                      s.id === item.id ? { ...s, url: e.target.value } : s
+                                    );
+                                    setSocialList(updated);
+                                  }}
+                                  placeholder="https://..."
+                                  className="w-full text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 focus:border-indigo-500 focus:bg-white"
+                                />
+                                {item.url && (
+                                  <a
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Test Link"
+                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors flex-shrink-0"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Middle: Placements */}
+                          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 bg-slate-50/80 px-3.5 py-2 rounded-xl border border-slate-200/60">
+                            <span className="text-[10px] uppercase font-bold text-slate-400">Placements:</span>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={item.showInHeader}
+                                onChange={() => handleToggleSocialPlacement(item.id, 'header')}
+                                className="rounded text-indigo-600 focus:ring-indigo-500"
+                              />
+                              Header
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={item.showInFooter}
+                                onChange={() => handleToggleSocialPlacement(item.id, 'footer')}
+                                className="rounded text-indigo-600 focus:ring-indigo-500"
+                              />
+                              Footer
+                            </label>
+                            <label className="flex items-center gap-1.5 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={item.showInFloatingSidebar}
+                                onChange={() => handleToggleSocialPlacement(item.id, 'sidebar')}
+                                className="rounded text-indigo-600 focus:ring-indigo-500"
+                              />
+                              Sidebar
+                            </label>
+                          </div>
+
+                          {/* Right: Active Toggle & Delete */}
+                          <div className="flex items-center gap-2 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSocialActive(item.id)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                                item.isActive
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'
+                              }`}
+                            >
+                              {item.isActive ? 'Active' : 'Disabled'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSocial(item.id)}
+                              title="Delete Social Channel"
+                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom Save Bar */}
+                <div className="flex items-center justify-between p-4 bg-white border border-slate-200/90 rounded-2xl shadow-sm">
+                  <span className="text-xs text-slate-500">
+                    Changes take effect across the live website immediately upon saving.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSocialLinks()}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save All Social Changes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ================= SUB-TAB 2: HEADER & ANNOUNCEMENT ================= */}
+            {headerFooterActiveTab === 'header' && (
+              <form onSubmit={handleSaveHeaderConfig} className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
+                  <div>
+                    <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-indigo-600" />
+                      Header Navigation & Announcement Bar
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Configure the top announcement banner, WhatsApp quick chat, and main navigation links.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    {headerSaved && (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs animate-in fade-in">
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        Header Saved & Published!
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Header Settings
+                    </button>
+                  </div>
+                </div>
+
+                {/* Top Announcement Bar Card */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      Top Announcement Banner
+                    </h3>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={headerForm.showAnnouncement ?? true}
+                        onChange={(e) => setHeaderForm({ ...headerForm, showAnnouncement: e.target.checked })}
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      Enable Announcement Banner
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Announcement Text
+                      </label>
+                      <input
+                        type="text"
+                        value={headerForm.announcementText || ''}
+                        onChange={(e) => setHeaderForm({ ...headerForm, announcementText: e.target.value })}
+                        placeholder="⚡ SPECIAL OFFER: Get 20% off on all Premium Web Design & Digital Marketing bundles this week!"
+                        className="w-full text-xs font-medium px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Announcement Link URL (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={headerForm.announcementLink || ''}
+                        onChange={(e) => setHeaderForm({ ...headerForm, announcementLink: e.target.value })}
+                        placeholder="/services or https://..."
+                        className="w-full text-xs px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Header Chat Support Button Card */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-emerald-500" />
+                      Chat Support Button (Navbar Top-Right)
+                    </h3>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={headerForm.showChatSupport ?? true}
+                        onChange={(e) => setHeaderForm({ ...headerForm, showChatSupport: e.target.checked })}
+                        className="rounded text-indigo-600 focus:ring-indigo-500"
+                      />
+                      Show Chat Support Pill
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Button Label
+                      </label>
+                      <input
+                        type="text"
+                        value={headerForm.chatSupportText || 'Chat Support'}
+                        onChange={(e) => setHeaderForm({ ...headerForm, chatSupportText: e.target.value })}
+                        placeholder="Chat Support"
+                        className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        WhatsApp Number (override or default)
+                      </label>
+                      <input
+                        type="text"
+                        value={headerForm.chatSupportNumber || '01836126791'}
+                        onChange={(e) => setHeaderForm({ ...headerForm, chatSupportNumber: e.target.value })}
+                        placeholder="01836126791"
+                        className="w-full text-xs font-mono px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Header Navigation Links Manager */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-indigo-600" />
+                    Header Navigation Menu Items ({(headerForm.navLinks || []).length})
+                  </h3>
+
+                  {/* Nav Links List */}
+                  <div className="space-y-2">
+                    {(headerForm.navLinks || []).map((link, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80"
+                      >
+                        <span className="text-[10px] font-mono text-slate-400 w-6 text-center font-bold">
+                          #{idx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={link.label}
+                          onChange={(e) => {
+                            const updated = [...(headerForm.navLinks || [])];
+                            updated[idx] = { ...updated[idx], label: e.target.value };
+                            setHeaderForm({ ...headerForm, navLinks: updated });
+                          }}
+                          placeholder="Menu Label"
+                          className="w-40 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 focus:border-indigo-500 text-slate-900"
+                        />
+                        <input
+                          type="text"
+                          value={link.path}
+                          onChange={(e) => {
+                            const updated = [...(headerForm.navLinks || [])];
+                            updated[idx] = { ...updated[idx], path: e.target.value };
+                            setHeaderForm({ ...headerForm, navLinks: updated });
+                          }}
+                          placeholder="/path"
+                          className="flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 focus:border-indigo-500 text-slate-900"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveNavLink(idx)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add New Nav Link Row */}
+                  <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 flex flex-col sm:flex-row items-center gap-3">
+                    <input
+                      type="text"
+                      value={newNavLink.label}
+                      onChange={(e) => setNewNavLink({ ...newNavLink, label: e.target.value })}
+                      placeholder="New Label (e.g. Portfolio)"
+                      className="w-full sm:w-44 text-xs font-bold px-3 py-2 rounded-xl bg-white border border-indigo-200 focus:border-indigo-500 text-slate-900"
+                    />
+                    <input
+                      type="text"
+                      value={newNavLink.path}
+                      onChange={(e) => setNewNavLink({ ...newNavLink, path: e.target.value })}
+                      placeholder="/portfolio or https://..."
+                      className="w-full sm:flex-1 text-xs font-mono px-3 py-2 rounded-xl bg-white border border-indigo-200 focus:border-indigo-500 text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddNavLink}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Link
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+
+            {/* ================= SUB-TAB 3: FOOTER & NAVIGATION ================= */}
+            {headerFooterActiveTab === 'footer' && (
+              <form onSubmit={handleSaveFooterConfig} className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm">
+                  <div>
+                    <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-indigo-600" />
+                      Footer Content & Link Columns
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Configure agency bio, contact coordinates, copyright notice, and categorized footer links.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    {footerSaved && (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs animate-in fade-in">
+                        <Check className="w-4 h-4 text-emerald-600" />
+                        Footer Saved & Published!
+                      </div>
+                    )}
+                    <button
+                      type="submit"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition-all"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save Footer Settings
+                    </button>
+                  </div>
+                </div>
+
+                {/* Brand & Bio Text */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3">
+                    Agency Bio & Taglines
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Footer Tagline / Motto
+                      </label>
+                      <input
+                        type="text"
+                        value={footerForm.tagline || ''}
+                        onChange={(e) => setFooterForm({ ...footerForm, tagline: e.target.value })}
+                        placeholder="Empowering businesses through cutting-edge digital experiences."
+                        className="w-full text-xs font-medium px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Copyright Notice
+                      </label>
+                      <input
+                        type="text"
+                        value={footerForm.copyrightText || ''}
+                        onChange={(e) => setFooterForm({ ...footerForm, copyrightText: e.target.value })}
+                        placeholder="© 2026 Eagle Eye Digital. All rights reserved."
+                        className="w-full text-xs font-medium px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Footer About Agency Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={footerForm.aboutText || ''}
+                      onChange={(e) => setFooterForm({ ...footerForm, aboutText: e.target.value })}
+                      placeholder="Eagle Eye Digital is a premier digital agency providing bespoke web development, design systems, and enterprise digital solutions."
+                      className="w-full text-xs font-medium px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                {/* Contact Coordinates */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3">
+                    Footer Contact & Support Coordinates
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Contact Email
+                      </label>
+                      <input
+                        type="email"
+                        value={footerForm.contactEmail || ''}
+                        onChange={(e) => setFooterForm({ ...footerForm, contactEmail: e.target.value })}
+                        placeholder="support@eagleeyedigital.com"
+                        className="w-full text-xs font-mono px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Contact Phone
+                      </label>
+                      <input
+                        type="text"
+                        value={footerForm.contactPhone || ''}
+                        onChange={(e) => setFooterForm({ ...footerForm, contactPhone: e.target.value })}
+                        placeholder="+880 1836-126791"
+                        className="w-full text-xs font-mono px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Operating Hours
+                      </label>
+                      <input
+                        type="text"
+                        value={footerForm.operatingHours || ''}
+                        onChange={(e) => setFooterForm({ ...footerForm, operatingHours: e.target.value })}
+                        placeholder="Sat - Thu: 9:00 AM - 10:00 PM (GMT+6)"
+                        className="w-full text-xs px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-indigo-500 text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Link Lists: Services and Resources */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Services Column */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 flex items-center justify-between">
+                      <span>Services Column Links ({(footerForm.servicesLinks || []).length})</span>
+                    </h3>
+
+                    <div className="space-y-2">
+                      {(footerForm.servicesLinks || []).map((link, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
+                          <input
+                            type="text"
+                            value={link.label}
+                            onChange={(e) => {
+                              const updated = [...(footerForm.servicesLinks || [])];
+                              updated[idx] = { ...updated[idx], label: e.target.value };
+                              setFooterForm({ ...footerForm, servicesLinks: updated });
+                            }}
+                            className="w-36 text-xs font-bold px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                          />
+                          <input
+                            type="text"
+                            value={link.path}
+                            onChange={(e) => {
+                              const updated = [...(footerForm.servicesLinks || [])];
+                              updated[idx] = { ...updated[idx], path: e.target.value };
+                              setFooterForm({ ...footerForm, servicesLinks: updated });
+                            }}
+                            className="flex-1 text-xs font-mono px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveServiceLink(idx)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newServiceLink.label}
+                        onChange={(e) => setNewServiceLink({ ...newServiceLink, label: e.target.value })}
+                        placeholder="Link Name"
+                        className="w-32 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                      />
+                      <input
+                        type="text"
+                        value={newServiceLink.path}
+                        onChange={(e) => setNewServiceLink({ ...newServiceLink, path: e.target.value })}
+                        placeholder="/services"
+                        className="flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddServiceLink}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Resources / Solutions Column */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-3 flex items-center justify-between">
+                      <span>Resources & Products Links ({(footerForm.resourcesLinks || []).length})</span>
+                    </h3>
+
+                    <div className="space-y-2">
+                      {(footerForm.resourcesLinks || []).map((link, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
+                          <input
+                            type="text"
+                            value={link.label}
+                            onChange={(e) => {
+                              const updated = [...(footerForm.resourcesLinks || [])];
+                              updated[idx] = { ...updated[idx], label: e.target.value };
+                              setFooterForm({ ...footerForm, resourcesLinks: updated });
+                            }}
+                            className="w-36 text-xs font-bold px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                          />
+                          <input
+                            type="text"
+                            value={link.path}
+                            onChange={(e) => {
+                              const updated = [...(footerForm.resourcesLinks || [])];
+                              updated[idx] = { ...updated[idx], path: e.target.value };
+                              setFooterForm({ ...footerForm, resourcesLinks: updated });
+                            }}
+                            className="flex-1 text-xs font-mono px-2 py-1 rounded bg-white border border-slate-200 text-slate-900"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveResourceLink(idx)}
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newResourceLink.label}
+                        onChange={(e) => setNewResourceLink({ ...newResourceLink, label: e.target.value })}
+                        placeholder="Link Name"
+                        className="w-32 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                      />
+                      <input
+                        type="text"
+                        value={newResourceLink.path}
+                        onChange={(e) => setNewResourceLink({ ...newResourceLink, path: e.target.value })}
+                        placeholder="/products"
+                        className="flex-1 text-xs font-mono px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddResourceLink}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            )}
           </div>
         )}
 
@@ -5530,6 +7308,48 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Admin Panel Access Password */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-800 font-bold text-xs">
+                    Admin Panel Security Password (প্যানেল অ্যাক্সেস পাসওয়ার্ড) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randPass = 'EED@' + Math.floor(100000 + Math.random() * 900000);
+                      setAdminForm((prev) => ({ ...prev, adminPassword: randPass }));
+                      setShowAdminFormPass(true);
+                    }}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline flex items-center space-x-1"
+                  >
+                    <span>🎲 Auto-Generate Strong Password</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showAdminFormPass ? 'text' : 'password'}
+                    required
+                    placeholder="পাসওয়ার্ড লিখুন..."
+                    value={adminForm.adminPassword}
+                    onChange={(e) => setAdminForm({ ...adminForm, adminPassword: e.target.value })}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminFormPass(!showAdminFormPass)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                  >
+                    {showAdminFormPass ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  👉 <strong>সুপার অ্যাডমিনের নিয়ন্ত্রণ:</strong> প্রতিটি ইউজারের জন্য এই পাসওয়ার্ডটি আপনি দিবেন। এই ইউজার অ্যাডমিন প্যানেলে ঢুকতে গেলে এই পাসওয়ার্ডটি দিতে হবে। পরবর্তীতে ইউজার নিজ থেকে পাসওয়ার্ড পরিবর্তন করতে চাইলে আপনার কাছে আবেদন আসবে এবং আপনি অনুমোদন করলেই কেবল পাসওয়ার্ড পরিবর্তন হবে।
+                </p>
+              </div>
+
               {/* Role Selection */}
               <div>
                 <label className="block text-slate-800 font-bold mb-1.5">
@@ -5711,6 +7531,120 @@ export const AdminDashboardPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= STAFF ADMIN CHANGE PASSWORD REQUEST MODAL ================= */}
+      {isPassChangeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-600/25">
+                  <Key className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Request Password Change
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    পাসওয়ার্ড পরিবর্তনের আবেদন
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPassChangeModalOpen(false);
+                  setPassRequestMsg(null);
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {passRequestMsg && (
+              <div
+                className={`p-3 rounded-xl border text-xs font-semibold ${
+                  passRequestMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-red-50 border-red-200 text-red-800'
+                }`}
+              >
+                {passRequestMsg.text}
+              </div>
+            )}
+
+            {currentAdminProfile?.pendingPasswordRequest?.status === 'pending' ? (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2 text-xs text-amber-900">
+                <div className="flex items-center space-x-2 font-bold">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <span>আপনার পূর্বের আবেদন পেন্ডিং রয়েছে</span>
+                </div>
+                <p className="text-[11px] text-amber-800">
+                  আপনি ইতোমধ্যে নতুন পাসওয়ার্ড পরিবর্তনের আবেদন করেছেন। সুপার অ্যাডমিন সেটি অনুমোদন দিলে পাসওয়ার্ডটি কার্যকর হবে।
+                </p>
+                <div className="pt-2 flex items-center justify-between font-mono text-[11px] bg-white p-2 rounded-lg border border-amber-200">
+                  <span className="text-slate-500 font-sans">আবেদনকৃত পাসওয়ার্ড:</span>
+                  <span className="font-bold text-slate-900">
+                    {currentAdminProfile.pendingPasswordRequest.requestedPassword}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleRequestOwnPasswordChange} className="space-y-4">
+                <div>
+                  <label className="block text-slate-700 font-bold text-xs mb-1">
+                    New Desired Password (নতুন যে পাসওয়ার্ড দিতে চান) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewRequestedPass ? 'text' : 'password'}
+                      required
+                      minLength={4}
+                      placeholder="নতুন পাসওয়ার্ড লিখুন..."
+                      value={newRequestedPassInput}
+                      onChange={(e) => setNewRequestedPassInput(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewRequestedPass(!showNewRequestedPass)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      {showNewRequestedPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900 leading-relaxed">
+                  🔔 <strong>মনোযোগ দিন:</strong> পাসওয়ার্ড সাবমিট করলে এটি সাথে সাথে কার্যকর হবে না। আপনার দেওয়া পাসওয়ার্ডটি সুপার অ্যাডমিনের প্যানেলে মেসেজ হিসেবে যাবে। সুপার অ্যাডমিন সেটি দেখে <strong>Approve (অনুমোদন)</strong> করলেই পাসওয়ার্ড কার্যকর হবে।
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPassChangeModalOpen(false);
+                      setPassRequestMsg(null);
+                    }}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={passRequestSubmitting}
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/25 transition-all flex items-center space-x-1.5 disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{passRequestSubmitting ? 'Sending Request...' : 'Send Request to Super Admin'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

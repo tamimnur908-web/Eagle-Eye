@@ -227,12 +227,61 @@ export interface FAQ {
   sortOrder: number;
 }
 
+export interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  iconKey: string;
+  customIconUrl?: string;
+  isActive: boolean;
+  showInHeader: boolean;
+  showInFooter: boolean;
+  showInFloatingSidebar: boolean;
+}
+
+export interface HeaderConfig {
+  announcementText?: string;
+  showAnnouncement?: boolean;
+  announcementLink?: string;
+  showChatSupport: boolean;
+  chatSupportText: string;
+  chatSupportNumber: string;
+  navLinks: {
+    label: string;
+    path: string;
+  }[];
+}
+
+export interface FooterConfig {
+  aboutText: string;
+  tagline: string;
+  copyrightText: string;
+  contactEmail: string;
+  contactPhone: string;
+  contactWhatsapp: string;
+  operatingHours?: string;
+  timezoneText?: string;
+  currencyText?: string;
+  servicesLinks: {
+    label: string;
+    path: string;
+  }[];
+  resourcesLinks: {
+    label: string;
+    path: string;
+  }[];
+}
+
 export interface SiteSettings {
   brandName: string;
   tagline: string;
+  logoUrl?: string;
   businessEmail: string;
   whatsappNumber: string;
   currency: string;
+  headerConfig?: HeaderConfig;
+  footerConfig?: FooterConfig;
+  socialLinks?: SocialLink[];
   facebookUrl?: string;
   instagramUrl?: string;
   linkedinUrl?: string;
@@ -304,6 +353,13 @@ export interface AdminPermissions {
   canManageSettings?: boolean;
 }
 
+export interface PasswordChangeRequest {
+  requestedPassword: string;
+  requestedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+}
+
 export interface AdminUser {
   id: string;
   uid?: string;
@@ -314,6 +370,8 @@ export interface AdminUser {
   phone?: string;
   status: 'active' | 'suspended';
   permissions: AdminPermissions;
+  adminPassword?: string;
+  pendingPasswordRequest?: PasswordChangeRequest | null;
   createdAt: number;
   updatedAt?: number;
   addedBy?: string;

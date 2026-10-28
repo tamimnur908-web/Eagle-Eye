@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useSettings } from '../context/SettingsContext';
 import {
   Search,
   ShoppingBag,
@@ -12,9 +13,10 @@ import {
   LayoutGrid,
   Heart,
   Menu,
-  X
+  X,
+  MessageCircle
 } from 'lucide-react';
-import { WHATSAPP_NUMBER } from '../lib/firebase';
+import { SocialIcon } from './SocialIcon';
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -23,9 +25,25 @@ export const Navbar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { currentUser, isAdmin, logout } = useAuth();
   const { cart } = useCart();
+  const { settings, headerConfig, socialLinks } = useSettings();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const catRef = useRef<HTMLDivElement>(null);
+
+  const headerSocials = (socialLinks || []).filter(
+    (s) => s.isActive && s.showInHeader && Boolean(s.url?.trim())
+  );
+  const navItems = headerConfig?.navLinks && headerConfig.navLinks.length > 0
+    ? headerConfig.navLinks
+    : [
+        { label: 'Home', path: '/' },
+        { label: 'Shop', path: '/products' },
+        { label: 'Services', path: '/services' },
+        { label: 'Portfolio', path: '/portfolio' },
+        { label: 'Case Studies', path: '/case-studies' },
+        { label: 'About', path: '/about' },
+        { label: 'Our Contacts', path: '/contact' },
+      ];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,6 +82,21 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200/80 shadow-sm w-full">
+      {/* Dynamic Top Announcement Bar (Header Config) */}
+      {headerConfig?.showAnnouncement && headerConfig?.announcementText && (
+        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white text-[11px] sm:text-xs py-2 px-4 text-center font-bold tracking-wide relative z-50 flex items-center justify-center space-x-2 shadow-sm">
+          <span>{headerConfig.announcementText}</span>
+          {headerConfig.announcementLink && (
+            <Link
+              to={headerConfig.announcementLink}
+              className="underline hover:text-amber-300 ml-1.5 transition-colors font-extrabold"
+            >
+              Explore Now →
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* Top Main Bar (Vyrqonix Style) */}
       <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-3.5">
         <div className="flex items-center justify-between gap-4">
@@ -71,16 +104,19 @@ export const Navbar: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group">
             <img
-              src="/logo.jpg"
-              alt="Eagle Eye Digital"
-              className="h-10 sm:h-12 w-auto object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-amber-500 transition-colors shadow-sm"
+              src={settings.logoUrl || '/logo.jpg'}
+              alt={settings.brandName || 'Eagle Eye Digital'}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/logo.jpg';
+              }}
+              className="h-10 sm:h-12 w-auto max-w-[140px] object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-amber-500 transition-colors shadow-sm"
             />
             <div className="flex flex-col">
               <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors leading-none">
-                EAGLE EYE
+                {settings.brandName || 'EAGLE EYE'}
               </span>
               <span className="text-[10px] tracking-widest text-amber-600 font-extrabold uppercase mt-0.5">
-                YOUR DIGITAL WORLD
+                {settings.tagline || 'YOUR DIGITAL WORLD'}
               </span>
             </div>
           </Link>
@@ -106,25 +142,47 @@ export const Navbar: React.FC = () => {
             </button>
           </form>
 
-          {/* Right Support Pill & User Actions */}
-          <div className="flex items-center space-x-3 sm:space-x-4 flex-shrink-0">
-            {/* WhatsApp Chat Support Pill (Vyrqonix style) */}
-            <a
-              href={`https://wa.me/88${WHATSAPP_NUMBER}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex items-center space-x-2.5 px-3 py-1.5 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 transition-colors group"
-            >
-              <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-sm">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.299.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.174.086.275.072.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z" />
-                </svg>
+          {/* Right Support Pill, Social Icons & User Actions */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3.5 flex-shrink-0">
+            {/* Header Social Icons (If Enabled in Placement) */}
+            {headerSocials.length > 0 && (
+              <div className="hidden xl:flex items-center space-x-1.5 border-r border-slate-200 pr-3">
+                {headerSocials.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-full border border-slate-200 hover:border-indigo-600 text-slate-600 hover:text-indigo-600 flex items-center justify-center transition-colors"
+                    title={item.platform}
+                  >
+                    <SocialIcon link={item} size={15} />
+                  </a>
+                ))}
               </div>
-              <div className="flex flex-col text-left">
-                <span className="text-[10px] text-slate-500 font-semibold leading-tight">Chat Support</span>
-                <span className="text-xs font-bold text-emerald-700 leading-tight">{WHATSAPP_NUMBER}</span>
-              </div>
-            </a>
+            )}
+
+            {/* Dynamic WhatsApp Chat Support Pill (Vyrqonix style) */}
+            {headerConfig?.showChatSupport !== false && (
+              <a
+                href={`https://wa.me/88${(headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:flex items-center space-x-2.5 px-3 py-1.5 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 transition-colors group"
+              >
+                <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-sm">
+                  <MessageCircle className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-[10px] text-slate-500 font-semibold leading-tight">
+                    {headerConfig?.chatSupportText || 'Chat Support'}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-700 leading-tight">
+                    {headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791'}
+                  </span>
+                </div>
+              </a>
+            )}
 
             {/* Wishlist Heart Icon */}
             <button
@@ -268,32 +326,17 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Clean Horizontal Links */}
+          {/* Dynamic Horizontal Links (Header Config) */}
           <nav className="hidden lg:flex items-center space-x-6 text-xs sm:text-sm font-semibold">
-            <Link
-              to="/"
-              className="text-indigo-600 hover:text-indigo-700 px-3 py-1.5 rounded-full bg-indigo-50 transition-colors"
-            >
-              Home
-            </Link>
-            <Link to="/products" className="text-slate-600 hover:text-indigo-600 transition-colors">
-              Shop
-            </Link>
-            <Link to="/services" className="text-slate-600 hover:text-indigo-600 transition-colors">
-              Services
-            </Link>
-            <Link to="/portfolio" className="text-slate-600 hover:text-indigo-600 transition-colors">
-              Portfolio
-            </Link>
-            <Link to="/case-studies" className="text-slate-600 hover:text-indigo-600 transition-colors">
-              Case Studies
-            </Link>
-            <Link to="/about" className="text-slate-600 hover:text-indigo-600 transition-colors">
-              About
-            </Link>
-            <Link to="/contact" className="text-slate-600 hover:text-indigo-600 transition-colors">
-              Our Contacts
-            </Link>
+            {navItems.map((item, idx) => (
+              <Link
+                key={idx}
+                to={item.path}
+                className="text-slate-600 hover:text-indigo-600 transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
         </div>
       </div>
@@ -301,55 +344,16 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="lg:hidden bg-white border-t border-slate-200 px-5 pt-3 pb-6 space-y-2.5 shadow-lg">
-          <Link
-            to="/"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-indigo-600 font-bold py-1.5 text-sm"
-          >
-            Home
-          </Link>
-          <Link
-            to="/products"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-700 font-semibold py-1.5 text-sm"
-          >
-            Shop (Digital Products)
-          </Link>
-          <Link
-            to="/services"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-700 font-semibold py-1.5 text-sm"
-          >
-            Services
-          </Link>
-          <Link
-            to="/portfolio"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-700 font-semibold py-1.5 text-sm"
-          >
-            Portfolio
-          </Link>
-          <Link
-            to="/case-studies"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-700 font-semibold py-1.5 text-sm"
-          >
-            Case Studies
-          </Link>
-          <Link
-            to="/about"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-700 font-semibold py-1.5 text-sm"
-          >
-            About
-          </Link>
-          <Link
-            to="/contact"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-700 font-semibold py-1.5 text-sm"
-          >
-            Our Contacts
-          </Link>
+          {navItems.map((item, idx) => (
+            <Link
+              key={idx}
+              to={item.path}
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-slate-700 hover:text-indigo-600 font-semibold py-1.5 text-sm"
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
       )}
     </header>
