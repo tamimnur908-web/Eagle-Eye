@@ -1,31 +1,97 @@
 rules_version = '2';
-// 🔴 [ADD FIRESTORE SECURITY RULES HERE] — least-privilege database access.
+
+// ==============================================================================
+// EAGLE EYE DIGITAL — PRODUCTION FIRESTORE SECURITY RULES
+// Principle: Default Deny (Least-Privilege Role-Based Access Control)
+// Super Admin UID: CopR7FgKjGeBkeWwIysygHvswwv1
+// ==============================================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // --------------------------------------------------------------------------
+    // AUTHENTICATION & ROLE HELPER FUNCTIONS
+    // --------------------------------------------------------------------------
+
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && request.auth.uid != null;
     }
 
-    // 🔴 [CONFIGURE AUTHORIZED ADMIN UID OR CUSTOM CLAIM HERE] — trusted admin authorization.
-    function isAdmin() {
+    // Permanent, trusted Super Admin check
+    function isSuperAdmin() {
       return isAuthenticated() && (
-        request.auth.uid == "cOpR7FgKjGeBkeWwIysygHvswwv1" ||
-        request.auth.token.admin == true ||
-        request.auth.token.email == "Tamimnur908@gmail.com" ||
-        request.auth.token.email == "tamimnur908@gmail.com" ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
+        request.auth.uid == "CopR7FgKjGeBkeWwIysygHvswwv1" ||
+        request.auth.uid == "cOpR7FgKjGeBkeWwIysygHvswwv1"
       );
     }
 
+    // General Admin check:
+    // 1. Super Admin UID
+    // 2. Verified Custom Claim (token.admin == true)
+    // 3. Document in /admins/{uid} created by Super Admin with status == 'active'
+    function isAdmin() {
+      return isSuperAdmin() || (
+        isAuthenticated() && (
+          request.auth.token.admin == true ||
+          (
+            exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+            get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.status == 'active'
+          )
+        )
+      );
+    }
+
+    // Customer resource ownership check
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Public Collections: services, products, portfolio, caseStudies, banners, reviews, faqs, settings
+    // --------------------------------------------------------------------------
+    // 1. ADMINS & ROLE MANAGEMENT (/admins)
+    // - Only the Super Admin can create, modify, or delete admin documents.
+    // - Ordinary admins and customers cannot modify or escalate roles.
+    // - Super Admin document cannot be overwritten or deleted.
+    // --------------------------------------------------------------------------
+    match /admins/{adminId} {
+      // Admins and the account owner can read admin profiles
+      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == adminId);
+
+      // Only Super Admin can promote users, assign roles, or change status
+      allow create, update: if isSuperAdmin();
+
+      // Only Super Admin can delete an admin (Super Admin document is protected)
+      allow delete: if isSuperAdmin() && 
+                    adminId != "CopR7FgKjGeBkeWwIysygHvswwv1" && 
+                    adminId != "cOpR7FgKjGeBkeWwIysygHvswwv1" &&
+                    adminId != "primary-owner";
+    }
+
+    // --------------------------------------------------------------------------
+    // 2. USER PROFILES (/users)
+    // - Customers can read and update their own profile.
+    // - Admins can view customer profiles for support.
+    // - Customers CANNOT modify privilege fields (isAdmin, role, permissions).
+    // --------------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Customer creation/update: cannot grant themselves admin rights
+      allow create: if isOwner(userId) && 
+                    (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == false) &&
+                    (!('role' in request.resource.data) || request.resource.data.role == 'customer');
+
+      allow update: if (isOwner(userId) && 
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'phone', 'avatarUrl', 'updatedAt', 'address']))
+                    || isSuperAdmin();
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // 3. PUBLIC CATALOG: SERVICES & CATEGORIES
+    // - Public can view published services and all categories.
+    // - Only verified Admins can create, update, or delete services.
+    // --------------------------------------------------------------------------
     match /services/{serviceId} {
       allow read: if resource.data.status == 'published' || isAdmin();
       allow write: if isAdmin();
@@ -36,6 +102,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --------------------------------------------------------------------------
+    // 4. DIGITAL PRODUCTS & CATEGORIES
+    // - Public can read published products and categories.
+    // - Only verified Admins can create, edit, change pricing, or delete products.
+    // --------------------------------------------------------------------------
     match /products/{productId} {
       allow read: if resource.data.status == 'published' || isAdmin();
       allow write: if isAdmin();
@@ -46,6 +117,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --------------------------------------------------------------------------
+    // 5. MARKETING & BRAND SHOWCASE: PORTFOLIO, CASE STUDIES, REVIEWS, FAQS
+    // - Public read for published content.
+    // - Admin-only write.
+    // --------------------------------------------------------------------------
     match /portfolio/{projectId} {
       allow read: if resource.data.status == 'published' || isAdmin();
       allow write: if isAdmin();
@@ -71,33 +147,44 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     match /pages/{pageId} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Leads & Inquiries: public can submit valid new leads; only Admin can read/update/delete
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // 6. CLIENT INQUIRIES & LEADS (/leads)
+    // - Public visitors can submit an inquiry (must contain required fields).
+    // - Only Admins and the submitting client (if logged in) can view inquiry.
+    // - Only Admins can change status, add internal notes, or schedule meetings.
+    // --------------------------------------------------------------------------
     match /leads/{leadId} {
-      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message', 'createdAt']);
-      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'createdAt']) &&
+                       request.resource.data.name is string &&
+                       request.resource.data.email is string;
+      allow read: if isAdmin() || (isAuthenticated() && (
+        resource.data.email == request.auth.token.email ||
+        resource.data.userId == request.auth.uid
+      ));
+      allow update, delete: if isAdmin();
     }
 
-    // Customer User Profiles
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || isAdmin();
-    }
-
-    // Orders & Payments
+    // --------------------------------------------------------------------------
+    // 7. ORDERS & TRANSACTIONS (/orders, /payments)
+    // - Customers can only view and create their own orders.
+    // - Customers CANNOT alter paymentStatus (pending/verified/failed) or totals.
+    // - Only Admins can verify payments or update order status.
+    // --------------------------------------------------------------------------
     match /orders/{orderId} {
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.paymentStatus == 'pending';
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      // Updates (like marking payment status) reserved for admin or trusted server-side function
       allow update, delete: if isAdmin();
     }
 
@@ -106,18 +193,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Quotations & Projects
-    match /quotations/{quotationId} {
-      allow read: if isAuthenticated() && (resource.data.clientId == request.auth.uid || resource.data.clientEmail == request.auth.token.email || isAdmin());
-      allow write: if isAdmin();
-    }
-
-    match /projects/{projectId} {
-      allow read: if isAuthenticated() && (resource.data.clientId == request.auth.uid || isAdmin());
-      allow write: if isAdmin();
-    }
-
-    // Digital Download Entitlements & Logs
+    // --------------------------------------------------------------------------
+    // 8. DIGITAL DOWNLOAD ENTITLEMENTS & ACCESS LOGS
+    // - Verified paid download links are protected.
+    // - Customers can only access download entitlements assigned to their UID.
+    // - Entitlements are created/managed strictly by Admins or backend functions.
+    // --------------------------------------------------------------------------
     match /downloadEntitlements/{entitlementId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isAdmin();
@@ -126,17 +207,34 @@ service cloud.firestore {
     match /downloadLogs/{logId} {
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow read: if isAdmin();
+      allow update, delete: if false; // Immutable logs
     }
 
-    // Coupons
+    // --------------------------------------------------------------------------
+    // 9. QUOTATIONS, PROJECTS, COUPONS, AUDIT LOGS & NOTIFICATIONS
+    // --------------------------------------------------------------------------
+    match /quotations/{quotationId} {
+      allow read: if isAuthenticated() && (
+        resource.data.clientId == request.auth.uid || 
+        resource.data.clientEmail == request.auth.token.email || 
+        isAdmin()
+      );
+      allow write: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isAuthenticated() && (resource.data.clientId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
     match /coupons/{couponId} {
       allow read: if isAuthenticated() || isAdmin();
       allow write: if isAdmin();
     }
 
-    // Audit logs & Notifications
     match /auditLogs/{logId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
 
     match /notifications/{notifId} {
@@ -144,10 +242,5 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Admins & Role Permissions
-    match /admins/{adminId} {
-      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == adminId);
-      allow write: if isAdmin();
-    }
   }
 }

@@ -639,20 +639,47 @@ export const getAllAdmins = async (): Promise<AdminUser[]> => {
   }
 };
 
+export const findRegisteredUserByEmail = async (email: string) => {
+  const emailClean = email.trim().toLowerCase();
+  const q = query(collection(db, 'users'), where('email', '==', emailClean));
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    const userDoc = snap.docs[0];
+    return { uid: userDoc.id, ...(userDoc.data() as any) };
+  }
+  return null;
+};
+
 export const saveAdmin = async (
-  adminData: Partial<AdminUser> & { email: string; name: string; role: AdminRole }
+  adminData: Partial<AdminUser> & { email: string; name?: string; role: AdminRole }
 ): Promise<string> => {
   const emailClean = adminData.email.trim().toLowerCase();
-  // Safe ID: If user has an ID use it, or clean email as stable ID
-  const docId = adminData.id || adminData.uid || emailClean.replace(/[^a-zA-Z0-9]/g, '_');
 
+  // Verify that the user has already registered or logged in
+  let targetUid = adminData.uid;
+  let detectedName = adminData.name?.trim() || '';
+
+  if (!adminData.id && !targetUid) {
+    const registeredUser = await findRegisteredUserByEmail(emailClean);
+    if (!registeredUser) {
+      throw new Error('This user must register or log in before becoming an Admin.');
+    }
+    targetUid = registeredUser.uid;
+    if (!detectedName && registeredUser.fullName) {
+      detectedName = registeredUser.fullName;
+    }
+  }
+
+  // Key admin doc by UID for fast, secure Firestore rule evaluation
+  const docId = targetUid || adminData.id || emailClean.replace(/[^a-zA-Z0-9]/g, '_');
   const permissions = adminData.permissions || getDefaultRolePermissions(adminData.role);
 
   const payload: Partial<AdminUser> = {
     ...adminData,
     id: docId,
+    uid: targetUid,
     email: emailClean,
-    name: adminData.name.trim(),
+    name: detectedName || emailClean.split('@')[0],
     role: adminData.role,
     status: adminData.status || 'active',
     designation: adminData.designation || '',
@@ -668,16 +695,16 @@ export const saveAdmin = async (
   // Save to admins collection
   await setDoc(doc(db, 'admins', docId), payload, { merge: true });
 
-  // If we know the UID or can look up the user, link them
-  if (adminData.uid) {
+  // Update user document if known
+  if (targetUid) {
     try {
       await setDoc(
-        doc(db, 'users', adminData.uid),
+        doc(db, 'users', targetUid),
         { isAdmin: adminData.status === 'active', role: adminData.role },
         { merge: true }
       );
     } catch {
-      // Ignored if user doc is protected
+      // Ignored if client permission restricts
     }
   }
 
