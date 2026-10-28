@@ -171,7 +171,13 @@ service cloud.firestore {
         resource.data.email == request.auth.token.email ||
         resource.data.userId == request.auth.uid
       ));
-      allow update, delete: if isAdmin();
+      allow update: if isAdmin() || (isAuthenticated() && (
+        resource.data.email == request.auth.token.email ||
+        resource.data.userId == request.auth.uid
+      )) || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['meetingDetails', 'status', 'updatedAt'])
+      );
+      allow delete: if isAdmin();
     }
 
     // --------------------------------------------------------------------------
@@ -240,6 +246,19 @@ service cloud.firestore {
     match /notifications/{notifId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // 10. SYSTEM MAIL DISPATCH & EMAIL LOGS (/mail, /emailLogs)
+    // --------------------------------------------------------------------------
+    match /mail/{mailId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /emailLogs/{logId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
 
   }

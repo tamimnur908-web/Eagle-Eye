@@ -4,13 +4,18 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
+const cleanEnv = (val?: string) => {
+  if (!val) return '';
+  return val.trim().replace(/^["']|["']$/g, '');
+};
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyB2nACPdON_r3sxBWECIp8ZLJbZFV8ZAwI',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'eagle-eye-digital-50a4f.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'eagle-eye-digital-50a4f',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'eagle-eye-digital-50a4f.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '879367302348',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:879367302348:web:718b9a0062065cfb512669'
+  apiKey: cleanEnv(import.meta.env.VITE_FIREBASE_API_KEY) || 'AIzaSyB2nACPdON_r3sxBWECIp8ZLJbZFV8ZAwI',
+  authDomain: cleanEnv(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) || 'eagle-eye-digital-50a4f.firebaseapp.com',
+  projectId: cleanEnv(import.meta.env.VITE_FIREBASE_PROJECT_ID) || 'eagle-eye-digital-50a4f',
+  storageBucket: cleanEnv(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) || 'eagle-eye-digital-50a4f.firebasestorage.app',
+  messagingSenderId: cleanEnv(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) || '879367302348',
+  appId: cleanEnv(import.meta.env.VITE_FIREBASE_APP_ID) || '1:879367302348:web:718b9a0062065cfb512669'
 };
 
 // Centralized Firebase initialization

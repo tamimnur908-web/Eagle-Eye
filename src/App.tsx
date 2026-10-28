@@ -22,15 +22,18 @@ import { LegalPage } from './pages/LegalPage';
 import { ScheduleMeetingPage } from './pages/ScheduleMeetingPage';
 import { MeetingResponsePage } from './pages/MeetingResponsePage';
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 export function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Router>
-          <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
-            <Navbar />
-            <main className="flex-grow">
-              <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <CartProvider>
+          <Router>
+            <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A]">
+              <Navbar />
+              <main className="flex-grow">
+                <Routes>
                 {/* Customer-Facing Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/services" element={<ServicesPage />} />
@@ -78,6 +81,7 @@ export function App() {
         </Router>
       </CartProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

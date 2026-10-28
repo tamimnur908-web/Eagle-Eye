@@ -110,7 +110,7 @@ import { ADMIN_UID, BUSINESS_EMAIL } from '../lib/firebase';
 import { EmptyState } from '../components/EmptyState';
 
 export const AdminDashboardPage: React.FC = () => {
-  const { currentUser, isAdmin, adminRole, logout, refreshAdminStatus } = useAuth();
+  const { currentUser, isAdmin, adminRole, logout, refreshAdminStatus, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -424,6 +424,15 @@ export const AdminDashboardPage: React.FC = () => {
       loadData();
     }
   }, [isAdmin]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-slate-500">Verifying administrator credentials...</p>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
