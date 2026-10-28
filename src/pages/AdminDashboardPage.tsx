@@ -33,7 +33,9 @@ import {
   X,
   Clipboard,
   ImagePlus,
-  FolderPlus
+  FolderPlus,
+  Sliders,
+  LayoutGrid
 } from 'lucide-react';
 import {
   getAllServices,
@@ -130,6 +132,19 @@ export const AdminDashboardPage: React.FC = () => {
   const [isProductImageDragging, setIsProductImageDragging] = useState(false);
   const productFileInputRef = React.useRef<HTMLInputElement>(null);
   const [imageUploadStatus, setImageUploadStatus] = useState<string | null>(null);
+
+  // Vyrqonix Hero Banners & Side Posters States (Exact Screenshot Layout)
+  const [bentoActiveTab, setBentoActiveTab] = useState<'slider' | 'posters'>('slider');
+  const [newSlideImg, setNewSlideImg] = useState('');
+  const [newSlideTitle, setNewSlideTitle] = useState('');
+  const [newSlideLink, setNewSlideLink] = useState('/products');
+  const heroSlideFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [posterSlot, setPosterSlot] = useState<'top' | 'bottom-left' | 'bottom-right'>('top');
+  const [newPosterImg, setNewPosterImg] = useState('');
+  const [newPosterTitle, setNewPosterTitle] = useState('');
+  const [newPosterLink, setNewPosterLink] = useState('/products');
+  const sidePosterFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [serviceForm, setServiceForm] = useState<Partial<Service>>({
     name: '',
@@ -430,74 +445,128 @@ export const AdminDashboardPage: React.FC = () => {
     setTimeout(() => setBentoSaved(false), 3000);
   };
 
-  // Hero Carousel Slides Management
-  const handleAddHeroSlide = () => {
+  // Hero Slide File Upload
+  const handleNewSlideFileUpload = (file?: File) => {
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      alert('File size should be under 8MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setNewSlideImg(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Add Hero Slide (Left Slider) Action
+  const handleCreateHeroSlide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSlideImg.trim()) {
+      alert('Slide image is required. Please choose an image or enter an image URL.');
+      return;
+    }
     const newSlide: HeroSlide = {
       id: 'slide-' + Date.now(),
-      tag: 'New Highlight',
-      title: 'Digital Excellence for Modern Brands',
-      description: 'Highlight your latest campaigns, creative digital products, or agency services.',
-      btn1Text: 'Explore More',
-      btn1Link: '/products',
-      btn2Text: 'Our Services',
+      tag: 'Featured Highlight',
+      title: newSlideTitle.trim() || 'Premium Digital Products for Smart Buyers',
+      description: 'Explore verified digital tools, agency retainers, and graphic vault.',
+      btn1Text: 'Browse Store',
+      btn1Link: newSlideLink.trim() || '/products',
+      btn2Text: 'Agency Services',
       btn2Link: '/services',
-      bgImage: '',
+      bgImage: newSlideImg.trim(),
       image3D: ''
     };
-    setBentoForm((prev) => ({
-      ...prev,
-      heroSlides: [...(prev.heroSlides && prev.heroSlides.length > 0 ? prev.heroSlides : defaultHeroSlides), newSlide]
-    }));
+    const currentSlides = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
+      ? bentoForm.heroSlides
+      : defaultHeroSlides;
+    const updatedSlides = [...currentSlides, newSlide];
+    const updatedBento = { ...bentoForm, heroSlides: updatedSlides };
+    setBentoForm(updatedBento);
+    await saveBentoConfig(updatedBento);
+    setNewSlideImg('');
+    setNewSlideTitle('');
+    setNewSlideLink('/products');
+    setBentoSaved(true);
+    setTimeout(() => setBentoSaved(false), 3000);
   };
 
-  const handleUpdateHeroSlide = (index: number, field: keyof HeroSlide, value: string) => {
-    setBentoForm((prev) => {
-      const currentSlides = [...(prev.heroSlides && prev.heroSlides.length > 0 ? prev.heroSlides : defaultHeroSlides)];
-      currentSlides[index] = { ...currentSlides[index], [field]: value };
-      return { ...prev, heroSlides: currentSlides };
-    });
-  };
-
-  const handleDeleteHeroSlide = (index: number) => {
-    const currentSlides = [...(bentoForm.heroSlides && bentoForm.heroSlides.length > 0 ? bentoForm.heroSlides : defaultHeroSlides)];
-    if (currentSlides.length <= 1) {
-      alert('কমপক্ষে ১টি স্লাইড থাকতে হবে।');
-      return;
-    }
-    if (confirm(`Slide #${index + 1} মুছে ফেলতে চান?`)) {
+  const handleDeleteHeroSlide = async (index: number) => {
+    if (confirm('Delete this slider banner?')) {
+      const currentSlides = [...(bentoForm.heroSlides && bentoForm.heroSlides.length > 0 ? bentoForm.heroSlides : defaultHeroSlides)];
       currentSlides.splice(index, 1);
-      setBentoForm((prev) => ({ ...prev, heroSlides: currentSlides }));
+      const updatedBento = { ...bentoForm, heroSlides: currentSlides };
+      setBentoForm(updatedBento);
+      await saveBentoConfig(updatedBento);
     }
   };
 
-  const handleSlideImageUpload = (index: number, field: 'bgImage' | 'image3D', file?: File) => {
+  // Side Poster File Upload
+  const handleNewPosterFileUpload = (file?: File) => {
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB.');
+    if (file.size > 8 * 1024 * 1024) {
+      alert('File size should be under 8MB');
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        handleUpdateHeroSlide(index, field, reader.result);
+        setNewPosterImg(reader.result);
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const handleCardImageUpload = (cardKey: 'card1Image' | 'card2Image' | 'card3Image', file?: File) => {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB.');
+  // Save Side Promo Poster to Selected Slot
+  const handleSaveSidePoster = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPosterImg.trim()) {
+      alert('Poster image is required. Please choose an image or enter an image URL.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setBentoForm((prev) => ({ ...prev, [cardKey]: reader.result }));
-      }
-    };
-    reader.readAsDataURL(file);
+    let updatedBento = { ...bentoForm };
+    if (posterSlot === 'top') {
+      updatedBento = {
+        ...updatedBento,
+        card1Image: newPosterImg.trim(),
+        card1Title: newPosterTitle.trim() || 'LinkedIn Premium Up To 90% Discount',
+        card1LinkUrl: newPosterLink.trim() || '/services'
+      };
+    } else if (posterSlot === 'bottom-left') {
+      updatedBento = {
+        ...updatedBento,
+        card2Image: newPosterImg.trim(),
+        card2Title: newPosterTitle.trim() || 'Custom Web & Infra Engine',
+        card2LinkUrl: newPosterLink.trim() || '/services'
+      };
+    } else if (posterSlot === 'bottom-right') {
+      updatedBento = {
+        ...updatedBento,
+        card3Image: newPosterImg.trim(),
+        card3Title: newPosterTitle.trim() || 'AI Vault & Creative Kits',
+        card3LinkUrl: newPosterLink.trim() || '/products'
+      };
+    }
+    setBentoForm(updatedBento);
+    await saveBentoConfig(updatedBento);
+    setNewPosterImg('');
+    setNewPosterTitle('');
+    setNewPosterLink('/products');
+    setBentoSaved(true);
+    setTimeout(() => setBentoSaved(false), 3000);
+  };
+
+  // Remove Poster from Slot
+  const handleRemovePosterSlot = async (slot: 'top' | 'bottom-left' | 'bottom-right') => {
+    let updatedBento = { ...bentoForm };
+    if (slot === 'top') updatedBento.card1Image = '';
+    if (slot === 'bottom-left') updatedBento.card2Image = '';
+    if (slot === 'bottom-right') updatedBento.card3Image = '';
+    setBentoForm(updatedBento);
+    await saveBentoConfig(updatedBento);
   };
 
   return (
@@ -1922,518 +1991,607 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* ================= HOMEPAGE BANNERS & BENTO (Multi-Slide Hero & 3 Side Cards) ================= */}
+        {/* ================= HERO BANNERS & SIDE POSTERS (Exact Vyrqonix Layout) ================= */}
         {activeMenu === 'homepage' && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-8 shadow-sm">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">
-                  Homepage Hero Banners & 3D Cards
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Manage main banner multi-slides (auto-sliding with 3D/normal pictures) and 3 side cards
-                </p>
+          <div className="space-y-6">
+            
+            {/* Header */}
+            <div>
+              <div className="flex items-center space-x-2 text-blue-600">
+                <ImagePlus className="w-6 h-6 stroke-[2.2]" />
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Hero Banners & Side Posters
+                </h1>
               </div>
-              <div className="flex items-center space-x-3">
-                {bentoSaved && (
-                  <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold flex items-center space-x-1">
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Saved to Live Site!</span>
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={handleAddHeroSlide}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>+ Add New Slide</span>
-                </button>
-              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Manage the Main Hero Carousel slider (left) and the Promotional Side Posters (right) independently.
+              </p>
             </div>
 
-            <form onSubmit={handleSaveBento} className="space-y-8 text-xs">
-              
-              {/* SECTION A: MAIN HERO SLIDER (3+ SLIDES) */}
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
+            {/* Sub-Tabs: Main Hero Slider vs Side Promo Posters */}
+            <div className="flex space-x-8 border-b border-slate-200 text-xs">
+              <button
+                type="button"
+                onClick={() => setBentoActiveTab('slider')}
+                className={`pb-3 font-bold flex items-center space-x-2 transition-all border-b-2 -mb-px ${
+                  bentoActiveTab === 'slider'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Sliders className="w-4 h-4" />
+                <span>
+                  Main Hero Slider ({(bentoForm.heroSlides || defaultHeroSlides).length})
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBentoActiveTab('posters')}
+                className={`pb-3 font-bold flex items-center space-x-2 transition-all border-b-2 -mb-px ${
+                  bentoActiveTab === 'posters'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>
+                  Side Promo Posters ({[bentoForm.card1Image, bentoForm.card2Image, bentoForm.card3Image].filter(Boolean).length})
+                </span>
+              </button>
+            </div>
+
+            {bentoSaved && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center space-x-2 animate-fadeIn">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>Changes saved and updated live on the website!</span>
+              </div>
+            )}
+
+            {/* TAB 1: MAIN HERO SLIDER (SCREEN 1) */}
+            {bentoActiveTab === 'slider' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left Column: + ADD HERO SLIDE (LEFT SLIDER) */}
+                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center space-x-2">
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                      <span>1. MAIN HERO BANNER SLIDES (Auto-Carousel with 3D Pictures)</span>
+                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-blue-600">
+                      <Plus className="w-4 h-4 text-blue-600" />
+                      <span className="text-slate-900">+ ADD HERO SLIDE (LEFT SLIDER)</span>
                     </h3>
-                    <p className="text-[11px] text-slate-500">
-                      এখানে ৩টি বা তার বেশি স্লাইড যোগ করতে পারেন। হোমপেজে কিছুক্ষণ পর পর এগুলো স্বয়ংক্রিয়ভাবে পরিবর্তন হবে।
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      These slides appear in the left carousel on the homepage and rotate automatically.
                     </p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">
-                    {(bentoForm.heroSlides && bentoForm.heroSlides.length > 0 ? bentoForm.heroSlides : defaultHeroSlides).length} Slides Active
-                  </span>
-                </div>
 
-                <div className="space-y-6">
-                  {(bentoForm.heroSlides && bentoForm.heroSlides.length > 0 ? bentoForm.heroSlides : defaultHeroSlides).map((slide, sIdx) => (
-                    <div
-                      key={slide.id || sIdx}
-                      className="p-5 sm:p-6 bg-slate-50/70 rounded-2xl border border-slate-200/90 space-y-4 relative group"
+                  <form onSubmit={handleCreateHeroSlide} className="space-y-4 text-xs">
+                    {/* Slide Image Box */}
+                    <div className="space-y-2">
+                      <label className="block font-bold text-slate-700">
+                        Slide Image (Recommended: 1200×520px or 1024×440px | 2.3:1 Wide Ratio) *
+                      </label>
+
+                      <input
+                        ref={heroSlideFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleNewSlideFileUpload(e.target.files?.[0])}
+                        className="hidden"
+                      />
+
+                      <div className="p-6 border-2 border-dashed border-sky-300 bg-sky-50/20 hover:bg-sky-50/40 rounded-2xl text-center space-y-3 transition-colors">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => heroSlideFileInputRef.current?.click()}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Choose Slide Image</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewSlideImg('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80');
+                              if (!newSlideTitle) setNewSlideTitle('Exclusive Digital Assets & 3D Resource Vault');
+                            }}
+                            className="px-3.5 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-full font-bold text-[11px] hover:bg-purple-100 transition-colors flex items-center space-x-1"
+                          >
+                            <Sparkles className="w-3 h-3 text-purple-600" />
+                            <span>Use Perfect 1200×520 Banner</span>
+                          </button>
+                        </div>
+
+                        <span className="text-[10px] text-slate-400 block">
+                          PNG, JPG, WEBP formats supported (Auto-compressed)
+                        </span>
+
+                        <input
+                          type="text"
+                          value={newSlideImg}
+                          onChange={(e) => setNewSlideImg(e.target.value)}
+                          placeholder="Or paste direct image URL (ImgBB, Unsplash, etc.)"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
+                        />
+
+                        {newSlideImg && (
+                          <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-28 w-full group">
+                            <img src={newSlideImg} alt="Preview" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setNewSlideImg('')}
+                              className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-lg transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Slide Title / Description */}
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Slide Title / Description
+                      </label>
+                      <input
+                        type="text"
+                        value={newSlideTitle}
+                        onChange={(e) => setNewSlideTitle(e.target.value)}
+                        placeholder="e.g. Premium Digital Products for Smart Buyers"
+                        className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all font-semibold"
+                      />
+                    </div>
+
+                    {/* Click Destination Link */}
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Click Destination Link
+                      </label>
+                      <input
+                        type="text"
+                        value={newSlideLink}
+                        onChange={(e) => setNewSlideLink(e.target.value)}
+                        placeholder="/shop"
+                        className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    {/* Add Button */}
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all"
                     >
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center">
-                            {sIdx + 1}
-                          </span>
-                          <span className="font-bold text-slate-800 text-xs">
-                            Hero Slide #{sIdx + 1}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteHeroSlide(sIdx)}
-                          className="text-slate-400 hover:text-red-600 p-1 transition-colors"
-                          title="Delete Slide"
+                      Add to Hero Slider
+                    </button>
+                  </form>
+                </div>
+
+                {/* Right Column: ACTIVE HERO SLIDER BANNERS */}
+                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-4 shadow-sm">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
+                      ACTIVE HERO SLIDER BANNERS ({(bentoForm.heroSlides || defaultHeroSlides).length})
+                    </h3>
+                    <span className="text-[10px] text-slate-400">
+                      Rotates every 4.5s on Homepage
+                    </span>
+                  </div>
+
+                  {(bentoForm.heroSlides || defaultHeroSlides).length === 0 ? (
+                    <div className="py-16 text-center space-y-3">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                        <Image className="w-7 h-7" />
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-700">No custom slider banners uploaded yet</h4>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                        Default marketplace banners are currently showing. Upload your custom banners using the form on the left.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(bentoForm.heroSlides || defaultHeroSlides).map((slide, idx) => (
+                        <div
+                          key={slide.id || idx}
+                          className="p-4 rounded-xl border border-slate-200/90 hover:border-blue-400 bg-slate-50/50 hover:bg-white transition-all space-y-2 group"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-slate-700 font-bold mb-1">Badge / Tag *</label>
-                          <input
-                            type="text"
-                            value={slide.tag}
-                            onChange={(e) => handleUpdateHeroSlide(sIdx, 'tag', e.target.value)}
-                            placeholder="e.g. Next-Gen Digital Agency & Products Hub"
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600 font-semibold"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-slate-700 font-bold mb-1">Slide Title *</label>
-                          <input
-                            type="text"
-                            value={slide.title}
-                            onChange={(e) => handleUpdateHeroSlide(sIdx, 'title', e.target.value)}
-                            placeholder="e.g. Empower Your Growth With Intelligent Strategy"
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600 font-bold"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-slate-700 font-bold mb-1">Description *</label>
-                        <textarea
-                          rows={2}
-                          value={slide.description}
-                          onChange={(e) => handleUpdateHeroSlide(sIdx, 'description', e.target.value)}
-                          placeholder="Compelling description for this slide highlight..."
-                          className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600 resize-none"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                        <div>
-                          <label className="block text-slate-700 font-bold mb-1">Button 1 Text</label>
-                          <input
-                            type="text"
-                            value={slide.btn1Text}
-                            onChange={(e) => handleUpdateHeroSlide(sIdx, 'btn1Text', e.target.value)}
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-medium"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-slate-700 font-bold mb-1">Button 1 Link</label>
-                          <input
-                            type="text"
-                            value={slide.btn1Link}
-                            onChange={(e) => handleUpdateHeroSlide(sIdx, 'btn1Link', e.target.value)}
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-700"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-slate-700 font-bold mb-1">Button 2 Text</label>
-                          <input
-                            type="text"
-                            value={slide.btn2Text}
-                            onChange={(e) => handleUpdateHeroSlide(sIdx, 'btn2Text', e.target.value)}
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-medium"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-slate-700 font-bold mb-1">Button 2 Link</label>
-                          <input
-                            type="text"
-                            value={slide.btn2Link}
-                            onChange={(e) => handleUpdateHeroSlide(sIdx, 'btn2Link', e.target.value)}
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-mono text-slate-700"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Pictures: Background & 3D Graphic */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                        {/* Slide Background Picture */}
-                        <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-slate-800 text-[11px]">
-                              🖼️ Slide Background Image (স্বাভাবিক বা ব্যাকগ্রাউন্ড ছবি)
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                              Slide #{idx + 1}
                             </span>
-                            {slide.bgImage && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteHeroSlide(idx)}
+                              className="text-slate-400 hover:text-red-600 p-1 transition-colors"
+                              title="Delete Slide"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-12 gap-3 items-center">
+                            <div className="col-span-4 h-16 rounded-lg overflow-hidden bg-slate-900 border border-slate-200 shrink-0">
+                              {slide.bgImage ? (
+                                <img src={slide.bgImage} alt={slide.title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] bg-gradient-to-br from-blue-700 to-indigo-900 text-white font-bold">
+                                  Default Wave
+                                </div>
+                              )}
+                            </div>
+                            <div className="col-span-8 space-y-1">
+                              <h5 className="font-bold text-slate-900 text-xs line-clamp-1">
+                                {slide.title}
+                              </h5>
+                              <p className="text-[11px] text-slate-500 font-mono line-clamp-1">
+                                Destination: {slide.btn1Link || '/products'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB 2: SIDE PROMO POSTERS (SCREEN 2) */}
+            {bentoActiveTab === 'posters' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Left Column: + UPLOAD SIDE PROMO POSTER */}
+                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
+                  <div>
+                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-blue-600">
+                      <Plus className="w-4 h-4 text-blue-600" />
+                      <span className="text-slate-900">+ UPLOAD SIDE PROMO POSTER</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      These posters appear on the right side of the Hero section (Fixed promos, do not slide).
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSaveSidePoster} className="space-y-4 text-xs">
+                    {/* Select Poster Slot / Position */}
+                    <div className="space-y-2">
+                      <label className="block font-bold text-slate-700">
+                        Select Poster Slot / Position *
+                      </label>
+
+                      <div className="space-y-2">
+                        {/* Slot 1: Top Poster */}
+                        <div
+                          onClick={() => setPosterSlot('top')}
+                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start space-x-3 ${
+                            posterSlot === 'top'
+                              ? 'border-blue-600 bg-blue-50/20 ring-1 ring-blue-600'
+                              : 'border-slate-200 bg-white hover:bg-slate-50/60'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="posterSlot"
+                            checked={posterSlot === 'top'}
+                            onChange={() => setPosterSlot('top')}
+                            className="mt-1 text-blue-600 accent-blue-600"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 text-xs block">
+                              Top Poster (Wide Banner)
+                            </span>
+                            <span className="text-[11px] text-slate-400 block">
+                              e.g. LinkedIn Premium Up To 90% Discount (~800×380px)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Slot 2: Bottom-Left Poster */}
+                        <div
+                          onClick={() => setPosterSlot('bottom-left')}
+                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start space-x-3 ${
+                            posterSlot === 'bottom-left'
+                              ? 'border-blue-600 bg-blue-50/20 ring-1 ring-blue-600'
+                              : 'border-slate-200 bg-white hover:bg-slate-50/60'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="posterSlot"
+                            checked={posterSlot === 'bottom-left'}
+                            onChange={() => setPosterSlot('bottom-left')}
+                            className="mt-1 text-blue-600 accent-blue-600"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 text-xs block">
+                              Bottom-Left Poster
+                            </span>
+                            <span className="text-[11px] text-slate-400 block">
+                              e.g. Canva / Promo (~400×320px or 16:10)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Slot 3: Bottom-Right Poster */}
+                        <div
+                          onClick={() => setPosterSlot('bottom-right')}
+                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start space-x-3 ${
+                            posterSlot === 'bottom-right'
+                              ? 'border-blue-600 bg-blue-50/20 ring-1 ring-blue-600'
+                              : 'border-slate-200 bg-white hover:bg-slate-50/60'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="posterSlot"
+                            checked={posterSlot === 'bottom-right'}
+                            onChange={() => setPosterSlot('bottom-right')}
+                            className="mt-1 text-blue-600 accent-blue-600"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 text-xs block">
+                              Bottom-Right Poster
+                            </span>
+                            <span className="text-[11px] text-slate-400 block">
+                              e.g. Adobe / Promo (~400×320px or 16:10)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Poster Image Box */}
+                    <div className="space-y-2">
+                      <label className="block font-bold text-slate-700">
+                        Poster Image *
+                      </label>
+
+                      <input
+                        ref={sidePosterFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleNewPosterFileUpload(e.target.files?.[0])}
+                        className="hidden"
+                      />
+
+                      <div className="p-6 border-2 border-dashed border-sky-300 bg-sky-50/20 hover:bg-sky-50/40 rounded-2xl text-center space-y-3 transition-colors">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => sidePosterFileInputRef.current?.click()}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Choose Poster Image</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewPosterImg('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80');
+                              if (!newPosterTitle) setNewPosterTitle('LinkedIn Premium 90% Off Special');
+                            }}
+                            className="px-3.5 py-1.5 bg-purple-50 text-purple-700 border border-purple-200/80 rounded-full font-bold text-[11px] hover:bg-purple-100 transition-colors flex items-center space-x-1"
+                          >
+                            <Sparkles className="w-3 h-3 text-purple-600" />
+                            <span>Use Perfect 720×380 Side Poster</span>
+                          </button>
+                        </div>
+
+                        <span className="text-[10px] text-slate-400 block">
+                          PNG, JPG, WEBP formats supported (Auto-compressed)
+                        </span>
+
+                        <input
+                          type="text"
+                          value={newPosterImg}
+                          onChange={(e) => setNewPosterImg(e.target.value)}
+                          placeholder="Or paste direct image URL (ImgBB, Unsplash, etc.)"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600"
+                        />
+
+                        {newPosterImg && (
+                          <div className="mt-3 relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900 h-28 w-full group">
+                            <img src={newPosterImg} alt="Preview" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setNewPosterImg('')}
+                              className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-lg transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Poster Title / Name */}
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Poster Title / Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newPosterTitle}
+                        onChange={(e) => setNewPosterTitle(e.target.value)}
+                        placeholder="e.g. LinkedIn Premium 90% Off"
+                        className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all font-semibold"
+                      />
+                    </div>
+
+                    {/* Click Destination Link */}
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">
+                        Click Destination Link
+                      </label>
+                      <input
+                        type="text"
+                        value={newPosterLink}
+                        onChange={(e) => setNewPosterLink(e.target.value)}
+                        placeholder="/shop"
+                        className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all"
+                    >
+                      Save Poster to Selected Slot
+                    </button>
+                  </form>
+                </div>
+
+                {/* Right Column: CURRENT SIDE POSTERS LAYOUT (Exact Visual Box from Screen 2) */}
+                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+                  <div>
+                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
+                      CURRENT SIDE POSTERS LAYOUT
+                    </h3>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Here is how the right side of your homepage looks currently. You can remove any poster to revert to the default or replace it with a new one.
+                    </p>
+                  </div>
+
+                  {/* Visual Layout Preview Container matching the Homepage Bento */}
+                  <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3">
+                    {/* Top Poster Box */}
+                    <div className="h-40 rounded-2xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center text-center p-3 relative overflow-hidden group">
+                      {bentoForm.card1Image ? (
+                        <>
+                          <img src={bentoForm.card1Image} alt="Top Poster" className="w-full h-full object-cover rounded-xl" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePosterSlot('top')}
+                              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[11px] shadow-sm flex items-center space-x-1"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Remove Poster</span>
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-1">
+                          <span className="font-bold text-xs text-slate-700 block">
+                            Top Poster: Default Demo Active
+                          </span>
+                          <span className="text-[10px] text-slate-400 block">
+                            Upload to slot "Top Poster" to customize
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Split: Left & Right */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Bottom Left Box */}
+                      <div className="h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center text-center p-3 relative overflow-hidden group">
+                        {bentoForm.card2Image ? (
+                          <>
+                            <img src={bentoForm.card2Image} alt="Bottom Left" className="w-full h-full object-cover rounded-xl" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <button
                                 type="button"
-                                onClick={() => handleUpdateHeroSlide(sIdx, 'bgImage', '')}
-                                className="text-[10px] text-red-500 hover:underline"
+                                onClick={() => handleRemovePosterSlot('bottom-left')}
+                                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[10px] shadow-sm flex items-center space-x-1"
                               >
-                                Remove
+                                <Trash2 className="w-3 h-3" />
+                                <span>Remove</span>
                               </button>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              id={`slide-bg-${sIdx}`}
-                              onChange={(e) => handleSlideImageUpload(sIdx, 'bgImage', e.target.files?.[0])}
-                              className="hidden"
-                            />
-                            <label
-                              htmlFor={`slide-bg-${sIdx}`}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-bold text-[11px] cursor-pointer inline-flex items-center space-x-1"
-                            >
-                              <Upload className="w-3 h-3" />
-                              <span>Upload Photo</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={slide.bgImage || ''}
-                              onChange={(e) => handleUpdateHeroSlide(sIdx, 'bgImage', e.target.value)}
-                              placeholder="Or paste image URL (https://...)"
-                              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-800"
-                            />
-                          </div>
-                          {slide.bgImage && (
-                            <div className="h-16 rounded-lg overflow-hidden border border-slate-200 bg-slate-900">
-                              <img src={slide.bgImage} alt="Slide BG Preview" className="w-full h-full object-cover" />
                             </div>
-                          )}
-                        </div>
+                          </>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <span className="font-bold text-xs text-slate-700 block">Bottom Left</span>
+                            <span className="text-[10px] text-slate-400 block">Default Demo Active</span>
+                          </div>
+                        )}
+                      </div>
 
-                        {/* Slide 3D Floating Picture / Model Image */}
-                        <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-slate-800 text-[11px]">
-                              🧊 3D Floating Picture / Illustration (৩ডি ছবি)
-                            </span>
-                            {slide.image3D && (
+                      {/* Bottom Right Box */}
+                      <div className="h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-white flex flex-col items-center justify-center text-center p-3 relative overflow-hidden group">
+                        {bentoForm.card3Image ? (
+                          <>
+                            <img src={bentoForm.card3Image} alt="Bottom Right" className="w-full h-full object-cover rounded-xl" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <button
                                 type="button"
-                                onClick={() => handleUpdateHeroSlide(sIdx, 'image3D', '')}
-                                className="text-[10px] text-red-500 hover:underline"
+                                onClick={() => handleRemovePosterSlot('bottom-right')}
+                                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[10px] shadow-sm flex items-center space-x-1"
                               >
-                                Remove
+                                <Trash2 className="w-3 h-3" />
+                                <span>Remove</span>
                               </button>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              id={`slide-3d-${sIdx}`}
-                              onChange={(e) => handleSlideImageUpload(sIdx, 'image3D', e.target.files?.[0])}
-                              className="hidden"
-                            />
-                            <label
-                              htmlFor={`slide-3d-${sIdx}`}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold text-[11px] cursor-pointer inline-flex items-center space-x-1"
-                            >
-                              <Upload className="w-3 h-3" />
-                              <span>Upload 3D Pic</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={slide.image3D || ''}
-                              onChange={(e) => handleUpdateHeroSlide(sIdx, 'image3D', e.target.value)}
-                              placeholder="Or paste 3D image URL"
-                              className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-800"
-                            />
-                          </div>
-                          {slide.image3D && (
-                            <div className="h-16 w-24 rounded-lg overflow-hidden border border-slate-200 bg-slate-900">
-                              <img src={slide.image3D} alt="3D Preview" className="w-full h-full object-cover" />
                             </div>
-                          )}
-                        </div>
-                      </div>
-
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* SECTION B: SIDE 3 CARDS PICTURES & CONTENT */}
-              <div className="space-y-6 pt-4 border-t border-slate-200">
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center space-x-2">
-                    <FolderTree className="w-4 h-4 text-blue-600" />
-                    <span>2. SIDE 3 CARDS (3D & Normal Pictures / Content)</span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    ডান পাশের ৩টি কার্ডের টাইটেল, ছবি (3D বা সাধারণ ছবি) ও লিঙ্ক কাস্টমাইজ করুন।
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  {/* CARD 1 (Top Right Card) */}
-                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                      <span className="font-bold text-xs text-slate-900">Card 1: Social & Ads</span>
-                      <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded">Top Right</span>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Tag / Category</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card1Tag}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card1Tag: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Title</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card1Title}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card1Title: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Description</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card1Description}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card1Description: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs"
-                      />
-                    </div>
-
-                    {/* Card 1 Picture */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between items-center">
-                        <label className="font-bold text-slate-700 text-[11px]">Card 1 Picture / 3D Icon</label>
-                        {bentoForm.card1Image && (
-                          <button
-                            type="button"
-                            onClick={() => setBentoForm({ ...bentoForm, card1Image: '' })}
-                            className="text-[10px] text-red-500 hover:underline"
-                          >
-                            Remove
-                          </button>
+                          </>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <span className="font-bold text-xs text-slate-700 block">Bottom Right</span>
+                            <span className="text-[10px] text-slate-400 block">Default Demo Active</span>
+                          </div>
                         )}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="card1-img-file"
-                          onChange={(e) => handleCardImageUpload('card1Image', e.target.files?.[0])}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="card1-img-file"
-                          className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold text-[10px] cursor-pointer"
-                        >
-                          Upload
-                        </label>
-                        <input
-                          type="text"
-                          value={bentoForm.card1Image || ''}
-                          onChange={(e) => setBentoForm({ ...bentoForm, card1Image: e.target.value })}
-                          placeholder="Or paste image URL"
-                          className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-mono"
-                        />
-                      </div>
-                      {bentoForm.card1Image && (
-                        <div className="h-16 w-16 rounded-xl overflow-hidden border border-slate-300 bg-slate-900 mx-auto mt-2">
-                          <img src={bentoForm.card1Image} alt="Card 1" className="w-full h-full object-cover" />
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {/* CARD 2 (Bottom Left Card) */}
-                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                      <span className="font-bold text-xs text-slate-900">Card 2: Web Engine</span>
-                      <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded">Bottom Left</span>
-                    </div>
+                  {/* UPLOADED CUSTOM POSTERS LIST */}
+                  <div className="space-y-3 pt-2">
+                    <h4 className="font-black text-slate-800 text-xs uppercase tracking-wider">
+                      UPLOADED CUSTOM POSTERS ({[bentoForm.card1Image, bentoForm.card2Image, bentoForm.card3Image].filter(Boolean).length})
+                    </h4>
 
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Tag / Category</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card2Tag}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card2Tag: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Title / Code</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card2Title}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card2Title: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-mono font-bold text-emerald-600"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Description</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card2Description}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card2Description: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs"
-                      />
-                    </div>
-
-                    {/* Card 2 Picture */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between items-center">
-                        <label className="font-bold text-slate-700 text-[11px]">Card 2 Picture / Graphic</label>
-                        {bentoForm.card2Image && (
-                          <button
-                            type="button"
-                            onClick={() => setBentoForm({ ...bentoForm, card2Image: '' })}
-                            className="text-[10px] text-red-500 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        )}
+                    {[
+                      { slot: 'top' as const, name: 'Top Poster (Wide)', img: bentoForm.card1Image, title: bentoForm.card1Title },
+                      { slot: 'bottom-left' as const, name: 'Bottom-Left Poster', img: bentoForm.card2Image, title: bentoForm.card2Title },
+                      { slot: 'bottom-right' as const, name: 'Bottom-Right Poster', img: bentoForm.card3Image, title: bentoForm.card3Title }
+                    ].filter(p => !!p.img).length === 0 ? (
+                      <p className="text-slate-400 text-xs italic py-4 text-center">
+                        No custom posters active. Default cards are active on homepage.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {[
+                          { slot: 'top' as const, name: 'Top Poster (Wide)', img: bentoForm.card1Image, title: bentoForm.card1Title },
+                          { slot: 'bottom-left' as const, name: 'Bottom-Left Poster', img: bentoForm.card2Image, title: bentoForm.card2Title },
+                          { slot: 'bottom-right' as const, name: 'Bottom-Right Poster', img: bentoForm.card3Image, title: bentoForm.card3Title }
+                        ]
+                          .filter((p) => !!p.img)
+                          .map((item) => (
+                            <div
+                              key={item.slot}
+                              className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-900 border border-slate-200">
+                                  <img src={item.img!} alt={item.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                  <span className="font-bold text-xs text-slate-900 block">{item.name}</span>
+                                  <span className="text-[10px] text-slate-400 block">{item.title}</span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePosterSlot(item.slot)}
+                                className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                                title="Remove Poster"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="card2-img-file"
-                          onChange={(e) => handleCardImageUpload('card2Image', e.target.files?.[0])}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="card2-img-file"
-                          className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold text-[10px] cursor-pointer"
-                        >
-                          Upload
-                        </label>
-                        <input
-                          type="text"
-                          value={bentoForm.card2Image || ''}
-                          onChange={(e) => setBentoForm({ ...bentoForm, card2Image: e.target.value })}
-                          placeholder="Or paste image URL"
-                          className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-mono"
-                        />
-                      </div>
-                      {bentoForm.card2Image && (
-                        <div className="h-16 w-full rounded-xl overflow-hidden border border-slate-300 bg-slate-900 mt-2">
-                          <img src={bentoForm.card2Image} alt="Card 2" className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* CARD 3 (Bottom Right Card) */}
-                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                      <span className="font-bold text-xs text-slate-900">Card 3: AI & Vault</span>
-                      <span className="text-[10px] text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded">Bottom Right</span>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Tag / Category</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card3Tag}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card3Tag: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Title</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card3Title}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card3Title: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-slate-700 font-bold mb-1">Link URL</label>
-                      <input
-                        type="text"
-                        value={bentoForm.card3LinkUrl}
-                        onChange={(e) => setBentoForm({ ...bentoForm, card3LinkUrl: e.target.value })}
-                        className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-mono"
-                      />
-                    </div>
-
-                    {/* Card 3 Picture */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex justify-between items-center">
-                        <label className="font-bold text-slate-700 text-[11px]">Card 3 Picture / 3D Asset</label>
-                        {bentoForm.card3Image && (
-                          <button
-                            type="button"
-                            onClick={() => setBentoForm({ ...bentoForm, card3Image: '' })}
-                            className="text-[10px] text-red-500 hover:underline"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="card3-img-file"
-                          onChange={(e) => handleCardImageUpload('card3Image', e.target.files?.[0])}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="card3-img-file"
-                          className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold text-[10px] cursor-pointer"
-                        >
-                          Upload
-                        </label>
-                        <input
-                          type="text"
-                          value={bentoForm.card3Image || ''}
-                          onChange={(e) => setBentoForm({ ...bentoForm, card3Image: e.target.value })}
-                          placeholder="Or paste image URL"
-                          className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-mono"
-                        />
-                      </div>
-                      {bentoForm.card3Image && (
-                        <div className="h-16 w-full rounded-xl overflow-hidden border border-slate-300 bg-slate-900 mt-2">
-                          <img src={bentoForm.card3Image} alt="Card 3" className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* SAVE BUTTON */}
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <button
-                  type="submit"
-                  className="px-7 py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 flex items-center space-x-2 transition-all"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Save All Homepage Banners & 3D Cards</span>
-                </button>
               </div>
+            )}
 
-            </form>
           </div>
         )}
 
