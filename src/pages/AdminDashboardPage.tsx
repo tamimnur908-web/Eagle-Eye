@@ -29,6 +29,7 @@ import {
   Palette,
   FileCode,
   ArrowLeft,
+  ArrowRight,
   Sparkles,
   X,
   Clipboard,
@@ -135,6 +136,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Vyrqonix Hero Banners & Side Posters States (Exact Screenshot Layout)
   const [bentoActiveTab, setBentoActiveTab] = useState<'slider' | 'posters'>('slider');
+  const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
   const [newSlideImg, setNewSlideImg] = useState('');
   const [newSlideTitle, setNewSlideTitle] = useState('');
   const [newSlideLink, setNewSlideLink] = useState('/products');
@@ -461,13 +463,49 @@ export const AdminDashboardPage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // Add Hero Slide (Left Slider) Action
+  const handleStartEditSlide = (slide: HeroSlide, index: number) => {
+    setEditingSlideIndex(index);
+    setNewSlideImg(slide.bgImage || '');
+    setNewSlideTitle(slide.title || '');
+    setNewSlideLink(slide.btn1Link || '/products');
+    window.scrollTo({ top: 120, behavior: 'smooth' });
+  };
+
+  const handleCancelEditSlide = () => {
+    setEditingSlideIndex(null);
+    setNewSlideImg('');
+    setNewSlideTitle('');
+    setNewSlideLink('/products');
+  };
+
+  // Add or Update Hero Slide Action
   const handleCreateHeroSlide = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSlideImg.trim()) {
       alert('Slide image is required. Please choose an image or enter an image URL.');
       return;
     }
+
+    const currentSlides = [...(bentoForm.heroSlides && bentoForm.heroSlides.length > 0
+      ? bentoForm.heroSlides
+      : defaultHeroSlides)];
+
+    if (editingSlideIndex !== null) {
+      currentSlides[editingSlideIndex] = {
+        ...currentSlides[editingSlideIndex],
+        bgImage: newSlideImg.trim(),
+        title: newSlideTitle.trim() || currentSlides[editingSlideIndex].title,
+        btn1Link: newSlideLink.trim() || '/products'
+      };
+      const updatedBento = { ...bentoForm, heroSlides: currentSlides };
+      setBentoForm(updatedBento);
+      await saveBentoConfig(updatedBento);
+      handleCancelEditSlide();
+      setBentoSaved(true);
+      setTimeout(() => setBentoSaved(false), 3000);
+      return;
+    }
+
     const newSlide: HeroSlide = {
       id: 'slide-' + Date.now(),
       tag: 'Featured Highlight',
@@ -480,9 +518,6 @@ export const AdminDashboardPage: React.FC = () => {
       bgImage: newSlideImg.trim(),
       image3D: ''
     };
-    const currentSlides = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
-      ? bentoForm.heroSlides
-      : defaultHeroSlides;
     const updatedSlides = [...currentSlides, newSlide];
     const updatedBento = { ...bentoForm, heroSlides: updatedSlides };
     setBentoForm(updatedBento);
@@ -2048,20 +2083,43 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             )}
 
-            {/* TAB 1: MAIN HERO SLIDER (SCREEN 1) */}
+            {/* TAB 1: MAIN HERO SLIDER (SCREEN 1 WITH EDIT & REAL-TIME PREVIEW) */}
             {bentoActiveTab === 'slider' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 
-                {/* Left Column: + ADD HERO SLIDE (LEFT SLIDER) */}
+                {/* Left Column: + ADD / EDIT HERO SLIDE */}
                 <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
-                  <div>
-                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-blue-600">
-                      <Plus className="w-4 h-4 text-blue-600" />
-                      <span className="text-slate-900">+ ADD HERO SLIDE (LEFT SLIDER)</span>
-                    </h3>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      These slides appear in the left carousel on the homepage and rotate automatically.
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-blue-600">
+                        {editingSlideIndex !== null ? (
+                          <>
+                            <Edit2 className="w-4 h-4 text-blue-600" />
+                            <span className="text-slate-900">EDIT HERO SLIDE (SLIDE #{editingSlideIndex + 1})</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4 text-blue-600" />
+                            <span className="text-slate-900">+ ADD HERO SLIDE (LEFT SLIDER)</span>
+                          </>
+                        )}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        {editingSlideIndex !== null
+                          ? 'Modify picture, title or destination for this slide.'
+                          : 'These slides appear in the left carousel on the homepage and rotate automatically.'}
+                      </p>
+                    </div>
+
+                    {editingSlideIndex !== null && (
+                      <button
+                        type="button"
+                        onClick={handleCancelEditSlide}
+                        className="text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg transition-colors"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
                   </div>
 
                   <form onSubmit={handleCreateHeroSlide} className="space-y-4 text-xs">
@@ -2158,81 +2216,198 @@ export const AdminDashboardPage: React.FC = () => {
                       />
                     </div>
 
-                    {/* Add Button */}
-                    <button
-                      type="submit"
-                      className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all"
-                    >
-                      Add to Hero Slider
-                    </button>
+                    {/* Submit Button */}
+                    <div className="flex items-center space-x-3 pt-1">
+                      <button
+                        type="submit"
+                        className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all flex items-center justify-center space-x-1.5"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>
+                          {editingSlideIndex !== null
+                            ? `Save & Update Slide #${editingSlideIndex + 1}`
+                            : 'Add to Hero Slider'}
+                        </span>
+                      </button>
+
+                      {editingSlideIndex !== null && (
+                        <button
+                          type="button"
+                          onClick={handleCancelEditSlide}
+                          className="px-5 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </form>
                 </div>
 
-                {/* Right Column: ACTIVE HERO SLIDER BANNERS */}
-                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-4 shadow-sm">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                    <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
-                      ACTIVE HERO SLIDER BANNERS ({(bentoForm.heroSlides || defaultHeroSlides).length})
-                    </h3>
-                    <span className="text-[10px] text-slate-400">
-                      Rotates every 4.5s on Homepage
-                    </span>
+                {/* Right Column: LIVE HOMEPAGE PREVIEW & ACTIVE BANNERS */}
+                <div className="lg:col-span-6 space-y-6">
+                  
+                  {/* REAL-TIME WEBSITE LIVE PREVIEW CARD */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-indigo-700">
+                        <Sparkles className="w-4 h-4 text-indigo-600" />
+                        <span>LIVE HOMEPAGE PREVIEW (ওয়েবসাইটে যেমন দেখাবে)</span>
+                      </h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        Real-time Render
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      ছবি আপলোড বা এডিট করলে ওয়েবসাইটে হুবহু যেমন দেখাবে তা এখানে লাইভ প্রিভিউ হচ্ছে:
+                    </p>
+
+                    {/* Live Rendered Banner Mockup */}
+                    <div
+                      className="rounded-2xl overflow-hidden relative min-h-[220px] bg-gradient-to-br from-blue-600 via-indigo-700 to-slate-900 p-6 flex flex-col justify-between text-white shadow-md bg-cover bg-center transition-all duration-300"
+                      style={
+                        newSlideImg
+                          ? { backgroundImage: `url(${newSlideImg})` }
+                          : (editingSlideIndex !== null && (bentoForm.heroSlides || defaultHeroSlides)[editingSlideIndex]?.bgImage)
+                          ? { backgroundImage: `url(${(bentoForm.heroSlides || defaultHeroSlides)[editingSlideIndex]?.bgImage})` }
+                          : undefined
+                      }
+                    >
+                      {/* Dark overlay for contrast */}
+                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px] pointer-events-none" />
+                      <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-sky-400/30 rounded-full blur-2xl pointer-events-none" />
+
+                      <div className="relative z-10 space-y-2 max-w-sm">
+                        <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] font-bold text-sky-200">
+                          <Sparkles className="w-3 h-3 text-amber-300" />
+                          <span>Eagle Eye Digital • Featured</span>
+                        </div>
+
+                        <h4 className="text-lg sm:text-xl font-black tracking-tight leading-tight line-clamp-2">
+                          {newSlideTitle ||
+                            (editingSlideIndex !== null
+                              ? (bentoForm.heroSlides || defaultHeroSlides)[editingSlideIndex]?.title
+                              : 'Empower Your Growth With Intelligent Strategy')}
+                        </h4>
+
+                        <p className="text-[11px] text-slate-200 line-clamp-2">
+                          From performance marketing to ready-to-deploy UI assets and digital products.
+                        </p>
+                      </div>
+
+                      <div className="relative z-10 pt-4 flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="px-3 py-1.5 rounded-full bg-white text-indigo-900 font-extrabold text-[10px] shadow-sm flex items-center space-x-1">
+                            <span>Browse Products</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </span>
+                          <span className="px-3 py-1.5 rounded-full bg-white/15 border border-white/20 text-white font-bold text-[10px]">
+                            Agency Services
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-4 h-1.5 rounded-full bg-amber-400" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {(bentoForm.heroSlides || defaultHeroSlides).length === 0 ? (
-                    <div className="py-16 text-center space-y-3">
-                      <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                        <Image className="w-7 h-7" />
-                      </div>
-                      <h4 className="font-bold text-sm text-slate-700">No custom slider banners uploaded yet</h4>
-                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                        Default marketplace banners are currently showing. Upload your custom banners using the form on the left.
-                      </p>
+                  {/* ACTIVE HERO SLIDER BANNERS LIST */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                      <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
+                        ACTIVE HERO SLIDER BANNERS ({(bentoForm.heroSlides || defaultHeroSlides).length})
+                      </h3>
+                      <span className="text-[10px] text-slate-400">
+                        Rotates every 4.5s on Homepage
+                      </span>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {(bentoForm.heroSlides || defaultHeroSlides).map((slide, idx) => (
-                        <div
-                          key={slide.id || idx}
-                          className="p-4 rounded-xl border border-slate-200/90 hover:border-blue-400 bg-slate-50/50 hover:bg-white transition-all space-y-2 group"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-50 text-blue-700">
-                              Slide #{idx + 1}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteHeroSlide(idx)}
-                              className="text-slate-400 hover:text-red-600 p-1 transition-colors"
-                              title="Delete Slide"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
 
-                          <div className="grid grid-cols-12 gap-3 items-center">
-                            <div className="col-span-4 h-16 rounded-lg overflow-hidden bg-slate-900 border border-slate-200 shrink-0">
-                              {slide.bgImage ? (
-                                <img src={slide.bgImage} alt={slide.title} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] bg-gradient-to-br from-blue-700 to-indigo-900 text-white font-bold">
-                                  Default Wave
-                                </div>
-                              )}
-                            </div>
-                            <div className="col-span-8 space-y-1">
-                              <h5 className="font-bold text-slate-900 text-xs line-clamp-1">
-                                {slide.title}
-                              </h5>
-                              <p className="text-[11px] text-slate-500 font-mono line-clamp-1">
-                                Destination: {slide.btn1Link || '/products'}
-                              </p>
-                            </div>
-                          </div>
+                    {(bentoForm.heroSlides || defaultHeroSlides).length === 0 ? (
+                      <div className="py-12 text-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                          <Image className="w-6 h-6" />
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <h4 className="font-bold text-sm text-slate-700">No custom slider banners uploaded yet</h4>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                          Default marketplace banners are currently showing. Upload your custom banners using the form on the left.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {(bentoForm.heroSlides || defaultHeroSlides).map((slide, idx) => {
+                          const isEditingThis = editingSlideIndex === idx;
+                          return (
+                            <div
+                              key={slide.id || idx}
+                              className={`p-4 rounded-xl border transition-all space-y-2 group ${
+                                isEditingThis
+                                  ? 'border-blue-500 bg-blue-50/30 ring-2 ring-blue-500/20'
+                                  : 'border-slate-200/90 hover:border-blue-400 bg-slate-50/50 hover:bg-white'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                                    Slide #{idx + 1}
+                                  </span>
+                                  {isEditingThis && (
+                                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                                      Editing Now
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEditSlide(slide, idx)}
+                                    className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center space-x-1 p-1"
+                                    title="Edit Slide"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                    <span>Edit</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteHeroSlide(idx)}
+                                    className="text-slate-400 hover:text-red-600 p-1 transition-colors"
+                                    title="Delete Slide"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-12 gap-3 items-center">
+                                <div className="col-span-4 h-16 rounded-lg overflow-hidden bg-slate-900 border border-slate-200 shrink-0">
+                                  {slide.bgImage ? (
+                                    <img src={slide.bgImage} alt={slide.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] bg-gradient-to-br from-blue-700 to-indigo-900 text-white font-bold">
+                                      Default Wave
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="col-span-8 space-y-1">
+                                  <h5 className="font-bold text-slate-900 text-xs line-clamp-1">
+                                    {slide.title}
+                                  </h5>
+                                  <p className="text-[11px] text-slate-500 font-mono line-clamp-1">
+                                    Destination: {slide.btn1Link || '/products'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
               </div>
