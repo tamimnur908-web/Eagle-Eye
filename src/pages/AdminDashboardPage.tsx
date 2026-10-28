@@ -2237,10 +2237,10 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-slate-800">
+    <div className="h-screen w-full bg-[#F8FAFC] flex font-sans text-slate-800 overflow-hidden">
       
       {/* ================= LEFT SIDEBAR (EXACT VYRQONIX STYLE) ================= */}
-      <aside className="w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 sticky top-0 h-screen select-none">
+      <aside className="w-64 flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 h-full overflow-y-auto select-none">
         <div className="space-y-6">
           
           {/* Logo & Console Badge */}
@@ -2375,7 +2375,7 @@ export const AdminDashboardPage: React.FC = () => {
       </aside>
 
       {/* ================= RIGHT MAIN CONTENT AREA ================= */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1800px] w-full overflow-y-auto">
+      <main className="flex-1 h-full p-4 sm:p-6 lg:p-8 max-w-[1800px] w-full overflow-y-auto">
         
         {/* ================= PRODUCTS TAB (EXACT VYRQONIX SETUP) ================= */}
         {activeMenu === 'products' && (
