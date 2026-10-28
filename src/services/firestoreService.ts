@@ -49,7 +49,12 @@ export const defaultHeroSlides: HeroSlide[] = [
     btn2Text: 'Agency Services',
     btn2Link: '/services',
     bgImage: '',
-    image3D: ''
+    image3D: '',
+    visualType: '3d',
+    textAnimation: 'typewriter',
+    badge1Text: 'Instant Deploy',
+    badgeCenterText: 'Verified 4K',
+    badge2Text: '4.9/5 Rating'
   },
   {
     id: 'slide-2',
@@ -61,7 +66,9 @@ export const defaultHeroSlides: HeroSlide[] = [
     btn2Text: 'Custom Projects',
     btn2Link: '/services',
     bgImage: '',
-    image3D: ''
+    image3D: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
+    visualType: 'image',
+    textAnimation: 'gradient'
   },
   {
     id: 'slide-3',
@@ -73,7 +80,10 @@ export const defaultHeroSlides: HeroSlide[] = [
     btn2Text: 'View Case Studies',
     btn2Link: '/case-studies',
     bgImage: '',
-    image3D: ''
+    image3D: '',
+    visualType: 'text',
+    textAnimation: 'fade',
+    terminalText: 'npm run eagle:scale --boost=revenue'
   }
 ];
 

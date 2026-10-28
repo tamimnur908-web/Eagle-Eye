@@ -8,7 +8,11 @@ import {
   ShoppingBag,
   Flame,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Terminal,
+  Code2,
+  Box,
+  Image as ImageIcon
 } from 'lucide-react';
 import {
   getPublishedServices,
@@ -17,7 +21,7 @@ import {
   defaultBentoConfig,
   defaultHeroSlides
 } from '../services/firestoreService';
-import { Service, DigitalProduct, BentoConfig } from '../types';
+import { Service, DigitalProduct, BentoConfig, SlideVisualType, TextAnimationStyle } from '../types';
 import { EmptyState } from '../components/EmptyState';
 import { LeadForm } from '../components/LeadForm';
 
@@ -64,22 +68,42 @@ export const HomePage: React.FC = () => {
   const activeSlide = slides[currentSlide] || slides[0] || defaultHeroSlides[0];
   const isPureBanner = activeSlide.isPureBanner || Boolean(activeSlide.bgImage && !activeSlide.title);
 
+  // Dynamic Text Animation & Visual Modes
+  const textAnimation: TextAnimationStyle = activeSlide.textAnimation || bento.defaultTextAnimation || 'typewriter';
+  const animSpeed = activeSlide.textAnimationSpeed === 'fast' ? 18 : activeSlide.textAnimationSpeed === 'slow' ? 55 : 32;
+
+  // Hybrid visual rotation state: cycles text -> 3d -> image every 2.4s if hybrid mode is active
+  const [hybridModeIndex, setHybridModeIndex] = useState(0);
+  useEffect(() => {
+    if (activeSlide.visualType === 'hybrid') {
+      const timer = setInterval(() => {
+        setHybridModeIndex((prev) => (prev + 1) % 3);
+      }, 2400);
+      return () => clearInterval(timer);
+    }
+  }, [activeSlide.visualType, currentSlide]);
+
   // Smooth Typewriter effect whenever active slide changes
   const [typedTitle, setTypedTitle] = useState('');
   useEffect(() => {
     if (isPureBanner) return;
     const fullText = activeSlide.title || bento.heroTitle || 'Empower Your Growth With Intelligent Strategy';
-    setTypedTitle('');
-    let idx = 0;
-    const timer = setInterval(() => {
-      idx++;
-      setTypedTitle(fullText.slice(0, idx));
-      if (idx >= fullText.length) {
-        clearInterval(timer);
-      }
-    }, 32);
-    return () => clearInterval(timer);
-  }, [currentSlide, activeSlide.title, bento.heroTitle, isPureBanner]);
+    
+    if (textAnimation === 'typewriter') {
+      setTypedTitle('');
+      let idx = 0;
+      const timer = setInterval(() => {
+        idx++;
+        setTypedTitle(fullText.slice(0, idx));
+        if (idx >= fullText.length) {
+          clearInterval(timer);
+        }
+      }, animSpeed);
+      return () => clearInterval(timer);
+    } else {
+      setTypedTitle(fullText);
+    }
+  }, [currentSlide, activeSlide.title, bento.heroTitle, isPureBanner, textAnimation, animSpeed]);
 
   return (
     <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-12 sm:space-y-16">
@@ -168,12 +192,29 @@ export const HomePage: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Animated Color-Shifting & Typewriter Headline */}
+                    {/* Animated Color-Shifting & Controlled Typography Headline */}
                     <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight min-h-[72px] sm:min-h-[116px]">
-                      <span className="bg-gradient-to-r from-white via-amber-200 to-cyan-300 bg-clip-text text-transparent animate-gradient-text drop-shadow-sm">
-                        {typedTitle}
+                      <span
+                        key={`title-${currentSlide}-${textAnimation}`}
+                        className={`bg-clip-text text-transparent drop-shadow-sm transition-all ${
+                          textAnimation === 'gradient'
+                            ? 'bg-gradient-to-r from-amber-200 via-rose-300 to-cyan-300 animate-gradient-text'
+                            : textAnimation === 'fade'
+                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-200 animate-pop-in'
+                            : textAnimation === 'bounce'
+                            ? 'bg-gradient-to-r from-white via-amber-200 to-cyan-300 animate-pop-in'
+                            : textAnimation === 'none'
+                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-100'
+                            : 'bg-gradient-to-r from-white via-amber-200 to-cyan-300 animate-gradient-text'
+                        }`}
+                      >
+                        {textAnimation === 'typewriter'
+                          ? typedTitle
+                          : (activeSlide.title || bento.heroTitle || 'Empower Your Growth With Intelligent Strategy')}
                       </span>
-                      <span className="inline-block w-1 h-7 sm:h-10 ml-1.5 bg-amber-400 animate-pulse align-middle" />
+                      {textAnimation === 'typewriter' && (
+                        <span className="inline-block w-1 h-7 sm:h-10 ml-1.5 bg-amber-400 animate-pulse align-middle" />
+                      )}
                     </h1>
 
                     {/* Smooth Fade-in Description */}
@@ -185,46 +226,111 @@ export const HomePage: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* 3D Floating Picture / Interactive Graphic with Pop-in & Continuous Float */}
+                  {/* 3D Floating Picture / Interactive Graphic / Text Terminal / Hybrid */}
                   <div className="md:col-span-4 hidden md:flex items-center justify-center relative">
-                    {activeSlide.image3D ? (
-                      <div
-                        key={`img3d-${currentSlide}`}
-                        className="relative w-48 h-48 lg:w-56 lg:h-56 rounded-2xl overflow-hidden p-2.5 bg-white/10 backdrop-blur-md border border-white/25 shadow-2xl animate-pop-in animate-float"
-                      >
-                        <img
-                          src={activeSlide.image3D}
-                          alt="3D Visual"
-                          className="w-full h-full object-cover rounded-xl shadow-inner"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-white/20 pointer-events-none rounded-2xl" />
-                      </div>
-                    ) : (
-                      /* Floating Pop-up Tech Badges & Vectors if no custom 3D image */
-                      <div
-                        key={`visual-vectors-${currentSlide}`}
-                        className="relative w-48 h-48 lg:w-56 lg:h-56 flex items-center justify-center animate-pop-in"
-                      >
-                        <div className="w-36 h-36 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-500/30 to-amber-400/20 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl animate-float">
-                          <div className="text-center space-y-1">
-                            <Sparkles className="w-8 h-8 text-amber-300 mx-auto animate-pulse" />
-                            <span className="text-[11px] font-black uppercase tracking-wider text-white block">
-                              Verified 4K
-                            </span>
+                    {(() => {
+                      const explicitType = activeSlide.visualType;
+                      const currentVisualMode = explicitType === 'hybrid'
+                        ? (hybridModeIndex === 0 ? 'text' : hybridModeIndex === 1 ? '3d' : 'image')
+                        : explicitType || (activeSlide.image3D ? 'image' : '3d');
+
+                      if (currentVisualMode === 'image') {
+                        return (
+                          <div
+                            key={`visual-img-${currentSlide}-${hybridModeIndex}`}
+                            className="relative w-48 h-48 lg:w-56 lg:h-56 rounded-2xl overflow-hidden p-2.5 bg-white/10 backdrop-blur-md border border-white/25 shadow-2xl animate-pop-in animate-float group"
+                          >
+                            <img
+                              src={
+                                activeSlide.image3D ||
+                                activeSlide.bgImage ||
+                                'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'
+                              }
+                              alt="Feature Graphic"
+                              className="w-full h-full object-cover rounded-xl shadow-inner group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-transparent to-white/20 pointer-events-none rounded-2xl" />
+                            <div className="absolute bottom-2.5 left-2.5 right-2.5 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded-lg text-[9px] font-mono text-center text-sky-200 border border-white/10">
+                              🎨 Feature Artwork
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (currentVisualMode === 'text') {
+                        return (
+                          <div
+                            key={`visual-text-${currentSlide}-${hybridModeIndex}`}
+                            className="relative w-52 h-48 lg:w-60 lg:h-52 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-indigo-500/35 shadow-2xl p-3.5 flex flex-col justify-between animate-pop-in animate-float"
+                          >
+                            {/* Terminal Header */}
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                              <div className="flex items-center space-x-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                              </div>
+                              <span className="text-[9px] font-mono font-bold text-slate-400 flex items-center gap-1">
+                                <Terminal className="w-3 h-3 text-indigo-400" />
+                                eagle:engine
+                              </span>
+                            </div>
+
+                            {/* Terminal Body with Animated Code Line */}
+                            <div className="font-mono text-[11px] space-y-1.5 text-left py-1">
+                              <div className="text-emerald-400 font-bold flex items-center space-x-1">
+                                <span className="text-slate-500">$</span>
+                                <span className="text-amber-300">
+                                  {activeSlide.terminalText || 'deploy --mode=scale'}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-slate-300">
+                                ⚡ <span className="text-cyan-400 font-semibold">Growth Strategy:</span> +320%
+                              </div>
+                              <div className="text-[10px] text-indigo-300">
+                                📦 <span className="text-slate-400">Assets Loaded:</span> Verified 4K
+                              </div>
+                            </div>
+
+                            {/* Terminal Footer Status Pill */}
+                            <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[9px]">
+                              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                ONLINE
+                              </span>
+                              <span className="text-slate-400 font-mono">v3.2 • ACTIVE</span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Default: '3d' (Floating 3D Orb with Badges)
+                      return (
+                        <div
+                          key={`visual-3d-${currentSlide}-${hybridModeIndex}`}
+                          className="relative w-48 h-48 lg:w-56 lg:h-56 flex items-center justify-center animate-pop-in"
+                        >
+                          <div className="w-36 h-36 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-500/30 to-amber-400/20 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl animate-float">
+                            <div className="text-center space-y-1">
+                              <Sparkles className="w-8 h-8 text-amber-300 mx-auto animate-pulse" />
+                              <span className="text-[11px] font-black uppercase tracking-wider text-white block">
+                                {activeSlide.badgeCenterText || 'Verified 4K'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="absolute -top-1 -left-2 px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-md border border-amber-400/40 text-[10px] font-extrabold text-amber-300 shadow-xl animate-float flex items-center space-x-1.5">
+                            <span>🚀</span>
+                            <span>{activeSlide.badge1Text || 'Instant Deploy'}</span>
+                          </div>
+
+                          <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-xl bg-indigo-950/80 backdrop-blur-md border border-sky-400/40 text-[10px] font-extrabold text-sky-300 shadow-xl animate-float-reverse flex items-center space-x-1.5">
+                            <span>⭐</span>
+                            <span>{activeSlide.badge2Text || '4.9/5 Rating'}</span>
                           </div>
                         </div>
-
-                        <div className="absolute -top-1 -left-2 px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-md border border-amber-400/40 text-[10px] font-extrabold text-amber-300 shadow-xl animate-float flex items-center space-x-1.5">
-                          <span>🚀</span>
-                          <span>Instant Deploy</span>
-                        </div>
-
-                        <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-xl bg-indigo-950/80 backdrop-blur-md border border-sky-400/40 text-[10px] font-extrabold text-sky-300 shadow-xl animate-float-reverse flex items-center space-x-1.5">
-                          <span>⭐</span>
-                          <span>4.9/5 Rating</span>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
 

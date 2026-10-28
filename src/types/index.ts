@@ -288,6 +288,9 @@ export interface SiteSettings {
   youtubeUrl?: string;
 }
 
+export type TextAnimationStyle = 'typewriter' | 'fade' | 'gradient' | 'bounce' | 'none';
+export type SlideVisualType = '3d' | 'image' | 'text' | 'hybrid' | 'pure-banner';
+
 export interface HeroSlide {
   id: string;
   tag: string;
@@ -300,6 +303,15 @@ export interface HeroSlide {
   bgImage?: string;
   image3D?: string;
   isPureBanner?: boolean;
+  
+  // Dynamic Text Animation & Visual Mode Controls
+  textAnimation?: TextAnimationStyle;
+  textAnimationSpeed?: 'fast' | 'normal' | 'slow';
+  visualType?: SlideVisualType;
+  badge1Text?: string;
+  badge2Text?: string;
+  badgeCenterText?: string;
+  terminalText?: string;
 }
 
 export interface BentoConfig {
@@ -312,6 +324,8 @@ export interface BentoConfig {
   heroBtn2Link: string;
   heroBgImage?: string;
   heroSlides?: HeroSlide[];
+  defaultTextAnimation?: TextAnimationStyle;
+  defaultVisualType?: SlideVisualType;
 
   card1Tag: string;
   card1Title: string;

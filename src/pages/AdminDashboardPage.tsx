@@ -70,7 +70,11 @@ import {
   EyeOff,
   Unlock,
   Key,
-  Send
+  Send,
+  Terminal,
+  Box,
+  Type,
+  Wand2
 } from 'lucide-react';
 import {
   getAllServices,
@@ -125,7 +129,9 @@ import {
   SocialLink,
   HeaderConfig,
   FooterConfig,
-  SiteSettings
+  SiteSettings,
+  TextAnimationStyle,
+  SlideVisualType
 } from '../types';
 import { useSettings } from '../context/SettingsContext';
 import { SocialIcon, SOCIAL_ICON_OPTIONS } from '../components/SocialIcon';
@@ -263,7 +269,18 @@ export const AdminDashboardPage: React.FC = () => {
   const [newSlideImg, setNewSlideImg] = useState('');
   const [newSlideTitle, setNewSlideTitle] = useState('');
   const [newSlideLink, setNewSlideLink] = useState('/products');
-  const [newSlideIsPureBanner, setNewSlideIsPureBanner] = useState(true);
+  const [newSlideIsPureBanner, setNewSlideIsPureBanner] = useState(false);
+  
+  // Dynamic Slide Animation & Visual Mode Form States
+  const [newSlideTextAnimation, setNewSlideTextAnimation] = useState<TextAnimationStyle>('typewriter');
+  const [newSlideTextSpeed, setNewSlideTextSpeed] = useState<'fast' | 'normal' | 'slow'>('normal');
+  const [newSlideVisualType, setNewSlideVisualType] = useState<SlideVisualType>('3d');
+  const [newSlideBadge1, setNewSlideBadge1] = useState('Instant Deploy');
+  const [newSlideBadgeCenter, setNewSlideBadgeCenter] = useState('Verified 4K');
+  const [newSlideBadge2, setNewSlideBadge2] = useState('4.9/5 Rating');
+  const [newSlideImage3D, setNewSlideImage3D] = useState('');
+  const [newSlideTerminalText, setNewSlideTerminalText] = useState('deploy --mode=scale');
+
   const heroSlideFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [posterSlot, setPosterSlot] = useState<'top' | 'bottom-left' | 'bottom-right'>('top');
@@ -1290,7 +1307,15 @@ export const AdminDashboardPage: React.FC = () => {
     setNewSlideImg(slide.bgImage || '');
     setNewSlideTitle(slide.title || '');
     setNewSlideLink(slide.btn1Link || '/products');
-    setNewSlideIsPureBanner(slide.isPureBanner !== undefined ? slide.isPureBanner : !slide.title);
+    setNewSlideIsPureBanner(slide.isPureBanner !== undefined ? slide.isPureBanner : (slide.visualType === 'pure-banner'));
+    setNewSlideTextAnimation(slide.textAnimation || 'typewriter');
+    setNewSlideTextSpeed(slide.textAnimationSpeed || 'normal');
+    setNewSlideVisualType(slide.visualType || (slide.isPureBanner ? 'pure-banner' : slide.image3D ? 'image' : '3d'));
+    setNewSlideBadge1(slide.badge1Text || 'Instant Deploy');
+    setNewSlideBadgeCenter(slide.badgeCenterText || 'Verified 4K');
+    setNewSlideBadge2(slide.badge2Text || '4.9/5 Rating');
+    setNewSlideImage3D(slide.image3D || '');
+    setNewSlideTerminalText(slide.terminalText || 'deploy --mode=scale');
     setPreviewFocusUploaded(true);
     window.scrollTo({ top: 120, behavior: 'smooth' });
   };
@@ -1300,7 +1325,15 @@ export const AdminDashboardPage: React.FC = () => {
     setNewSlideImg('');
     setNewSlideTitle('');
     setNewSlideLink('/products');
-    setNewSlideIsPureBanner(true);
+    setNewSlideIsPureBanner(false);
+    setNewSlideTextAnimation('typewriter');
+    setNewSlideTextSpeed('normal');
+    setNewSlideVisualType('3d');
+    setNewSlideBadge1('Instant Deploy');
+    setNewSlideBadgeCenter('Verified 4K');
+    setNewSlideBadge2('4.9/5 Rating');
+    setNewSlideImage3D('');
+    setNewSlideTerminalText('deploy --mode=scale');
     setPreviewFocusUploaded(false);
   };
 
@@ -1337,18 +1370,27 @@ export const AdminDashboardPage: React.FC = () => {
         (s) => !s.bgImage || s.id.startsWith('slide-1') || s.id.startsWith('slide-2') || s.id.startsWith('slide-3')
       );
 
+    const isPure = newSlideVisualType === 'pure-banner' || newSlideIsPureBanner;
+
     const newSlide: HeroSlide = {
       id: 'slide-' + Date.now(),
       tag: 'Featured Highlight',
-      title: newSlideIsPureBanner ? '' : (newSlideTitle.trim() || 'Premium Digital Products for Smart Buyers'),
-      description: newSlideIsPureBanner ? '' : 'Explore verified digital tools, agency retainers, and graphic vault.',
+      title: isPure ? '' : (newSlideTitle.trim() || 'Premium Digital Products for Smart Buyers'),
+      description: isPure ? '' : 'Explore verified digital tools, agency retainers, and graphic vault.',
       btn1Text: 'Browse Store',
       btn1Link: newSlideLink.trim() || '/products',
       btn2Text: 'Agency Services',
       btn2Link: '/services',
       bgImage: newSlideImg.trim(),
-      image3D: '',
-      isPureBanner: newSlideIsPureBanner
+      image3D: newSlideVisualType === 'image' ? (newSlideImage3D.trim() || newSlideImg.trim()) : '',
+      isPureBanner: isPure,
+      textAnimation: newSlideTextAnimation,
+      textAnimationSpeed: newSlideTextSpeed,
+      visualType: newSlideVisualType,
+      badge1Text: newSlideBadge1.trim() || 'Instant Deploy',
+      badgeCenterText: newSlideBadgeCenter.trim() || 'Verified 4K',
+      badge2Text: newSlideBadge2.trim() || '4.9/5 Rating',
+      terminalText: newSlideTerminalText.trim() || 'deploy --mode=scale'
     };
 
     let updatedSlides: HeroSlide[] = [];
@@ -1357,9 +1399,17 @@ export const AdminDashboardPage: React.FC = () => {
       currentSlides[editingSlideIndex] = {
         ...currentSlides[editingSlideIndex],
         bgImage: newSlideImg.trim(),
-        title: newSlideIsPureBanner ? '' : (newSlideTitle.trim() || currentSlides[editingSlideIndex].title),
+        title: isPure ? '' : (newSlideTitle.trim() || currentSlides[editingSlideIndex].title),
         btn1Link: newSlideLink.trim() || '/products',
-        isPureBanner: newSlideIsPureBanner
+        isPureBanner: isPure,
+        textAnimation: newSlideTextAnimation,
+        textAnimationSpeed: newSlideTextSpeed,
+        visualType: newSlideVisualType,
+        badge1Text: newSlideBadge1.trim() || 'Instant Deploy',
+        badgeCenterText: newSlideBadgeCenter.trim() || 'Verified 4K',
+        badge2Text: newSlideBadge2.trim() || '4.9/5 Rating',
+        image3D: newSlideVisualType === 'image' ? (newSlideImage3D.trim() || newSlideImg.trim()) : '',
+        terminalText: newSlideTerminalText.trim() || 'deploy --mode=scale'
       };
       updatedSlides = currentSlides;
     } else if (hasOnlyDemoSlides) {
@@ -1821,7 +1871,7 @@ export const AdminDashboardPage: React.FC = () => {
     return (
       <div
         id="admin-side-preview-pane"
-        className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl flex flex-col h-[calc(100vh-120px)] min-h-[680px] max-h-[920px] sticky top-4 select-none"
+        className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl flex flex-col h-[calc(100vh-5.5rem)] max-h-[calc(100vh-5.5rem)] sticky top-2 sm:top-4 z-30 select-none"
       >
         {/* Top Control Bar: Title, Scope Switcher & Device Switcher */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800 gap-2 flex-wrap">
@@ -3055,7 +3105,7 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             ) : (
               /* ================= COMPLETE CREATE NEW PRODUCT FORM (Screens 2, 3, 4, 5) ================= */
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                 <div className="xl:col-span-7 space-y-6">
                   {/* Back Button & Header */}
                 <div className="flex items-center space-x-3">
@@ -3772,8 +3822,8 @@ export const AdminDashboardPage: React.FC = () => {
                 </form>
               </div>
 
-              {/* Right Column: Live Product Card & Full Website Preview */}
-              <div className="xl:col-span-5">
+              {/* Right Column: Live Product Card & Full Website Preview (Pinned) */}
+              <div className="xl:col-span-5 sticky top-2 sm:top-4 self-start z-20">
                 {renderInteractiveWebsitePreviewPane()}
               </div>
             </div>
@@ -4309,7 +4359,7 @@ export const AdminDashboardPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-5">
                 {services.map((srv) => (
                   <div key={srv.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
@@ -4349,8 +4399,8 @@ export const AdminDashboardPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Right Column: Live Service Card & Full Website Preview */}
-              <div className="xl:col-span-5">
+              {/* Right Column: Live Service Card & Full Website Preview (Pinned) */}
+              <div className="xl:col-span-5 sticky top-2 sm:top-4 self-start z-20">
                 {renderInteractiveWebsitePreviewPane()}
               </div>
             </div>
@@ -4483,7 +4533,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             {/* TAB 1: MAIN HERO SLIDER (SCREEN 1 WITH EDIT & REAL-TIME PREVIEW) */}
             {bentoActiveTab === 'slider' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
                 {/* Left Column: + ADD / EDIT HERO SLIDE */}
                 <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
@@ -4586,36 +4636,211 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Pure Banner Graphic Mode Toggle */}
-                    <div className="bg-amber-50/70 border border-amber-200/90 rounded-xl p-3 flex items-start space-x-2.5">
-                      <input
-                        type="checkbox"
-                        id="pureBannerCheckbox"
-                        checked={newSlideIsPureBanner}
-                        onChange={(e) => setNewSlideIsPureBanner(e.target.checked)}
-                        className="mt-0.5 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      />
-                      <label htmlFor="pureBannerCheckbox" className="text-xs text-slate-800 cursor-pointer">
-                        <span className="font-extrabold text-amber-950 block">
-                          Full Banner Graphic (ছবিতেই ডিজাইন ও লেখা আছে)
+                    {/* Visual Mode Selector: 3D, Picture, Text, Hybrid, Pure Banner */}
+                    <div className="space-y-2">
+                      <label className="block font-bold text-slate-700 text-xs flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-indigo-700 uppercase tracking-wider text-[11px] font-black">
+                          <Wand2 className="w-3.5 h-3.5" />
+                          ডান পাশের মিডিয়ার রূপ (Visual Media Mode)
                         </span>
-                        <span className="text-[11px] text-slate-500 block mt-0.5">
-                          টিক দেওয়া থাকলে ছবির ওপর আলাদা কোনো কালো শ্যাডো বা ডুপ্লিকেট লেখা বসবে না। আপনার আপলোড করা ছবিটি ফুল ক্লিয়ার থাকবে এবং অ্যানিমেশন হবে।
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          ইচ্ছামতো ছবি, ৩ডি বা টেক্সট বেছে নিন
                         </span>
                       </label>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {[
+                          { id: '3d', label: '3D Orb & Badges', icon: '🔮', desc: 'ভাসমান থ্রি-ডি অর্ব ও ব্যাজ' },
+                          { id: 'image', label: 'Picture / Art', icon: '🖼️', desc: 'আলাদা ৩ডি ছবি বা আর্টওয়ার্ক' },
+                          { id: 'text', label: 'Terminal / Text', icon: '💻', desc: 'অ্যানিমেটেড কোড টার্মিনাল' },
+                          { id: 'hybrid', label: 'Hybrid (৩টিই)', icon: '🔄', desc: 'Text ➔ 3D ➔ Pic ঘুরবে' },
+                          { id: 'pure-banner', label: 'Full Banner', icon: '🎨', desc: 'পুরো ছবিতেই ব্যানার' },
+                        ].map((m) => {
+                          const active = newSlideVisualType === m.id;
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => {
+                                setNewSlideVisualType(m.id as SlideVisualType);
+                                if (m.id === 'pure-banner') {
+                                  setNewSlideIsPureBanner(true);
+                                } else {
+                                  setNewSlideIsPureBanner(false);
+                                }
+                              }}
+                              className={`p-2.5 rounded-xl border text-left transition-all ${
+                                active
+                                  ? 'border-indigo-600 bg-indigo-50/80 text-indigo-950 shadow-xs ring-2 ring-indigo-500/20'
+                                  : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
+                              }`}
+                            >
+                              <div className="text-base mb-1">{m.icon}</div>
+                              <div className="font-extrabold text-[11px] leading-tight">{m.label}</div>
+                              <div className="text-[9px] text-slate-500 line-clamp-1 mt-0.5">{m.desc}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
+                    {/* Contextual Visual Configuration Details */}
+                    {newSlideVisualType === '3d' && (
+                      <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl space-y-2.5 animate-fadeIn">
+                        <span className="text-[10px] uppercase font-bold text-indigo-700 tracking-wider block">
+                          3D Orb & Badges Customizer:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Center Text</label>
+                            <input
+                              type="text"
+                              value={newSlideBadgeCenter}
+                              onChange={(e) => setNewSlideBadgeCenter(e.target.value)}
+                              placeholder="Verified 4K"
+                              className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Top Left Badge</label>
+                            <input
+                              type="text"
+                              value={newSlideBadge1}
+                              onChange={(e) => setNewSlideBadge1(e.target.value)}
+                              placeholder="Instant Deploy"
+                              className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Bottom Right Badge</label>
+                            <input
+                              type="text"
+                              value={newSlideBadge2}
+                              onChange={(e) => setNewSlideBadge2(e.target.value)}
+                              placeholder="4.9/5 Rating"
+                              className="w-full text-xs px-2.5 py-1.5 rounded-lg bg-white border border-indigo-200 font-bold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {newSlideVisualType === 'image' && (
+                      <div className="p-3 bg-purple-50/50 border border-purple-100 rounded-xl space-y-2 animate-fadeIn">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-bold text-purple-700 tracking-wider">
+                            Feature 3D Picture / Graphic Artwork URL:
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setNewSlideImage3D('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80')}
+                            className="text-[10px] font-bold text-purple-600 hover:underline"
+                          >
+                            Sample 3D Image
+                          </button>
+                        </div>
+                        <input
+                          type="url"
+                          value={newSlideImage3D}
+                          onChange={(e) => setNewSlideImage3D(e.target.value)}
+                          placeholder="https://images.unsplash.com/... or paste image URL"
+                          className="w-full text-xs px-3 py-1.5 rounded-lg bg-white border border-purple-200 font-mono"
+                        />
+                      </div>
+                    )}
+
+                    {newSlideVisualType === 'text' && (
+                      <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl space-y-1.5 text-white animate-fadeIn">
+                        <label className="text-[10px] uppercase font-mono font-bold text-emerald-400 tracking-wider block">
+                          Terminal Command & Live Text:
+                        </label>
+                        <input
+                          type="text"
+                          value={newSlideTerminalText}
+                          onChange={(e) => setNewSlideTerminalText(e.target.value)}
+                          placeholder="npm run eagle:grow --scale=10x"
+                          className="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 font-mono text-amber-300"
+                        />
+                      </div>
+                    )}
+
+                    {newSlideVisualType === 'hybrid' && (
+                      <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900 font-semibold flex items-center gap-2 animate-fadeIn">
+                        <span>🔄</span>
+                        <span>
+                          <strong>Hybrid Active:</strong> স্লাইড চলাকালীন ডান পাশে স্বয়ংক্রিয়ভাবে চক্রাকারে <strong>Text (টার্মিনাল) ➔ 3D (অর্ব) ➔ Picture (ছবি)</strong> ঘুরবে।
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Text Animation Options (When NOT Pure Banner) */}
+                    {newSlideVisualType !== 'pure-banner' && !newSlideIsPureBanner && (
+                      <div className="space-y-2 p-3.5 bg-slate-50/80 border border-slate-200/90 rounded-2xl">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <label className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                            <Type className="w-3.5 h-3.5 text-blue-600" />
+                            টেক্সট অ্যানিমেশন স্টাইল (Text Animation)
+                          </label>
+                          <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200 text-[10px] font-bold">
+                            <span className="text-slate-400 px-1">Speed:</span>
+                            {(['fast', 'normal', 'slow'] as const).map((spd) => (
+                              <button
+                                key={spd}
+                                type="button"
+                                onClick={() => setNewSlideTextSpeed(spd)}
+                                className={`px-2 py-0.5 rounded capitalize transition-colors ${
+                                  newSlideTextSpeed === spd
+                                    ? 'bg-blue-600 text-white shadow-xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                                }`}
+                              >
+                                {spd}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+                          {[
+                            { id: 'typewriter', label: 'Typewriter', icon: '⌨️', note: 'এক এক অক্ষর টাইপ হবে' },
+                            { id: 'fade', label: 'Smooth Fade', icon: '🌊', note: 'স্মুথ ফেড ইন' },
+                            { id: 'gradient', label: 'Gradient Glow', icon: '🌈', note: 'কালার মোশন' },
+                            { id: 'bounce', label: 'Pop Bounce', icon: '⚡', note: 'স্কেল বাউন্স' },
+                            { id: 'none', label: 'Static Crisp', icon: '⏹️', note: 'স্থির টেক্সট' },
+                          ].map((anim) => {
+                            const isSelected = newSlideTextAnimation === anim.id;
+                            return (
+                              <button
+                                key={anim.id}
+                                type="button"
+                                onClick={() => setNewSlideTextAnimation(anim.id as TextAnimationStyle)}
+                                className={`p-2 rounded-xl border text-center transition-all ${
+                                  isSelected
+                                    ? 'border-blue-600 bg-white text-blue-900 shadow-xs ring-2 ring-blue-500/20 font-bold'
+                                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600'
+                                }`}
+                              >
+                                <span className="text-sm block">{anim.icon}</span>
+                                <span className="text-[10px] block font-bold mt-0.5">{anim.label}</span>
+                                <span className="text-[8px] text-slate-400 block">{anim.note}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Slide Title / Description (Optional when Pure Banner is selected) */}
-                    {!newSlideIsPureBanner && (
+                    {newSlideVisualType !== 'pure-banner' && !newSlideIsPureBanner && (
                       <div>
                         <label className="block font-bold text-slate-700 mb-1">
-                          Slide Title / Description (Text Overlay)
+                          Slide Title / Headline
                         </label>
                         <input
                           type="text"
                           value={newSlideTitle}
                           onChange={(e) => setNewSlideTitle(e.target.value)}
-                          placeholder="e.g. Premium Digital Products for Smart Buyers"
+                          placeholder="e.g. Empower Your Growth With Intelligent Strategy"
                           className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all font-semibold"
                         />
                       </div>
@@ -4662,11 +4887,11 @@ export const AdminDashboardPage: React.FC = () => {
                   </form>
                 </div>
 
-                {/* Right Column: LIVE HOMEPAGE PREVIEW & ACTIVE BANNERS */}
-                <div className="lg:col-span-6 space-y-6">
+                {/* Right Column: LIVE HOMEPAGE PREVIEW & ACTIVE BANNERS (Pinned) */}
+                <div className="lg:col-span-6 space-y-6 sticky top-2 sm:top-4 self-start z-20">
                   
-                  {/* REAL-TIME WEBSITE LIVE PREVIEW CARD (Interactive, Full Layout Toggle & Animated) */}
-                  <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+                  {/* REAL-TIME WEBSITE LIVE PREVIEW CARD (Interactive, Full Layout Toggle & Animated, Pinned) */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-md space-y-4 max-h-[calc(100vh-5.5rem)] overflow-y-auto">
                     
                     {/* Preview Top Header & Controls */}
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
@@ -4917,8 +5142,29 @@ export const AdminDashboardPage: React.FC = () => {
 
                               {!previewIsPure ? (
                                 <>
-                                  {/* Typography & Floating Vectors */}
-                                  <div className="relative z-20 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                                  {(() => {
+                                    const effectiveVisualType: SlideVisualType = isUploadedFocused
+                                      ? newSlideVisualType
+                                      : (editingSlideIndex === previewSlideIndex ? newSlideVisualType : (currentPreview?.visualType || (currentPreview?.image3D ? 'image' : '3d')));
+
+                                    const effectiveTextAnim: TextAnimationStyle = isUploadedFocused
+                                      ? newSlideTextAnimation
+                                      : (editingSlideIndex === previewSlideIndex ? newSlideTextAnimation : (currentPreview?.textAnimation || 'typewriter'));
+
+                                    const effectiveBadgeCenter = isUploadedFocused
+                                      ? newSlideBadgeCenter
+                                      : (editingSlideIndex === previewSlideIndex ? newSlideBadgeCenter : (currentPreview?.badgeCenterText || 'Verified 4K'));
+
+                                    const effectiveBadge1 = isUploadedFocused
+                                      ? newSlideBadge1
+                                      : (editingSlideIndex === previewSlideIndex ? newSlideBadge1 : (currentPreview?.badge1Text || 'Instant Deploy'));
+
+                                    const effectiveTerminal = isUploadedFocused
+                                      ? newSlideTerminalText
+                                      : (editingSlideIndex === previewSlideIndex ? newSlideTerminalText : (currentPreview?.terminalText || 'deploy --mode=scale'));
+
+                                    return (
+                                      <div className="relative z-20 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
                                     <div className="sm:col-span-8 space-y-2 max-w-sm">
                                       {/* Pop-in Animated Tag Badge */}
                                       <div
@@ -5244,7 +5490,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             {/* TAB 2: SIDE PROMO POSTERS (SCREEN 2) */}
             {bentoActiveTab === 'posters' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
                 {/* Left Column: + UPLOAD SIDE PROMO POSTER */}
                 <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
@@ -5449,8 +5695,8 @@ export const AdminDashboardPage: React.FC = () => {
                   </form>
                 </div>
 
-                {/* Right Column: CURRENT SIDE POSTERS LAYOUT (Exact Visual Box from Screen 2) */}
-                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
+                {/* Right Column: CURRENT SIDE POSTERS LAYOUT (Pinned) */}
+                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm sticky top-2 sm:top-4 self-start z-20 max-h-[calc(100vh-5.5rem)] overflow-y-auto">
                   <div>
                     <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
                       CURRENT SIDE POSTERS LAYOUT
@@ -6693,7 +6939,7 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             {/* Settings Form Grid (Side-by-Side with Live Preview) */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               {/* Left Column: Editable Fields (7 cols) */}
               <div className="xl:col-span-7 space-y-6">
                 {/* Brand Identity Card */}
@@ -6889,8 +7135,8 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Right Column: Interactive Live Preview Pane (5 cols) */}
-              <div className="xl:col-span-5">
+              {/* Right Column: Interactive Live Preview Pane (5 cols, Pinned) */}
+              <div className="xl:col-span-5 sticky top-2 sm:top-4 self-start z-20">
                 {renderInteractiveWebsitePreviewPane()}
               </div>
             </div>
@@ -6974,7 +7220,7 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             {/* Split Layout: Settings Controls on Left (7 cols) & Interactive Live Preview on Right (5 cols) */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               <div className="xl:col-span-7 space-y-6">
                 {/* ================= SUB-TAB 1: SOCIAL MEDIA MANAGER ================= */}
             {headerFooterActiveTab === 'social' && (
@@ -7784,8 +8030,8 @@ export const AdminDashboardPage: React.FC = () => {
             )}
               </div>
 
-              {/* Right Column: Interactive Live Website Preview Pane (5 cols) */}
-              <div className="xl:col-span-5">
+              {/* Right Column: Interactive Live Website Preview Pane (5 cols, Pinned) */}
+              <div className="xl:col-span-5 sticky top-2 sm:top-4 self-start z-20">
                 {renderInteractiveWebsitePreviewPane()}
               </div>
             </div>
