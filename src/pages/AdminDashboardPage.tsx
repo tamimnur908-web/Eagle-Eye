@@ -275,7 +275,7 @@ export const AdminDashboardPage: React.FC = () => {
   // Real-time Preview States & Dynamic Typewriter for Admin
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
   const [previewAutoPlay, setPreviewAutoPlay] = useState(true);
-  const [previewViewMode, setPreviewViewMode] = useState<'slider' | 'full-layout'>('slider');
+  const [previewViewMode, setPreviewViewMode] = useState<'slider' | 'full-layout' | 'full-website'>('slider');
   const [previewTypedTitle, setPreviewTypedTitle] = useState('');
   const [previewFocusUploaded, setPreviewFocusUploaded] = useState(false);
 
@@ -339,6 +339,9 @@ export const AdminDashboardPage: React.FC = () => {
   });
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Mobile Navigation Drawer State
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Admins & Roles Management States
   const [admins, setAdmins] = useState<AdminUser[]>([]);
@@ -469,6 +472,16 @@ export const AdminDashboardPage: React.FC = () => {
   const [previewDevice, setPreviewDevice] = useState<'laptop' | 'tablet' | 'phone'>('laptop');
   const [webPreviewDevice, setWebPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [previewMobileNavOpen, setPreviewMobileNavOpen] = useState(false);
+  // Side Panel Preview Mode: 'section' (focused component default) vs 'full' (complete website)
+  const [sidePreviewScope, setSidePreviewScope] = useState<'section' | 'full'>('section');
+
+  const handleToggleSideFullPreview = () => {
+    setSidePreviewScope((prev) => (prev === 'full' ? 'section' : 'full'));
+    const el = document.getElementById('admin-side-preview-pane');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
 
   useEffect(() => {
     if (globalSiteSettings) {
@@ -1806,8 +1819,11 @@ export const AdminDashboardPage: React.FC = () => {
     const currentSlide = (bentoForm.heroSlides && bentoForm.heroSlides[previewSlideIndex]) || bentoForm.heroSlides?.[0];
 
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl flex flex-col h-[calc(100vh-120px)] min-h-[660px] max-h-[890px] sticky top-4 select-none">
-        {/* Top Control Bar: Title & Device Switcher */}
+      <div
+        id="admin-side-preview-pane"
+        className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl flex flex-col h-[calc(100vh-120px)] min-h-[680px] max-h-[920px] sticky top-4 select-none"
+      >
+        {/* Top Control Bar: Title, Scope Switcher & Device Switcher */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800 gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-amber-400" />
@@ -1817,53 +1833,86 @@ export const AdminDashboardPage: React.FC = () => {
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Real-time Draft Sync" />
           </div>
 
-          {/* 3 Device Options: Phone, Laptop, Tablet */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setPreviewDevice('phone')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                previewDevice === 'phone'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>Phone</span>
-            </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Scope Switcher: Section Only vs Full Website */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setSidePreviewScope('section')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                  sidePreviewScope === 'section'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="কারেন্ট সেকশন প্রিভিউ (ডিফল্ট)"
+              >
+                <Sliders className="w-3 h-3" />
+                <span>Section Only</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setPreviewDevice('laptop')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                previewDevice === 'laptop'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Laptop className="w-3.5 h-3.5" />
-              <span>Laptop</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setSidePreviewScope('full')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                  sidePreviewScope === 'full'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="সম্পূর্ণ লাইভ ওয়েবসাইট প্রিভিউ"
+              >
+                <Globe className="w-3 h-3" />
+                <span>Full Website</span>
+              </button>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setPreviewDevice('tablet')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                previewDevice === 'tablet'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Tablet className="w-3.5 h-3.5" />
-              <span>Tablet</span>
-            </button>
+            {/* 3 Device Options: Phone, Laptop, Tablet */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setPreviewDevice('phone')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                  previewDevice === 'phone'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Smartphone className="w-3 h-3" />
+                <span className="hidden sm:inline">Phone</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewDevice('laptop')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                  previewDevice === 'laptop'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Laptop className="w-3 h-3" />
+                <span className="hidden sm:inline">Laptop</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreviewDevice('tablet')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                  previewDevice === 'tablet'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Tablet className="w-3 h-3" />
+                <span className="hidden sm:inline">Tablet</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Guidance badge */}
         <div className="py-1.5 px-2 text-[10px] text-slate-400 flex items-center justify-between">
           <span className="text-amber-300 font-medium">
-            💡 প্রিভিউতে সব লিংক, হোয়াটসঅ্যাপ ও আইকন লাইভ ক্লিকেবল!
+            💡 {sidePreviewScope === 'section' ? 'কারেন্ট সেকশন প্রিভিউ (ডিফল্ট) — ফুল ওয়েবসাইট দেখতে "Full Website" চাপুন' : 'ফুল ওয়েবসাইট প্রিভিউ — স্ক্রোল করুন ও সব লিঙ্ক লাইভ ক্লিক করুন'}
           </span>
           <span className="font-mono text-indigo-400 font-bold capitalize">
             {previewDevice === 'phone' ? '📱 Mobile Frame' : previewDevice === 'laptop' ? '💻 Widescreen' : '📟 Tablet Frame'}
@@ -1893,343 +1942,758 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             )}
 
-            {/* 1. Announcement Bar */}
-            {headerForm.showAnnouncement !== false && (
-              <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 leading-tight">
-                <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
-                <span className="truncate">
-                  {headerForm.announcementText || '⚡ SPECIAL OFFER: Empower your digital presence with Eagle Eye Digital!'}
-                </span>
-                {headerForm.announcementLink && (
-                  <a
-                    href={headerForm.announcementLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[9px] underline font-bold bg-white/20 px-1.5 py-0.5 rounded ml-0.5 hover:bg-white/30"
-                  >
-                    View →
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* 2. Navbar */}
-            <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 py-2 flex items-center justify-between gap-2 shadow-xs">
-              {/* Brand Logo & Name */}
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-sm flex items-center justify-center flex-shrink-0">
-                  {siteForm.logoUrl ? (
-                    <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-900 rounded-md flex items-center justify-center text-white font-black text-[9px]">
-                      EE
+            {/* ================= CONDITION 1: SECTION-FOCUSED PREVIEW ================= */}
+            {sidePreviewScope === 'section' ? (
+              <div className="p-4 space-y-4 bg-slate-50 text-slate-800 text-xs">
+                {/* 1.1 SITE SETTINGS SPECIFIC SECTION PREVIEW */}
+                {activeMenu === 'settings' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                        <Settings className="w-3.5 h-3.5" />
+                        Site Identity & Header Preview
+                      </span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                        Live Sync
+                      </span>
                     </div>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-black tracking-tight text-slate-900 truncate flex items-center gap-1">
-                    <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                      {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
-                    </span>
-                  </div>
-                  <div className="text-[7px] font-extrabold tracking-widest text-slate-400 uppercase truncate">
-                    {siteForm.tagline || 'YOUR DIGITAL WORLD'}
-                  </div>
-                </div>
-              </div>
 
-              {/* Laptop Navigation Links */}
-              {previewDevice === 'laptop' && (
-                <nav className="flex items-center gap-2.5 text-[11px] font-bold text-slate-700">
-                  {(headerForm.navLinks || []).slice(0, 5).map((link, idx) => (
-                    <a
-                      key={idx}
-                      href={link.path}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:text-indigo-600 transition-colors py-0.5"
-                    >
-                      {link.label}
-                    </a>
-                  ))}
-                </nav>
-              )}
+                    {/* Announcement Bar */}
+                    {headerForm.showAnnouncement !== false && (
+                      <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
+                        <span className="truncate">{headerForm.announcementText || 'Special Offer Available'}</span>
+                      </div>
+                    )}
 
-              {/* Right: CTA & Actions */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {/* Header Social Icons (Laptop & Tablet) */}
-                {previewDevice !== 'phone' && (
-                  <div className="flex items-center gap-1">
-                    {activeHeaderSocials.map((item) => (
-                      <a
-                        key={item.id}
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        title={item.platform}
-                        className="p-1 rounded-md bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition-colors"
-                      >
-                        <SocialIcon link={item} className="w-3 h-3" size={12} />
-                      </a>
-                    ))}
-                  </div>
-                )}
+                    {/* Live Brand Navbar Card */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-xs flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-sm flex items-center justify-center">
+                          {siteForm.logoUrl ? (
+                            <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
+                          ) : (
+                            <span className="text-[9px] font-black text-white">EE</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-xs font-black text-slate-900 leading-none">
+                            {siteForm.brandName || 'Eagle Eye Digital'}
+                          </div>
+                          <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                            {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                          </div>
+                        </div>
+                      </div>
 
-                {/* Chat Support WhatsApp Pill */}
-                {headerForm.showChatSupport !== false && (
-                  <a
-                    href={`https://wa.me/${(headerForm.chatSupportNumber || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    title="Click to test WhatsApp Link"
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[9px] shadow-xs hover:bg-emerald-100 transition-all cursor-pointer"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="truncate">{headerForm.chatSupportText || 'Chat Support'}</span>
-                  </a>
-                )}
-
-                {/* Phone Hamburger Menu Toggle */}
-                {previewDevice === 'phone' && (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewMobileNavOpen(!previewMobileNavOpen)}
-                    className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
-                    title="Toggle Mobile Menu"
-                  >
-                    {previewMobileNavOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
-                  </button>
-                )}
-              </div>
-            </header>
-
-            {/* Phone Mobile Drawer Menu (When opened) */}
-            {previewDevice === 'phone' && previewMobileNavOpen && (
-              <div className="bg-slate-50 border-b border-slate-200 p-3 space-y-2 text-xs animate-in fade-in">
-                <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Navigation Menu</div>
-                <div className="flex flex-col gap-1.5">
-                  {(headerForm.navLinks || []).map((link, idx) => (
-                    <a
-                      key={idx}
-                      href={link.path}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-1.5 rounded-lg bg-white border border-slate-200 font-semibold text-slate-800 flex items-center justify-between"
-                    >
-                      <span>{link.label}</span>
-                      <ChevronRight className="w-3 h-3 text-slate-400" />
-                    </a>
-                  ))}
-                </div>
-
-                {activeHeaderSocials.length > 0 && (
-                  <div className="pt-2 border-t border-slate-200">
-                    <span className="text-[9px] text-slate-400 font-bold block mb-1">Official Channels</span>
-                    <div className="flex items-center gap-1.5">
-                      {activeHeaderSocials.map((item) => (
+                      {/* Chat Support WhatsApp Pill */}
+                      {headerForm.showChatSupport !== false && (
                         <a
-                          key={item.id}
-                          href={item.url}
+                          href={`https://wa.me/${(headerForm.chatSupportNumber || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="p-1 rounded bg-white border border-slate-200 text-slate-700"
+                          className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[9px] flex items-center gap-1 hover:bg-emerald-100 transition-colors shadow-2xs"
                         >
-                          <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>{headerForm.chatSupportText || 'Chat Support'}</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Support Coordinates Details */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 text-[11px]">
+                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                        Official Helpline & Email
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Official Helpline:</span>
+                        <a
+                          href={`https://wa.me/${(siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-emerald-700 font-bold hover:underline"
+                        >
+                          {siteForm.whatsappNumber || '+880 1836-126791'}
+                        </a>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Official Email:</span>
+                        <a
+                          href={`mailto:${siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
+                          className="font-mono text-indigo-700 font-bold hover:underline truncate max-w-[180px]"
+                        >
+                          {siteForm.businessEmail || 'support@eagleeyedigital.com'}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1.2 HEADER, FOOTER & SOCIAL SPECIFIC SECTION PREVIEW */}
+                {activeMenu === 'footer' && (
+                  <div className="space-y-3">
+                    {/* Subtab 1: Social Placements Preview */}
+                    {headerFooterActiveTab === 'social' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                            <Globe className="w-3.5 h-3.5" />
+                            Social Presence Placements
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {socialList.filter((s) => s.isActive).length} Active
+                          </span>
+                        </div>
+
+                        {/* Floating Sidebar Dock Preview */}
+                        <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
+                            <span>1. Sticky Floating Sidebar Dock</span>
+                            <span className="text-indigo-600 font-mono">
+                              {activeSidebarSocials.length} Icons
+                            </span>
+                          </div>
+                          <div className="h-16 bg-slate-900 rounded-lg p-2 flex items-center justify-end">
+                            <div className="flex gap-1.5 p-1 bg-slate-950/90 rounded-xl border border-slate-700 shadow-md">
+                              {activeSidebarSocials.length > 0 ? (
+                                activeSidebarSocials.map((item) => (
+                                  <a
+                                    key={item.id}
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={item.platform}
+                                    className="w-6 h-6 rounded-lg bg-white/10 hover:bg-indigo-600 text-white flex items-center justify-center transition-all hover:scale-110"
+                                  >
+                                    <SocialIcon link={item} className="w-3 h-3" size={12} />
+                                  </a>
+                                ))
+                              ) : (
+                                <span className="text-[9px] text-slate-500 italic px-2">No sidebar icons selected</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Header & Footer Social Preview */}
+                        <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
+                            <span>2. Header & Footer Social Icons</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            {activeFooterSocials.map((item) => (
+                              <a
+                                key={item.id}
+                                href={item.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={item.platform}
+                                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center transition-all shadow-xs"
+                              >
+                                <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subtab 2: Header & Nav Preview */}
+                    {headerFooterActiveTab === 'header' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                            <Sliders className="w-3.5 h-3.5" />
+                            Header & Nav Preview
+                          </span>
+                        </div>
+
+                        {/* Announcement Bar */}
+                        {headerForm.showAnnouncement !== false && (
+                          <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5">
+                            <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
+                            <span className="truncate">{headerForm.announcementText || 'Special Offer!'}</span>
+                          </div>
+                        )}
+
+                        {/* Navbar Preview */}
+                        <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-bold text-xs text-slate-900">{siteForm.brandName || 'Eagle Eye'}</div>
+                            {headerForm.showChatSupport !== false && (
+                              <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+                                {headerForm.chatSupportText || 'Chat Support'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {(headerForm.navLinks || []).map((l, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-600">
+                                {l.label}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subtab 3: Footer Preview */}
+                    {headerFooterActiveTab === 'footer' && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5" />
+                            Footer Columns Preview
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-slate-900 text-slate-300 rounded-xl space-y-3">
+                          <div className="text-xs font-black text-white">{siteForm.brandName || 'Eagle Eye Digital'}</div>
+                          <p className="text-[10px] text-slate-400 line-clamp-2">
+                            {footerForm.aboutText || 'Empowering businesses worldwide.'}
+                          </p>
+                          <div className="pt-2 border-t border-slate-800 text-[10px] flex justify-between text-slate-500">
+                            <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
+                            <span className="text-indigo-400">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 1.3 PRODUCTS SPECIFIC SECTION PREVIEW */}
+                {activeMenu === 'products' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                        <Package className="w-3.5 h-3.5" />
+                        Live Product Card Preview
+                      </span>
+                      <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                        {prodForm.productType || 'Template'}
+                      </span>
+                    </div>
+
+                    {/* Product Card Mockup */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-3 space-y-2.5 shadow-sm">
+                      <div className="h-32 w-full bg-slate-100 rounded-xl overflow-hidden relative flex items-center justify-center">
+                        {prodForm.thumbnailUrl ? (
+                          <img src={prodForm.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                        ) : (
+                          <Package className="w-10 h-10 text-slate-300" />
+                        )}
+                        {prodForm.showDiscountBadge && (
+                          <span className="absolute top-2 right-2 bg-rose-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full shadow-sm">
+                            HOT SALE
+                          </span>
+                        )}
+                        <span className="absolute bottom-2 left-2 bg-black/60 text-white font-bold text-[8px] px-2 py-0.5 rounded-md backdrop-blur-xs">
+                          {prodForm.category || 'Digital'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="text-xs font-black text-slate-900 leading-snug">
+                          {prodForm.name || 'Sample Digital Product Title'}
+                        </h4>
+                        <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
+                          {prodForm.shortDescription || 'High performance graphic asset and digital files ready for download.'}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-black text-blue-600">
+                            ৳{prodForm.salePrice || prodForm.price || 0} BDT
+                          </span>
+                          {prodForm.salePrice && prodForm.price && prodForm.price > prodForm.salePrice ? (
+                            <span className="text-[9px] text-slate-400 line-through ml-1.5">
+                              ৳{prodForm.price}
+                            </span>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-[10px] shadow-xs hover:bg-blue-700"
+                        >
+                          {prodForm.customDownloadBtnText || 'Order Now'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1.4 SERVICES SPECIFIC SECTION PREVIEW */}
+                {activeMenu === 'services' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5" />
+                        Live Service Card Preview
+                      </span>
+                      <span className="text-[9px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full">
+                        Agency Service
+                      </span>
+                    </div>
+
+                    <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2.5 shadow-sm">
+                      <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                        {serviceForm.category || 'Client Service'}
+                      </span>
+                      <h4 className="text-sm font-black text-slate-900">
+                        {serviceForm.name || 'Premium Agency Web Development'}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        {serviceForm.shortDescription || 'Full bespoke delivery, custom animations, integrations, and continuous support.'}
+                      </p>
+                      <div className="pt-2 border-t border-slate-100 flex justify-end">
+                        <a
+                          href={`https://wa.me/${(siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-[10px] shadow-xs"
+                        >
+                          Book Strategy Call →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 1.5 HOMEPAGE SPECIFIC SECTION PREVIEW */}
+                {activeMenu === 'homepage' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                        <ImagePlus className="w-3.5 h-3.5" />
+                        Hero Banner Preview
+                      </span>
+                    </div>
+
+                    {/* Hero Slider Box */}
+                    <div className="rounded-xl bg-slate-950 text-white p-4 relative overflow-hidden shadow-md min-h-[140px] flex flex-col justify-between">
+                      {currentSlide?.bgImage && (
+                        <div className="absolute inset-0 z-0">
+                          <img src={currentSlide.bgImage} alt="Banner" className="w-full h-full object-cover opacity-40" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                        </div>
+                      )}
+                      <div className="relative z-10 space-y-1">
+                        <span className="text-[8px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+                          {currentSlide?.tag || 'Next-Gen Solutions'}
+                        </span>
+                        <h4 className="text-xs font-black text-white leading-tight">
+                          {currentSlide?.title || 'Empower Your Growth'}
+                        </h4>
+                      </div>
+                      <div className="relative z-10 pt-2 flex items-center justify-between">
+                        <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded">
+                          {currentSlide?.btn1Text || 'Browse'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {(bentoForm.heroSlides || []).map((_, idx) => (
+                            <div
+                              key={idx}
+                              className={`rounded-full ${previewSlideIndex === idx ? 'w-2.5 h-1 bg-amber-400' : 'w-1 h-1 bg-white/40'}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ================= CONDITION 2: FULL SCROLLABLE WEBSITE PREVIEW ================= */
+              <div className="w-full flex flex-col">
+                {/* 1. Announcement Bar */}
+                {headerForm.showAnnouncement !== false && (
+                  <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 leading-tight">
+                    <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
+                    <span className="truncate">
+                      {headerForm.announcementText || '⚡ SPECIAL OFFER: Empower your digital presence with Eagle Eye Digital!'}
+                    </span>
+                    {headerForm.announcementLink && (
+                      <a
+                        href={headerForm.announcementLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[9px] underline font-bold bg-white/20 px-1.5 py-0.5 rounded ml-0.5 hover:bg-white/30"
+                      >
+                        View →
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. Navbar */}
+                <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 py-2 flex items-center justify-between gap-2 shadow-xs">
+                  {/* Brand Logo & Name */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-sm flex items-center justify-center flex-shrink-0">
+                      {siteForm.logoUrl ? (
+                        <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
+                      ) : (
+                        <div className="w-full h-full bg-slate-900 rounded-md flex items-center justify-center text-white font-black text-[9px]">
+                          EE
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black tracking-tight text-slate-900 truncate flex items-center gap-1">
+                        <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                          {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
+                        </span>
+                      </div>
+                      <div className="text-[7px] font-extrabold tracking-widest text-slate-400 uppercase truncate">
+                        {siteForm.tagline || 'YOUR DIGITAL WORLD'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Laptop Navigation Links */}
+                  {previewDevice === 'laptop' && (
+                    <nav className="flex items-center gap-2.5 text-[11px] font-bold text-slate-700">
+                      {(headerForm.navLinks || []).slice(0, 5).map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.path}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-indigo-600 transition-colors py-0.5"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
+                    </nav>
+                  )}
+
+                  {/* Right: CTA & Actions */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {/* Header Social Icons (Laptop & Tablet) */}
+                    {previewDevice !== 'phone' && (
+                      <div className="flex items-center gap-1">
+                        {activeHeaderSocials.map((item) => (
+                          <a
+                            key={item.id}
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={item.platform}
+                            className="p-1 rounded-md bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition-colors"
+                          >
+                            <SocialIcon link={item} className="w-3 h-3" size={12} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Chat Support WhatsApp Pill */}
+                    {headerForm.showChatSupport !== false && (
+                      <a
+                        href={`https://wa.me/${(headerForm.chatSupportNumber || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Click to test WhatsApp Link"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[9px] shadow-xs hover:bg-emerald-100 transition-all cursor-pointer"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="truncate">{headerForm.chatSupportText || 'Chat Support'}</span>
+                      </a>
+                    )}
+
+                    {/* Phone Hamburger Menu Toggle */}
+                    {previewDevice === 'phone' && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewMobileNavOpen(!previewMobileNavOpen)}
+                        className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
+                        title="Toggle Mobile Menu"
+                      >
+                        {previewMobileNavOpen ? <X className="w-3.5 h-3.5" /> : <Menu className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </div>
+                </header>
+
+                {/* Phone Mobile Drawer Menu */}
+                {previewDevice === 'phone' && previewMobileNavOpen && (
+                  <div className="bg-slate-50 border-b border-slate-200 p-3 space-y-2 text-xs animate-in fade-in">
+                    <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Navigation Menu</div>
+                    <div className="flex flex-col gap-1.5">
+                      {(headerForm.navLinks || []).map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.path}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 rounded-lg bg-white border border-slate-200 font-semibold text-slate-800 flex items-center justify-between"
+                        >
+                          <span>{link.label}</span>
+                          <ChevronRight className="w-3 h-3 text-slate-400" />
                         </a>
                       ))}
                     </div>
+
+                    {activeHeaderSocials.length > 0 && (
+                      <div className="pt-2 border-t border-slate-200">
+                        <span className="text-[9px] text-slate-400 font-bold block mb-1">Official Channels</span>
+                        <div className="flex items-center gap-1.5">
+                          {activeHeaderSocials.map((item) => (
+                            <a
+                              key={item.id}
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1 rounded bg-white border border-slate-200 text-slate-700"
+                            >
+                              <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* 3. Hero Banner & Bento Section */}
-            <div className="p-3 bg-slate-50 space-y-3">
-              {/* Main Slider Box */}
-              <div className="rounded-xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white p-4 relative overflow-hidden shadow-sm flex flex-col justify-between min-h-[160px]">
-                {/* Background Slide Image */}
-                {currentSlide?.bgImage && (
-                  <div className="absolute inset-0 z-0">
-                    <img
-                      src={currentSlide.bgImage}
-                      alt="Banner"
-                      className="w-full h-full object-cover opacity-35"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-                  </div>
-                )}
+                {/* 3. Hero Banner & Bento Section */}
+                <div className="p-3 bg-slate-50 space-y-3">
+                  {/* Main Slider Box */}
+                  <div className="rounded-xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white p-4 relative overflow-hidden shadow-sm flex flex-col justify-between min-h-[160px]">
+                    {currentSlide?.bgImage && (
+                      <div className="absolute inset-0 z-0">
+                        <img
+                          src={currentSlide.bgImage}
+                          alt="Banner"
+                          className="w-full h-full object-cover opacity-35"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                      </div>
+                    )}
 
-                <div className="relative z-10 space-y-1">
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[8px] font-black uppercase tracking-wider">
-                    <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-                    <span>{currentSlide?.tag || 'Premium Digital Solutions'}</span>
+                    <div className="relative z-10 space-y-1">
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[8px] font-black uppercase tracking-wider">
+                        <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                        <span>{currentSlide?.tag || 'Premium Digital Solutions'}</span>
+                      </div>
+                      <h3 className="text-sm font-black text-white leading-tight line-clamp-2">
+                        {previewTypedTitle || currentSlide?.title || 'Elevate Your Digital Brand with Eagle Eye'}
+                      </h3>
+                      <p className="text-[10px] text-slate-300 line-clamp-2">
+                        {currentSlide?.description || 'Custom web systems and digital marketing for growth.'}
+                      </p>
+                    </div>
+
+                    <div className="relative z-10 pt-2 flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={currentSlide?.btn1Link || '/products'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-black text-[9px] shadow-xs hover:bg-amber-300 transition-colors"
+                        >
+                          {currentSlide?.btn1Text || 'Products'}
+                        </a>
+                        <a
+                          href={currentSlide?.btn2Link || '/services'}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-white font-bold text-[9px] hover:bg-white/20 transition-colors"
+                        >
+                          {currentSlide?.btn2Text || 'Services'}
+                        </a>
+                      </div>
+
+                      {/* Indicator Dots */}
+                      <div className="flex items-center gap-1 bg-black/60 px-2 py-0.5 rounded-full border border-white/15">
+                        {(bentoForm.heroSlides || []).map((_, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setPreviewSlideIndex(idx)}
+                            className={`rounded-full transition-all ${
+                              previewSlideIndex === idx ? 'w-3 h-1 bg-amber-400' : 'w-1 h-1 bg-white/40'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-sm font-black text-white leading-tight line-clamp-2">
-                    {previewTypedTitle || currentSlide?.title || 'Elevate Your Digital Brand with Eagle Eye'}
-                  </h3>
-                  <p className="text-[10px] text-slate-300 line-clamp-2">
-                    {currentSlide?.description || 'Custom web systems and digital marketing for growth.'}
-                  </p>
+
+                  {/* Side Bento Posters */}
+                  {previewDevice !== 'phone' && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                        <span className="text-[8px] font-bold text-sky-400 uppercase block">{bentoForm.card1Tag || 'Growth'}</span>
+                        <div className="text-[10px] font-black truncate">{bentoForm.card1Title || 'Social Media'}</div>
+                      </div>
+                      <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                        <span className="text-[8px] font-bold text-amber-400 uppercase block">{bentoForm.card2Tag || 'Ready'}</span>
+                        <div className="text-[10px] font-black truncate">{bentoForm.card2Title || 'Products'}</div>
+                      </div>
+                      <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                        <span className="text-[8px] font-bold text-emerald-400 uppercase block">{bentoForm.card3Tag || 'Enterprise'}</span>
+                        <div className="text-[10px] font-black truncate">{bentoForm.card3Title || 'Web Design'}</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="relative z-10 pt-2 flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <a
-                      href={currentSlide?.btn1Link || '/products'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-black text-[9px] shadow-xs hover:bg-amber-300 transition-colors"
-                    >
-                      {currentSlide?.btn1Text || 'Products'}
-                    </a>
-                    <a
-                      href={currentSlide?.btn2Link || '/services'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 text-white font-bold text-[9px] hover:bg-white/20 transition-colors"
-                    >
-                      {currentSlide?.btn2Text || 'Services'}
-                    </a>
+                {/* 4. Popular Services Showcase */}
+                <div className="p-3 bg-white space-y-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">
+                      Agency Services
+                    </span>
+                    <span className="text-[9px] text-blue-600 font-bold">Solutions</span>
                   </div>
-
-                  {/* Indicator Dots */}
-                  <div className="flex items-center gap-1 bg-black/60 px-2 py-0.5 rounded-full border border-white/15">
-                    {(bentoForm.heroSlides || []).map((_, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setPreviewSlideIndex(idx)}
-                        className={`rounded-full transition-all ${
-                          previewSlideIndex === idx ? 'w-3 h-1 bg-amber-400' : 'w-1 h-1 bg-white/40'
-                        }`}
-                      />
+                  <div className="grid grid-cols-2 gap-2">
+                    {(services || []).slice(0, 2).map((srv) => (
+                      <div key={srv.id} className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                        <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                          {srv.category || 'Service'}
+                        </span>
+                        <div className="text-[10px] font-black text-slate-900 truncate">{srv.name}</div>
+                        <p className="text-[8px] text-slate-500 line-clamp-1">{srv.shortDescription}</p>
+                      </div>
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Side Bento Posters (Shown on Laptop & Tablet) */}
-              {previewDevice !== 'phone' && (
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
-                    <span className="text-[8px] font-bold text-sky-400 uppercase block">{bentoForm.card1Tag || 'Growth'}</span>
-                    <div className="text-[10px] font-black truncate">{bentoForm.card1Title || 'Social Media'}</div>
+                {/* 5. Popular Products Showcase */}
+                <div className="p-3 bg-slate-50 space-y-2 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">
+                      Digital Resources
+                    </span>
+                    <span className="text-[9px] text-blue-600 font-bold">Catalog</span>
                   </div>
-                  <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
-                    <span className="text-[8px] font-bold text-amber-400 uppercase block">{bentoForm.card2Tag || 'Ready'}</span>
-                    <div className="text-[10px] font-black truncate">{bentoForm.card2Title || 'Products'}</div>
-                  </div>
-                  <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
-                    <span className="text-[8px] font-bold text-emerald-400 uppercase block">{bentoForm.card3Tag || 'Enterprise'}</span>
-                    <div className="text-[10px] font-black truncate">{bentoForm.card3Title || 'Web Design'}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(products || []).slice(0, 2).map((prod) => (
+                      <div key={prod.id} className="p-2 rounded-xl bg-white border border-slate-200/80 space-y-1 shadow-2xs">
+                        <div className="h-14 w-full bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
+                          {prod.thumbnailUrl ? (
+                            <img src={prod.thumbnailUrl} alt={prod.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Package className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="text-[9px] font-bold text-slate-900 truncate">{prod.name}</div>
+                        <div className="flex items-center justify-between text-[9px]">
+                          <span className="font-extrabold text-blue-600">৳{prod.salePrice || prod.price || 0}</span>
+                          <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1 rounded font-bold">Order</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* 4. Sticky Floating Sidebar Simulation inside Preview */}
-            {activeSidebarSocials.length > 0 && (
-              <div className="absolute right-2 top-32 z-30 flex flex-col gap-1 p-1 bg-slate-950/90 backdrop-blur-md rounded-xl border border-slate-700 shadow-xl">
-                {activeSidebarSocials.map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={`Open ${item.platform}: ${item.url}`}
-                    className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/10 hover:bg-indigo-600 text-white transition-all hover:scale-110 shadow-xs"
-                  >
-                    <SocialIcon link={item} className="w-3 h-3" size={12} />
-                  </a>
-                ))}
-              </div>
-            )}
-
-            {/* 5. Footer */}
-            <footer className="bg-slate-950 text-slate-300 p-4 space-y-4 border-t border-slate-800">
-              <div className={`grid gap-4 ${previewDevice === 'phone' ? 'grid-cols-1' : 'grid-cols-3'}`}>
-                {/* Brand & Bio */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
-                      {siteForm.logoUrl ? (
-                        <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-sm" />
-                      ) : (
-                        <span className="text-[8px] font-black text-white">EE</span>
-                      )}
-                    </div>
-                    <div className="text-xs font-black text-white truncate">
-                      {siteForm.brandName || 'Eagle Eye Digital'}
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">
-                    {footerForm.aboutText || 'Premier digital agency providing bespoke web development.'}
-                  </p>
-
-                  {/* Footer Social Icons */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    {activeFooterSocials.map((item) => (
+                {/* 6. Sticky Floating Sidebar Simulation inside Preview */}
+                {activeSidebarSocials.length > 0 && (
+                  <div className="absolute right-2 top-32 z-30 flex flex-col gap-1 p-1 bg-slate-950/90 backdrop-blur-md rounded-xl border border-slate-700 shadow-xl">
+                    {activeSidebarSocials.map((item) => (
                       <a
                         key={item.id}
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        title={item.platform}
-                        className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center transition-all hover:scale-110"
+                        title={`Open ${item.platform}: ${item.url}`}
+                        className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/10 hover:bg-indigo-600 text-white transition-all hover:scale-110 shadow-xs"
                       >
                         <SocialIcon link={item} className="w-3 h-3" size={12} />
                       </a>
                     ))}
                   </div>
-                </div>
-
-                {/* Quick Links */}
-                {previewDevice !== 'phone' && (
-                  <div className="space-y-1.5 text-[10px]">
-                    <div className="font-bold text-white uppercase tracking-wider">Services & Products</div>
-                    <ul className="space-y-1 text-slate-400">
-                      {(footerForm.servicesLinks || []).slice(0, 3).map((l, i) => (
-                        <li key={i}>
-                          <a href={l.path} target="_blank" rel="noreferrer" className="hover:text-white">
-                            • {l.label}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
                 )}
 
-                {/* Contact */}
-                <div className="space-y-1 text-[10px] text-slate-400">
-                  <div className="font-bold text-white uppercase tracking-wider">Helpline</div>
-                  <div>
-                    <a
-                      href={`mailto:${footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
-                      className="hover:text-indigo-400 font-mono block truncate"
-                    >
-                      ✉ {footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}
-                    </a>
-                  </div>
-                  <div>
-                    <a
-                      href={`https://wa.me/${(footerForm.contactPhone || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hover:text-emerald-400 font-mono block truncate"
-                    >
-                      📞 {footerForm.contactPhone || siteForm.whatsappNumber || '01836126791'}
-                    </a>
-                  </div>
-                </div>
-              </div>
+                {/* 7. Footer */}
+                <footer className="bg-slate-950 text-slate-300 p-4 space-y-4 border-t border-slate-800">
+                  <div className={`grid gap-4 ${previewDevice === 'phone' ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                    {/* Brand & Bio */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
+                          {siteForm.logoUrl ? (
+                            <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-sm" />
+                          ) : (
+                            <span className="text-[8px] font-black text-white">EE</span>
+                          )}
+                        </div>
+                        <div className="text-xs font-black text-white truncate">
+                          {siteForm.brandName || 'Eagle Eye Digital'}
+                        </div>
+                      </div>
 
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-500">
-                <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
-                <span className="text-indigo-400 font-semibold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                      <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">
+                        {footerForm.aboutText || 'Premier digital agency providing bespoke web development.'}
+                      </p>
+
+                      {/* Footer Social Icons */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        {activeFooterSocials.map((item) => (
+                          <a
+                            key={item.id}
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={item.platform}
+                            className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center transition-all hover:scale-110"
+                          >
+                            <SocialIcon link={item} className="w-3 h-3" size={12} />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Quick Links */}
+                    {previewDevice !== 'phone' && (
+                      <div className="space-y-1.5 text-[10px]">
+                        <div className="font-bold text-white uppercase tracking-wider">Services & Products</div>
+                        <ul className="space-y-1 text-slate-400">
+                          {(footerForm.servicesLinks || []).slice(0, 3).map((l, i) => (
+                            <li key={i}>
+                              <a href={l.path} target="_blank" rel="noreferrer" className="hover:text-white">
+                                • {l.label}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Contact */}
+                    <div className="space-y-1 text-[10px] text-slate-400">
+                      <div className="font-bold text-white uppercase tracking-wider">Helpline</div>
+                      <div>
+                        <a
+                          href={`mailto:${footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
+                          className="hover:text-indigo-400 font-mono block truncate"
+                        >
+                          ✉ {footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}
+                        </a>
+                      </div>
+                      <div>
+                        <a
+                          href={`https://wa.me/${(footerForm.contactPhone || siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:text-emerald-400 font-mono block truncate"
+                        >
+                          📞 {footerForm.contactPhone || siteForm.whatsappNumber || '01836126791'}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-500">
+                    <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
+                    <span className="text-indigo-400 font-semibold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                  </div>
+                </footer>
               </div>
-            </footer>
+            )}
           </div>
         </div>
       </div>
@@ -2237,14 +2701,26 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-[#F8FAFC] flex font-sans text-slate-800 overflow-hidden">
-      
+    <div className="h-screen w-full bg-[#F8FAFC] flex font-sans text-slate-800 overflow-hidden relative">
+      {/* Mobile Backdrop Overlay */}
+      {isMobileSidebarOpen && (
+        <div
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs lg:hidden animate-in fade-in"
+        />
+      )}
+
       {/* ================= LEFT SIDEBAR (EXACT VYRQONIX STYLE) ================= */}
-      <aside className="w-64 flex-shrink-0 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 h-full overflow-y-auto select-none">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between p-4 h-full overflow-y-auto select-none shadow-2xl transition-transform duration-200 ease-in-out
+          lg:static lg:translate-x-0 lg:shadow-none lg:flex-shrink-0
+          ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
         <div className="space-y-6">
-          
-          {/* Logo & Console Badge */}
-          <div className="px-2 pt-1">
+          {/* Logo & Console Badge + Mobile Close Button */}
+          <div className="px-2 pt-1 flex items-center justify-between">
             <Link to="/" className="flex items-center space-x-2.5">
               <img
                 src="/logo.jpg"
@@ -2260,6 +2736,14 @@ export const AdminDashboardPage: React.FC = () => {
                 </span>
               </div>
             </Link>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -2288,7 +2772,10 @@ export const AdminDashboardPage: React.FC = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleSelectMenu(item.id as AdminTab)}
+                  onClick={() => {
+                    handleSelectMenu(item.id as AdminTab);
+                    setIsMobileSidebarOpen(false);
+                  }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
@@ -2375,7 +2862,27 @@ export const AdminDashboardPage: React.FC = () => {
       </aside>
 
       {/* ================= RIGHT MAIN CONTENT AREA ================= */}
-      <main className="flex-1 h-full p-4 sm:p-6 lg:p-8 max-w-[1800px] w-full overflow-y-auto">
+      <main className="flex-1 h-full p-3 sm:p-5 lg:p-8 max-w-[1800px] w-full overflow-y-auto">
+        {/* Mobile Top Navigation Bar (Visible only on small screens < lg) */}
+        <div className="lg:hidden flex items-center justify-between pb-3 mb-4 border-b border-slate-200">
+          <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs"
+              title="Open Navigation"
+            >
+              <Menu className="w-5 h-5 text-slate-800" />
+            </button>
+            <div className="flex items-center space-x-2">
+              <img src="/logo.jpg" alt="Logo" className="h-7 w-auto object-contain rounded border border-slate-200" />
+              <span className="font-black text-sm text-slate-900">Eagle Eye Admin</span>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
+            {activeMenu}
+          </span>
+        </div>
         
         {/* ================= PRODUCTS TAB (EXACT VYRQONIX SETUP) ================= */}
         {activeMenu === 'products' && (
@@ -2548,8 +3055,9 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             ) : (
               /* ================= COMPLETE CREATE NEW PRODUCT FORM (Screens 2, 3, 4, 5) ================= */
-              <div className="space-y-6 max-w-4xl">
-                {/* Back Button & Header */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                <div className="xl:col-span-7 space-y-6">
+                  {/* Back Button & Header */}
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => setProductViewMode('list')}
@@ -3263,7 +3771,13 @@ export const AdminDashboardPage: React.FC = () => {
 
                 </form>
               </div>
-            )}
+
+              {/* Right Column: Live Product Card & Full Website Preview */}
+              <div className="xl:col-span-5">
+                {renderInteractiveWebsitePreviewPane()}
+              </div>
+            </div>
+          )}
 
           </div>
         )}
@@ -3795,43 +4309,50 @@ export const AdminDashboardPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((srv) => (
-                <div key={srv.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-blue-600">{srv.category}</span>
-                      <h4 className="text-base font-bold text-slate-900 mt-0.5">{srv.name}</h4>
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+              <div className="xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-5">
+                {services.map((srv) => (
+                  <div key={srv.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase text-blue-600">{srv.category}</span>
+                        <h4 className="text-base font-bold text-slate-900 mt-0.5">{srv.name}</h4>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700">
+                        {srv.status}
+                      </span>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700">
-                      {srv.status}
-                    </span>
+                    <p className="text-xs text-slate-500 line-clamp-2">{srv.shortDescription}</p>
+                    <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => {
+                          setServiceForm(srv);
+                          setIsServiceModalOpen(true);
+                        }}
+                        className="text-xs text-blue-600 font-bold hover:underline"
+                      >
+                        Edit Service
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Delete service: ${srv.name}?`)) {
+                            await deleteService(srv.id);
+                            loadData();
+                          }
+                        }}
+                        className="text-xs text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-500 line-clamp-2">{srv.shortDescription}</p>
-                  <div className="flex justify-between items-center pt-3 border-t border-slate-100">
-                    <button
-                      onClick={() => {
-                        setServiceForm(srv);
-                        setIsServiceModalOpen(true);
-                      }}
-                      className="text-xs text-blue-600 font-bold hover:underline"
-                    >
-                      Edit Service
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (confirm(`Delete service: ${srv.name}?`)) {
-                          await deleteService(srv.id);
-                          loadData();
-                        }
-                      }}
-                      className="text-xs text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              {/* Right Column: Live Service Card & Full Website Preview */}
+              <div className="xl:col-span-5">
+                {renderInteractiveWebsitePreviewPane()}
+              </div>
             </div>
           </div>
         )}
@@ -4159,7 +4680,7 @@ export const AdminDashboardPage: React.FC = () => {
                         </p>
                       </div>
 
-                      {/* View Mode Toggle: Slider vs Full Web Layout */}
+                      {/* View Mode Toggle: Slider vs Full Web Layout vs Full Website */}
                       <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-[11px] font-bold">
                         <button
                           type="button"
@@ -4185,11 +4706,27 @@ export const AdminDashboardPage: React.FC = () => {
                           <LayoutGrid className="w-3.5 h-3.5" />
                           <span>Full Bento Layout</span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewViewMode('full-website')}
+                          className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
+                            previewViewMode === 'full-website'
+                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                              : 'text-slate-500 hover:text-slate-900'
+                          }`}
+                        >
+                          <Globe className="w-3.5 h-3.5" />
+                          <span>Full Website</span>
+                        </button>
                       </div>
                     </div>
 
-                    {/* Quick Preview Toolbar: Prev, Next, Play/Pause, Slide Indicator */}
-                    {(() => {
+                    {/* Conditional: Full Website Live Preview in Side Panel OR Hero Bento Slider */}
+                    {previewViewMode === 'full-website' ? (
+                      <div className="pt-2">
+                        {renderInteractiveWebsitePreviewPane()}
+                      </div>
+                    ) : (() => {
                       const previewSlides = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
                         ? bentoForm.heroSlides
                         : defaultHeroSlides;
@@ -6133,11 +6670,16 @@ export const AdminDashboardPage: React.FC = () => {
                 )}
                 <button
                   type="button"
-                  onClick={() => setIsLiveWebPreviewOpen(true)}
+                  onClick={handleToggleSideFullPreview}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.01]"
+                  title="Toggle between Section Preview and Full Website in the side panel"
                 >
                   <Eye className="w-4 h-4 text-amber-400" />
-                  <span>Live Web Preview (ওয়েবসাইট প্রিভিউ)</span>
+                  <span>
+                    {sidePreviewScope === 'full'
+                      ? '🎯 View Section Preview'
+                      : '🌐 View Full Website Preview'}
+                  </span>
                 </button>
                 <button
                   type="button"
@@ -6372,11 +6914,16 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsLiveWebPreviewOpen(true)}
+                  onClick={handleToggleSideFullPreview}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.01]"
+                  title="Toggle between Section Preview and Full Website in the side panel"
                 >
                   <Eye className="w-4 h-4 text-amber-400" />
-                  <span>Live Web Preview (ওয়েবসাইট প্রিভিউ)</span>
+                  <span>
+                    {sidePreviewScope === 'full'
+                      ? '🎯 View Section Preview'
+                      : '🌐 View Full Website Preview'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -6609,13 +7156,13 @@ export const AdminDashboardPage: React.FC = () => {
                     return (
                       <div
                         key={item.id}
-                        className={`bg-white border rounded-2xl p-4 shadow-sm transition-all ${
-                          item.isActive ? 'border-slate-200/90' : 'border-slate-200 bg-slate-50/60 opacity-60'
+                        className={`bg-white border rounded-2xl p-4 sm:p-5 shadow-sm transition-all space-y-3.5 ${
+                          item.isActive ? 'border-slate-200/90 hover:border-slate-300' : 'border-slate-200 bg-slate-50/60 opacity-60'
                         }`}
                       >
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                          {/* Left: Icon, Platform name, and URL */}
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Row 1: Icon, Platform Input & Icon Dropdown, Active Button, Delete Button */}
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-wrap min-w-0">
                             {/* Icon preview badge */}
                             <div
                               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-sm"
@@ -6624,69 +7171,95 @@ export const AdminDashboardPage: React.FC = () => {
                               <SocialIcon link={item} className="w-5 h-5" size={20} />
                             </div>
 
-                            <div className="flex-1 min-w-0 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={item.platform}
-                                  onChange={(e) => {
-                                    const updated = socialList.map((s) =>
-                                      s.id === item.id ? { ...s, platform: e.target.value } : s
-                                    );
-                                    setSocialList(updated);
-                                  }}
-                                  className="text-xs font-black text-slate-900 bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-600 focus:outline-none w-36"
-                                />
+                            {/* Platform name editable input */}
+                            <input
+                              type="text"
+                              value={item.platform}
+                              onChange={(e) => {
+                                const updated = socialList.map((s) =>
+                                  s.id === item.id ? { ...s, platform: e.target.value } : s
+                                );
+                                setSocialList(updated);
+                              }}
+                              placeholder="Platform name"
+                              className="text-xs sm:text-sm font-black text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-indigo-600 focus:bg-white focus:outline-none w-36 sm:w-44 transition-all"
+                            />
 
-                                {/* Icon selector */}
-                                <select
-                                  value={item.iconKey}
-                                  onChange={(e) => {
-                                    const updated = socialList.map((s) =>
-                                      s.id === item.id ? { ...s, iconKey: e.target.value } : s
-                                    );
-                                    setSocialList(updated);
-                                  }}
-                                  className="text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:border-indigo-500"
-                                >
-                                  {SOCIAL_ICON_OPTIONS.map((opt) => (
-                                    <option key={opt.key} value={opt.key}>
-                                      {opt.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="url"
-                                  value={item.url}
-                                  onChange={(e) => {
-                                    const updated = socialList.map((s) =>
-                                      s.id === item.id ? { ...s, url: e.target.value } : s
-                                    );
-                                    setSocialList(updated);
-                                  }}
-                                  placeholder="https://..."
-                                  className="w-full text-xs font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 focus:border-indigo-500 focus:bg-white"
-                                />
-                                {item.url && (
-                                  <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    title="Test Link"
-                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors flex-shrink-0"
-                                  >
-                                    <ExternalLink className="w-3.5 h-3.5" />
-                                  </a>
-                                )}
-                              </div>
-                            </div>
+                            {/* Icon selector dropdown */}
+                            <select
+                              value={item.iconKey}
+                              onChange={(e) => {
+                                const updated = socialList.map((s) =>
+                                  s.id === item.id ? { ...s, iconKey: e.target.value } : s
+                                );
+                                setSocialList(updated);
+                              }}
+                              className="text-xs font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:border-indigo-500 focus:outline-none transition-all cursor-pointer"
+                            >
+                              {SOCIAL_ICON_OPTIONS.map((opt) => (
+                                <option key={opt.key} value={opt.key}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
                           </div>
 
-                          {/* Middle: Placements */}
-                          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 bg-slate-50/80 px-3.5 py-2 rounded-xl border border-slate-200/60">
+                          {/* Right: Active Toggle & Delete */}
+                          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSocialActive(item.id)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                                item.isActive
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'
+                              }`}
+                            >
+                              {item.isActive ? 'Active' : 'Disabled'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSocial(item.id)}
+                              title="Delete Social Channel"
+                              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Row 2: Full Width URL + Placements checkboxes */}
+                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 pt-2.5 border-t border-slate-100">
+                          {/* Profile URL Input */}
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <input
+                              type="url"
+                              value={item.url}
+                              onChange={(e) => {
+                                const updated = socialList.map((s) =>
+                                  s.id === item.id ? { ...s, url: e.target.value } : s
+                                );
+                                setSocialList(updated);
+                              }}
+                              placeholder="https://..."
+                              className="w-full text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                            />
+                            {item.url && (
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="Test Link"
+                                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors flex-shrink-0"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                          </div>
+
+                          {/* Placements Options */}
+                          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600 bg-slate-50/80 px-3.5 py-2 rounded-xl border border-slate-200/60 flex-shrink-0 justify-start sm:justify-end">
                             <span className="text-[10px] uppercase font-bold text-slate-400">Placements:</span>
                             <label className="flex items-center gap-1.5 cursor-pointer">
                               <input
@@ -6715,30 +7288,6 @@ export const AdminDashboardPage: React.FC = () => {
                               />
                               Sidebar
                             </label>
-                          </div>
-
-                          {/* Right: Active Toggle & Delete */}
-                          <div className="flex items-center gap-2 justify-end">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSocialActive(item.id)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                                item.isActive
-                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                                  : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'
-                              }`}
-                            >
-                              {item.isActive ? 'Active' : 'Disabled'}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSocial(item.id)}
-                              title="Delete Social Channel"
-                              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
                           </div>
                         </div>
                       </div>
