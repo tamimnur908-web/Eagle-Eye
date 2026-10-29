@@ -25,8 +25,7 @@ import {
   ExternalLink,
   MessageSquare,
   CheckCircle2,
-  XCircle,
-  Briefcase
+  XCircle
 } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -150,7 +149,6 @@ export const AccountPage: React.FC = () => {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      // Save/merge user info
       await setDoc(doc(db, 'users', result.user.uid), {
         uid: result.user.uid,
         fullName: result.user.displayName || 'Google User',
@@ -188,19 +186,19 @@ export const AccountPage: React.FC = () => {
           
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 mx-auto shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-[#2563EB] mx-auto shadow-sm">
               <KeyRound className="w-6 h-6" />
             </div>
-            <h2 className="text-2xl font-black text-slate-900">
+            <h2 className="text-2xl font-black text-[#08152F]">
               {authMode === 'register' ? 'Create New Account' : 'Welcome Back'}
             </h2>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[#667085]">
               Access your digital products, order history, and quotations.
             </p>
           </div>
 
           {/* Mode Switcher: Sign In vs Register Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl text-xs font-bold">
+          <div className="grid grid-cols-2 p-1 bg-[#F3F5F9] rounded-xl text-xs font-bold">
             <button
               type="button"
               onClick={() => {
@@ -209,8 +207,8 @@ export const AccountPage: React.FC = () => {
               }}
               className={`py-2 rounded-lg transition-all ${
                 authMode === 'login'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-[#08152F] text-white shadow-sm'
+                  : 'text-[#667085] hover:text-[#172033]'
               }`}
             >
               Sign In
@@ -223,8 +221,8 @@ export const AccountPage: React.FC = () => {
               }}
               className={`py-2 rounded-lg transition-all ${
                 authMode === 'register'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-[#08152F] text-white shadow-sm'
+                  : 'text-[#667085] hover:text-[#172033]'
               }`}
             >
               Register
@@ -250,7 +248,7 @@ export const AccountPage: React.FC = () => {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={authLoading}
-            className="w-full py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center space-x-2.5 shadow-sm transition-colors disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-[#172033] font-bold text-xs flex items-center justify-center space-x-2.5 shadow-sm transition-colors disabled:opacity-50"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
@@ -287,8 +285,8 @@ export const AccountPage: React.FC = () => {
             {/* Full Name field (for Register mode) */}
             {authMode === 'register' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Full Name <span className="text-amber-600">*</span>
+                <label className="block text-xs font-semibold text-[#172033] mb-1">
+                  Full Name <span className="text-[#2563EB]">*</span>
                 </label>
                 <input
                   type="text"
@@ -296,15 +294,15 @@ export const AccountPage: React.FC = () => {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="e.g. Tamim Nur"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white"
+                  className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
                 />
               </div>
             )}
 
             {/* Email Address */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Email Address <span className="text-amber-600">*</span>
+              <label className="block text-xs font-semibold text-[#172033] mb-1">
+                Email Address <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="email"
@@ -312,14 +310,14 @@ export const AccountPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Password <span className="text-amber-600">*</span>
+              <label className="block text-xs font-semibold text-[#172033] mb-1">
+                Password <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="password"
@@ -327,7 +325,7 @@ export const AccountPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
@@ -336,7 +334,7 @@ export const AccountPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handlePasswordReset}
-                  className="text-slate-500 hover:text-amber-600 underline font-medium"
+                  className="text-[#667085] hover:text-[#2563EB] underline font-medium transition-colors"
                 >
                   Forgot password?
                 </button>
@@ -346,20 +344,20 @@ export const AccountPage: React.FC = () => {
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors disabled:opacity-50 shadow-md shadow-amber-500/25"
+              className="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs transition-colors disabled:opacity-50 shadow-md shadow-[#2563EB]/25"
             >
               {authLoading ? 'Processing...' : authMode === 'register' ? 'Complete Registration' : 'Sign In'}
             </button>
           </form>
 
           {/* Bottom Switch Note */}
-          <div className="pt-2 text-center text-xs text-slate-500">
+          <div className="pt-2 text-center text-xs text-[#667085]">
             {authMode === 'register' ? (
               <p>
                 Already registered?{' '}
                 <button
                   onClick={() => setAuthMode('login')}
-                  className="text-amber-600 font-bold hover:underline"
+                  className="text-[#2563EB] font-bold hover:underline"
                 >
                   Sign In here
                 </button>
@@ -369,7 +367,7 @@ export const AccountPage: React.FC = () => {
                 Don't have an account yet?{' '}
                 <button
                   onClick={() => setAuthMode('register')}
-                  className="text-amber-600 font-bold hover:underline"
+                  className="text-[#2563EB] font-bold hover:underline"
                 >
                   Create one now
                 </button>
@@ -386,21 +384,21 @@ export const AccountPage: React.FC = () => {
       {/* User Header */}
       <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-4">
-          <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 font-bold text-xl">
+          <div className="w-14 h-14 rounded-full bg-[#FFC629] flex items-center justify-center text-[#08152F] font-black text-xl shadow-sm">
             {currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : currentUser.email ? currentUser.email.charAt(0).toUpperCase() : <UserIcon className="w-7 h-7" />}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold text-[#08152F]">
               {currentUser.displayName || 'Customer Portal'}
             </h2>
-            <p className="text-xs text-slate-600">Signed in as: {currentUser.email}</p>
+            <p className="text-xs text-[#667085]">Signed in as: {currentUser.email}</p>
             <p className="text-[10px] text-slate-400 font-mono">UID: {currentUser.uid}</p>
           </div>
         </div>
 
         <button
           onClick={logout}
-          className="px-4 py-2 bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
+          className="px-4 py-2 bg-[#F3F5F9] hover:bg-red-50 hover:text-red-600 text-[#172033] text-xs font-semibold rounded-lg transition-colors border border-slate-200"
         >
           Sign Out
         </button>
@@ -412,14 +410,14 @@ export const AccountPage: React.FC = () => {
           onClick={() => setActiveTab('inquiries')}
           className={`pb-3 text-xs font-bold transition-colors flex items-center space-x-2 ${
             activeTab === 'inquiries'
-              ? 'border-b-2 border-blue-600 text-blue-700'
-              : 'text-slate-500 hover:text-slate-900'
+              ? 'border-b-2 border-[#2563EB] text-[#2563EB]'
+              : 'text-[#667085] hover:text-[#172033]'
           }`}
         >
           <Calendar className="w-4 h-4" />
           <span>My Inquiries & Consultations ({userLeads.length})</span>
           {userLeads.filter((l) => l.meetingDetails?.meetingStatus === 'proposed').length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black animate-pulse">
+            <span className="px-2 py-0.5 rounded-full bg-[#FFC629] text-[#08152F] text-[10px] font-black animate-pulse">
               {userLeads.filter((l) => l.meetingDetails?.meetingStatus === 'proposed').length} Action Required
             </span>
           )}
@@ -429,8 +427,8 @@ export const AccountPage: React.FC = () => {
           onClick={() => setActiveTab('orders')}
           className={`pb-3 text-xs font-bold transition-colors flex items-center space-x-2 ${
             activeTab === 'orders'
-              ? 'border-b-2 border-amber-500 text-amber-700'
-              : 'text-slate-500 hover:text-slate-900'
+              ? 'border-b-2 border-[#2563EB] text-[#2563EB]'
+              : 'text-[#667085] hover:text-[#172033]'
           }`}
         >
           <Package className="w-4 h-4" />
@@ -441,8 +439,8 @@ export const AccountPage: React.FC = () => {
           onClick={() => setActiveTab('downloads')}
           className={`pb-3 text-xs font-bold transition-colors flex items-center space-x-2 ${
             activeTab === 'downloads'
-              ? 'border-b-2 border-amber-500 text-amber-700'
-              : 'text-slate-500 hover:text-slate-900'
+              ? 'border-b-2 border-[#2563EB] text-[#2563EB]'
+              : 'text-[#667085] hover:text-[#172033]'
           }`}
         >
           <Download className="w-4 h-4" />
@@ -483,7 +481,7 @@ export const AccountPage: React.FC = () => {
                   key={lead.id}
                   className={`bg-white border rounded-2xl p-6 sm:p-7 space-y-4 shadow-sm transition-all ${
                     isProposed
-                      ? 'border-amber-300 ring-2 ring-amber-400/20'
+                      ? 'border-[#FFC629] ring-2 ring-[#FFC629]/20'
                       : isConfirmed
                       ? 'border-emerald-300 ring-1 ring-emerald-500/20'
                       : 'border-slate-200'
@@ -495,7 +493,7 @@ export const AccountPage: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Inquiry #{lead.id.substring(0, 8)} • Submitted {new Date(lead.createdAt).toLocaleDateString()}
                       </span>
-                      <h3 className="text-base font-bold text-slate-900 mt-0.5">
+                      <h3 className="text-base font-bold text-[#08152F] mt-0.5">
                         {lead.serviceInterest}
                       </h3>
                     </div>
@@ -506,10 +504,10 @@ export const AccountPage: React.FC = () => {
                           isConfirmed
                             ? 'bg-emerald-100 text-emerald-800'
                             : isProposed
-                            ? 'bg-amber-100 text-amber-800 animate-pulse'
+                            ? 'bg-[#FFC629]/20 text-[#08152F] border border-[#FFC629]/40 animate-pulse'
                             : isCancelled
                             ? 'bg-red-100 text-red-800'
-                            : 'bg-blue-50 text-blue-700'
+                            : 'bg-blue-50 text-[#2563EB]'
                         }`}
                       >
                         {isConfirmed
@@ -530,20 +528,20 @@ export const AccountPage: React.FC = () => {
                         isConfirmed
                           ? 'bg-emerald-50/70 border border-emerald-200'
                           : isProposed
-                          ? 'bg-amber-50/70 border border-amber-200'
-                          : 'bg-slate-50 border border-slate-200'
+                          ? 'bg-blue-50/70 border border-blue-200'
+                          : 'bg-[#F3F5F9] border border-slate-200'
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                         <div className="space-y-0.5">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-[#667085] block">
                             Strategic Video Consultation
                           </span>
-                          <div className="text-sm sm:text-base font-black text-slate-900 flex items-center space-x-2">
-                            <Clock className="w-4 h-4 text-blue-600" />
+                          <div className="text-sm sm:text-base font-black text-[#08152F] flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-[#2563EB]" />
                             <span>{formattedMeetingTime}</span>
                           </div>
-                          <span className="text-xs text-slate-600 block">
+                          <span className="text-xs text-[#667085] block">
                             Host: {meeting.scheduledBy || 'Eagle Eye Digital Strategist'}
                           </span>
                         </div>
@@ -555,7 +553,7 @@ export const AccountPage: React.FC = () => {
                               href={meeting.meetingLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-blue-600/20 flex items-center space-x-1.5 transition-transform hover:-translate-y-0.5"
+                              className="px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold text-xs rounded-xl shadow-md shadow-[#2563EB]/20 flex items-center space-x-1.5 transition-transform hover:-translate-y-0.5"
                             >
                               <Video className="w-4 h-4" />
                               <span>Join Meeting</span>
@@ -565,7 +563,7 @@ export const AccountPage: React.FC = () => {
                             <button
                               onClick={() => handleCancelMeeting(lead.id)}
                               disabled={actionProcessing === lead.id}
-                              className="px-3 py-2 bg-white hover:bg-red-50 text-slate-600 hover:text-red-600 border border-slate-200 text-xs font-semibold rounded-xl"
+                              className="px-3 py-2 bg-white hover:bg-red-50 text-[#667085] hover:text-red-600 border border-slate-200 text-xs font-semibold rounded-xl transition-colors"
                             >
                               Cancel
                             </button>
@@ -578,7 +576,7 @@ export const AccountPage: React.FC = () => {
                             <button
                               onClick={() => handleConfirmMeeting(lead.id)}
                               disabled={actionProcessing === lead.id}
-                              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5"
+                              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                               <span>{actionProcessing === lead.id ? 'Confirming...' : 'Accept / Confirm Time'}</span>
@@ -587,7 +585,7 @@ export const AccountPage: React.FC = () => {
                             <button
                               onClick={() => handleCancelMeeting(lead.id)}
                               disabled={actionProcessing === lead.id}
-                              className="px-3.5 py-2.5 bg-white hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200 font-bold text-xs rounded-xl"
+                              className="px-3.5 py-2.5 bg-white hover:bg-red-50 text-[#172033] hover:text-red-700 border border-slate-200 font-bold text-xs rounded-xl transition-colors"
                             >
                               <XCircle className="w-4 h-4" />
                               <span>Decline / Cancel</span>
@@ -597,20 +595,20 @@ export const AccountPage: React.FC = () => {
                       </div>
 
                       {meeting.notes && (
-                        <p className="text-xs text-slate-600 italic bg-white/80 p-2.5 rounded-lg border border-slate-200/60">
+                        <p className="text-xs text-[#667085] italic bg-white/80 p-2.5 rounded-lg border border-slate-200/60">
                           "{meeting.notes}"
                         </p>
                       )}
 
                       {isProposed && (
-                        <p className="text-[11px] text-amber-800 font-medium">
+                        <p className="text-[11px] text-[#08152F] font-medium bg-[#FFC629]/20 p-2 rounded-lg border border-[#FFC629]/30">
                           ⚠️ Please click <strong>Accept / Confirm Time</strong> to lock in your appointment and unlock the direct Video Meeting link.
                         </p>
                       )}
 
                       {isCancelled && (
                         <div className="flex items-center justify-between pt-1 text-xs">
-                          <span className="text-slate-500">
+                          <span className="text-[#667085]">
                             Meeting was cancelled {meeting.cancellationReason ? `(${meeting.cancellationReason})` : ''}
                           </span>
                           <a
@@ -630,25 +628,25 @@ export const AccountPage: React.FC = () => {
                   )}
 
                   {/* Inquiry Spec Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-[#F3F5F9]/80 p-3.5 rounded-xl border border-slate-100">
                     <div>
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Budget Range</span>
-                      <span className="font-semibold text-slate-800">{lead.budgetRange}</span>
+                      <span className="font-semibold text-[#172033]">{lead.budgetRange}</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Contact Method</span>
-                      <span className="font-semibold text-slate-800">{lead.preferredContactMethod} ({lead.phoneOrWhatsApp})</span>
+                      <span className="font-semibold text-[#172033]">{lead.preferredContactMethod} ({lead.phoneOrWhatsApp})</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Target Timeline</span>
-                      <span className="font-semibold text-slate-800">{lead.deadline || 'Flexible'}</span>
+                      <span className="font-semibold text-[#172033]">{lead.deadline || 'Flexible'}</span>
                     </div>
                   </div>
 
                   {lead.projectDescription && (
-                    <div className="text-xs text-slate-600">
-                      <span className="font-bold text-slate-700 block mb-0.5">Project Scope:</span>
-                      <p className="line-clamp-2 text-slate-500">{lead.projectDescription}</p>
+                    <div className="text-xs text-[#667085]">
+                      <span className="font-bold text-[#172033] block mb-0.5">Project Scope:</span>
+                      <p className="line-clamp-2 text-[#667085]">{lead.projectDescription}</p>
                     </div>
                   )}
                 </div>
@@ -674,7 +672,7 @@ export const AccountPage: React.FC = () => {
               >
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
                   <div>
-                    <span className="text-xs font-semibold text-slate-800">Order ID: #{order.id}</span>
+                    <span className="text-xs font-semibold text-[#172033]">Order ID: #{order.id}</span>
                     <span className="text-xs text-slate-400 block">
                       Placed on: {new Date(order.createdAt).toLocaleDateString()}
                     </span>
@@ -685,7 +683,7 @@ export const AccountPage: React.FC = () => {
                         order.paymentStatus === 'verified'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : order.paymentStatus === 'pending'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          ? 'bg-[#FFC629]/20 text-[#08152F] border border-[#FFC629]/40'
                           : 'bg-red-50 text-red-700 border border-red-200'
                       }`}
                     >
@@ -697,21 +695,21 @@ export const AccountPage: React.FC = () => {
                 <div className="space-y-2">
                   {order.items?.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center text-xs">
-                      <span className="text-slate-800 font-medium">{item.productName}</span>
-                      <span className="text-slate-600 font-semibold">৳{item.price}</span>
+                      <span className="text-[#172033] font-medium">{item.productName}</span>
+                      <span className="text-[#08152F] font-semibold">৳{item.price}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
-                  <span className="text-slate-600 font-medium">Total: ৳{order.totalAmount} BDT</span>
+                  <span className="text-[#667085] font-medium">Total: ৳{order.totalAmount} BDT</span>
                   {order.paymentStatus === 'verified' ? (
                     <span className="text-emerald-700 font-bold flex items-center space-x-1">
                       <CheckCircle className="w-3.5 h-3.5" />
                       <span>Unlocked in Downloads</span>
                     </span>
                   ) : (
-                    <span className="text-amber-700 text-[11px] font-medium">
+                    <span className="text-[#08152F] text-[11px] font-medium bg-[#FFC629]/20 px-2 py-0.5 rounded border border-[#FFC629]/30">
                       Awaiting payment confirmation
                     </span>
                   )}
@@ -734,14 +732,14 @@ export const AccountPage: React.FC = () => {
               className="bg-white border border-slate-200 shadow-sm rounded-xl p-5 flex items-center justify-between"
             >
               <div>
-                <h4 className="text-sm font-bold text-slate-900">{ent.productName}</h4>
+                <h4 className="text-sm font-bold text-[#08152F]">{ent.productName}</h4>
                 <span className="text-[10px] text-slate-400">Authorized on {new Date(ent.createdAt).toLocaleDateString()}</span>
               </div>
               <a
                 href={ent.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg flex items-center space-x-1.5 shadow-sm"
+                className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-lg flex items-center space-x-1.5 shadow-sm transition-colors"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Asset</span>

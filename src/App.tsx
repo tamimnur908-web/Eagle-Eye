@@ -31,7 +31,7 @@ function AppLayout() {
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
-    <div className={isAdminRoute ? "h-screen w-full overflow-hidden bg-[#F8FAFC] text-[#0F172A]" : "min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] relative"}>
+    <div className={isAdminRoute ? "h-screen w-full overflow-hidden bg-[#F3F5F9] text-[#172033]" : "min-h-screen flex flex-col bg-[#F3F5F9] text-[#172033] relative"}>
       {/* Hide customer storefront Header/Navbar in Admin panel */}
       {!isAdminRoute && <Navbar />}
 
@@ -68,10 +68,10 @@ function AppLayout() {
             path="*"
             element={
               <div className="py-24 text-center space-y-4">
-                <h1 className="text-5xl font-black text-amber-600">404</h1>
-                <h2 className="text-xl font-bold text-slate-900">Page Not Found</h2>
-                <p className="text-xs text-slate-500">The requested resource could not be found.</p>
-                <a href="/" className="inline-block px-4 py-2 bg-white border border-slate-300 text-slate-800 text-xs font-semibold rounded-lg shadow-sm">
+                <h1 className="text-5xl font-black text-[#2563EB]">404</h1>
+                <h2 className="text-xl font-bold text-[#08152F]">Page Not Found</h2>
+                <p className="text-xs text-[#667085]">The requested resource could not be found.</p>
+                <a href="/" className="inline-block px-5 py-2.5 bg-[#08152F] hover:bg-[#0D2044] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
                   Return Home
                 </a>
               </div>

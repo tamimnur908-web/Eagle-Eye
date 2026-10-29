@@ -8,14 +8,26 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#FFFFFF',
-          card: '#F8FAFC',
+          navy: '#08152F',
+          navyDark: '#050E20',
+          navyLight: '#0D2044',
+          navySurface: '#112855',
+          blue: '#2563EB',
+          blueHover: '#1D4ED8',
+          blueLight: '#3B82F6',
+          blueSubtle: '#EFF6FF',
+          gold: '#FFC629',
+          goldHover: '#E5B01F',
+          goldLight: '#FFD359',
+          goldSubtle: '#FFF8E6',
+          white: '#FFFFFF',
+          light: '#F3F5F9',
+          dark: '#172033',
+          muted: '#667085',
           border: '#E2E8F0',
-          gold: '#D97706',
-          goldLight: '#F59E0B',
-          goldDark: '#B45309',
-          silver: '#0F172A',
-          muted: '#64748B'
+          // Backward-compatibility aliases
+          card: '#FFFFFF',
+          silver: '#172033',
         }
       },
       fontFamily: {

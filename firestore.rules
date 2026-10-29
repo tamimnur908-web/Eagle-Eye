@@ -93,7 +93,12 @@ service cloud.firestore {
     // - Only verified Admins can create, update, or delete services.
     // --------------------------------------------------------------------------
     match /services/{serviceId} {
-      allow read: if resource.data.status == 'published' || isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subservices/{subserviceId} {
+      allow read: if true;
       allow write: if isAdmin();
     }
 
@@ -108,7 +113,7 @@ service cloud.firestore {
     // - Only verified Admins can create, edit, change pricing, or delete products.
     // --------------------------------------------------------------------------
     match /products/{productId} {
-      allow read: if resource.data.status == 'published' || isAdmin();
+      allow read: if true;
       allow write: if isAdmin();
     }
 

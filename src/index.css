@@ -3,22 +3,43 @@
 @tailwind utilities;
 
 :root {
-  --color-gold: #D97706;
-  --color-gold-light: #F59E0B;
-  --color-gold-dark: #B45309;
-  --color-bg-light: #F8FAFC;
+  /* Official Brand Color Palette (Digital Authority) */
+  --color-primary: #08152F;        /* Deep Navy: dark backgrounds, nav, footer, authority headings */
+  --color-secondary: #2563EB;      /* Electric Blue: links, interactive components, icons, highlights */
+  --color-accent: #FFC629;         /* Golden Yellow: key CTAs, growth indicators, selected badges */
+  --color-background: #FFFFFF;     /* White: main clean surface */
+  --color-surface-muted: #F3F5F9;  /* Light Gray: secondary backgrounds, neutral surfaces */
+  --color-text-primary: #172033;   /* Dark Text: primary text on light surfaces */
+  --color-text-muted: #667085;     /* Muted Text: supporting descriptions */
+  --color-border: #E2E8F0;         /* Neutral border */
+
+  /* Semantic tints & shades */
+  --color-primary-dark: #050E20;
+  --color-primary-light: #0D2044;
+  --color-primary-surface: #112855;
+  --color-secondary-hover: #1D4ED8;
+  --color-secondary-light: #3B82F6;
+  --color-secondary-subtle: #EFF6FF;
+  --color-accent-hover: #E5B01F;
+  --color-accent-light: #FFD359;
+  --color-accent-subtle: #FFF8E6;
+
+  /* Legacy variable mappings */
+  --color-gold: #FFC629;
+  --color-gold-light: #FFD359;
+  --color-gold-dark: #E5B01F;
+  --color-bg-light: #F3F5F9;
   --color-bg-card: #FFFFFF;
-  --color-border: #E2E8F0;
 }
 
 body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: var(--color-bg-light);
-  color: #0F172A;
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-primary);
   overflow-x: hidden;
 }
 
-/* Custom scrollbars for light theme */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -34,10 +55,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D97706;
+  background: #2563EB;
 }
 
-/* Hero Animations: Floating, Ken Burns, Pop-in, and Gradient Text */
+/* Animations: Ken Burns, Float, Glow, Sweep */
 @keyframes float {
   0%, 100% {
     transform: translateY(0px) rotate(0deg);
@@ -167,4 +188,3 @@ body {
 .animate-slide-fade {
   animation: slide-fade 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-

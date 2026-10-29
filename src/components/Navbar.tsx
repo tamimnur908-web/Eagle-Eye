@@ -22,6 +22,7 @@ export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { currentUser, isAdmin, logout } = useAuth();
   const { cart } = useCart();
@@ -29,6 +30,7 @@ export const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const catRef = useRef<HTMLDivElement>(null);
+  const servicesRef = useRef<HTMLDivElement>(null);
 
   const headerSocials = (socialLinks || []).filter(
     (s) => s.isActive && s.showInHeader && Boolean(s.url?.trim())
@@ -53,6 +55,9 @@ export const Navbar: React.FC = () => {
       if (catRef.current && !catRef.current.contains(event.target as Node)) {
         setCategoriesOpen(false);
       }
+      if (servicesRef.current && !servicesRef.current.contains(event.target as Node)) {
+        setServicesDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -72,24 +77,42 @@ export const Navbar: React.FC = () => {
   };
 
   const categories = [
-    { name: 'All Products', path: '/products' },
-    { name: 'UI & Figma Kits', path: '/products?category=UI Kits' },
-    { name: 'Social Media Templates', path: '/products?category=Templates' },
-    { name: 'Agency Retainers', path: '/services' },
-    { name: 'Web & E-Commerce', path: '/services' },
-    { name: 'Branding Kits', path: '/products?category=Branding' }
+    { name: 'All Agency Services', path: '/services' },
+    { name: 'Digital Marketing Services', path: '/services' },
+    { name: 'Web Development & Creative', path: '/services' },
+    { name: 'AI & Business Automation', path: '/services' },
+    { name: 'Digital Products Store', path: '/products' },
+    { name: 'Portfolio & Case Studies', path: '/case-studies' }
+  ];
+
+  const agencyServiceCategories = [
+    {
+      title: 'Digital Marketing',
+      desc: 'Social media, Meta & Google ads, SEO, email & content',
+      path: '/services'
+    },
+    {
+      title: 'Web Development and Creative Services',
+      desc: 'Custom business websites, e-commerce, UI/UX, and branding',
+      path: '/services'
+    },
+    {
+      title: 'AI and Business Automation',
+      desc: 'Smart workflows, lead routing, and customer support chatbots',
+      path: '/services'
+    }
   ];
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200/80 shadow-sm w-full">
       {/* Dynamic Top Announcement Bar (Header Config) */}
       {headerConfig?.showAnnouncement && headerConfig?.announcementText && (
-        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white text-[11px] sm:text-xs py-2 px-4 text-center font-bold tracking-wide relative z-50 flex items-center justify-center space-x-2 shadow-sm">
+        <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white text-[11px] sm:text-xs py-2 px-4 text-center font-bold tracking-wide relative z-50 flex items-center justify-center space-x-2 shadow-sm border-b border-[#112855]">
           <span>{headerConfig.announcementText}</span>
           {headerConfig.announcementLink && (
             <Link
               to={headerConfig.announcementLink}
-              className="underline hover:text-amber-300 ml-1.5 transition-colors font-extrabold"
+              className="underline text-[#FFC629] hover:text-[#FFD359] ml-1.5 transition-colors font-extrabold"
             >
               Explore Now →
             </Link>
@@ -109,13 +132,13 @@ export const Navbar: React.FC = () => {
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/logo.jpg';
               }}
-              className="h-10 sm:h-12 w-auto max-w-[140px] object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-amber-500 transition-colors shadow-sm"
+              className="h-10 sm:h-12 w-auto max-w-[140px] object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-[#2563EB] transition-colors shadow-sm"
             />
             <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors leading-none">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-[#08152F] group-hover:text-[#2563EB] transition-colors leading-none">
                 {settings.brandName || 'EAGLE EYE'}
               </span>
-              <span className="text-[10px] tracking-widest text-amber-600 font-extrabold uppercase mt-0.5">
+              <span className="text-[10px] tracking-widest text-[#2563EB] font-extrabold uppercase mt-0.5">
                 {settings.tagline || 'YOUR DIGITAL WORLD'}
               </span>
             </div>
@@ -131,11 +154,11 @@ export const Navbar: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for digital products, templates, services..."
-              className="w-full h-11 pl-5 pr-14 rounded-full border border-slate-300 focus:border-indigo-600 focus:outline-none text-xs sm:text-sm text-slate-800 bg-slate-50/50 hover:bg-white focus:bg-white transition-all shadow-inner"
+              className="w-full h-11 pl-5 pr-14 rounded-full border border-slate-300 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none text-xs sm:text-sm text-[#172033] bg-[#F3F5F9]/50 hover:bg-white focus:bg-white transition-all shadow-inner"
             />
             <button
               type="submit"
-              className="absolute right-1.5 w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors shadow-sm"
+              className="absolute right-1.5 w-8 h-8 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center transition-colors shadow-sm"
               title="Search"
             >
               <Search className="w-4 h-4" />
@@ -153,7 +176,7 @@ export const Navbar: React.FC = () => {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-full border border-slate-200 hover:border-indigo-600 text-slate-600 hover:text-indigo-600 flex items-center justify-center transition-colors"
+                    className="w-8 h-8 rounded-full border border-slate-200 hover:border-[#2563EB] text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors"
                     title={item.platform}
                   >
                     <SocialIcon link={item} size={15} />
@@ -174,7 +197,7 @@ export const Navbar: React.FC = () => {
                   <MessageCircle className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-[10px] text-slate-500 font-semibold leading-tight">
+                  <span className="text-[10px] text-[#667085] font-semibold leading-tight">
                     {headerConfig?.chatSupportText || 'Chat Support'}
                   </span>
                   <span className="text-xs font-bold text-emerald-700 leading-tight">
@@ -187,16 +210,16 @@ export const Navbar: React.FC = () => {
             {/* Wishlist Heart Icon */}
             <button
               onClick={() => navigate('/products')}
-              className="p-2 rounded-full text-slate-600 hover:text-indigo-600 hover:bg-slate-100 transition-colors hidden sm:block"
+              className="p-2 rounded-full text-[#667085] hover:text-[#2563EB] hover:bg-slate-100 transition-colors hidden sm:block"
               title="Favorites"
             >
               <Heart className="w-5 h-5" />
             </button>
 
-            {/* Cart Capsule Button (Vyrqonix Purple Pill Style: 0 ৳0) */}
+            {/* Cart Capsule Button */}
             <Link
               to="/cart"
-              className="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition-all"
+              className="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs shadow-md shadow-[#2563EB]/20 transition-all"
               title="Cart"
             >
               <ShoppingBag className="w-4 h-4" />
@@ -212,26 +235,26 @@ export const Navbar: React.FC = () => {
                   className="flex items-center space-x-1 p-1 rounded-full border border-slate-200 hover:bg-slate-100 transition-colors focus:outline-none"
                   title="My Account"
                 >
-                  <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-[#FFC629] text-[#08152F] flex items-center justify-center font-bold text-xs shadow-sm">
                     {currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : currentUser.email ? currentUser.email.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
                   </div>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 mr-1" />
+                  <ChevronDown className="w-3.5 h-3.5 text-[#667085] mr-1" />
                 </button>
 
                 {accountDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 text-xs">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-[11px] text-slate-400">Signed in as</p>
-                      <p className="font-bold text-slate-800 truncate">{currentUser.email}</p>
+                      <p className="text-[11px] text-[#667085]">Signed in as</p>
+                      <p className="font-bold text-[#172033] truncate">{currentUser.email}</p>
                     </div>
 
                     {isAdmin && (
                       <Link
                         to="/admin"
                         onClick={() => setAccountDropdownOpen(false)}
-                        className="flex items-center space-x-2 px-4 py-2.5 text-indigo-700 hover:bg-indigo-50 font-bold transition-colors"
+                        className="flex items-center space-x-2 px-4 py-2.5 text-[#2563EB] hover:bg-blue-50 font-bold transition-colors"
                       >
-                        <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                        <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
                         <span>Admin Dashboard</span>
                       </Link>
                     )}
@@ -239,9 +262,9 @@ export const Navbar: React.FC = () => {
                     <Link
                       to="/account"
                       onClick={() => setAccountDropdownOpen(false)}
-                      className="flex items-center space-x-2 px-4 py-2.5 text-slate-700 hover:bg-slate-50 font-medium transition-colors"
+                      className="flex items-center space-x-2 px-4 py-2.5 text-[#172033] hover:bg-slate-50 font-medium transition-colors"
                     >
-                      <UserIcon className="w-4 h-4 text-slate-400" />
+                      <UserIcon className="w-4 h-4 text-[#667085]" />
                       <span>My Account & Orders</span>
                     </Link>
 
@@ -260,7 +283,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <Link
                 to="/account"
-                className="w-8 h-8 rounded-full border border-slate-200 hover:border-indigo-600 flex items-center justify-center text-slate-600 hover:text-indigo-600 transition-colors shadow-sm"
+                className="w-8 h-8 rounded-full border border-slate-200 hover:border-[#2563EB] flex items-center justify-center text-[#667085] hover:text-[#2563EB] transition-colors shadow-sm"
                 title="Account"
               >
                 <UserIcon className="w-4 h-4" />
@@ -270,7 +293,7 @@ export const Navbar: React.FC = () => {
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-700 lg:hidden hover:bg-slate-100"
+              className="p-1.5 rounded-lg border border-slate-200 text-[#172033] lg:hidden hover:bg-slate-100"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -284,11 +307,11 @@ export const Navbar: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products..."
-            className="w-full h-10 pl-4 pr-12 rounded-full border border-slate-300 text-xs text-slate-800 bg-slate-50"
+            className="w-full h-10 pl-4 pr-12 rounded-full border border-slate-300 text-xs text-[#172033] bg-[#F3F5F9] focus:outline-none focus:border-[#2563EB]"
           />
           <button
             type="submit"
-            className="absolute right-1 top-1 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center"
+            className="absolute right-1 top-1 w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center"
           >
             <Search className="w-3.5 h-3.5" />
           </button>
@@ -299,15 +322,15 @@ export const Navbar: React.FC = () => {
       <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-slate-100 bg-white">
         <div className="flex items-center space-x-6 h-12">
           
-          {/* "All Categories" Pill Button with Dropdown (Purple Pill like Vyrqonix) */}
+          {/* "All Categories" Pill Button with Dropdown (Deep Navy Pill) */}
           <div className="relative" ref={catRef}>
             <button
               onClick={() => setCategoriesOpen(!categoriesOpen)}
-              className="flex items-center space-x-2 px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all"
+              className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#08152F] hover:bg-[#0D2044] text-white font-bold text-xs shadow-sm transition-all"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-3.5 h-3.5 text-[#FFC629]" />
               <span>All Categories</span>
-              <ChevronDown className="w-3 h-3 ml-0.5" />
+              <ChevronDown className="w-3 h-3 ml-0.5 text-slate-300" />
             </button>
 
             {categoriesOpen && (
@@ -317,7 +340,7 @@ export const Navbar: React.FC = () => {
                     key={idx}
                     to={cat.path}
                     onClick={() => setCategoriesOpen(false)}
-                    className="block px-4 py-2.5 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-semibold transition-colors"
+                    className="block px-4 py-2.5 text-[#172033] hover:bg-blue-50 hover:text-[#2563EB] font-semibold transition-colors"
                   >
                     {cat.name}
                   </Link>
@@ -328,15 +351,58 @@ export const Navbar: React.FC = () => {
 
           {/* Dynamic Horizontal Links (Header Config) */}
           <nav className="hidden lg:flex items-center space-x-6 text-xs sm:text-sm font-semibold">
-            {navItems.map((item, idx) => (
-              <Link
-                key={idx}
-                to={item.path}
-                className="text-slate-600 hover:text-indigo-600 transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item, idx) => {
+              if (item.label.toLowerCase() === 'services') {
+                return (
+                  <div key={idx} className="relative" ref={servicesRef}>
+                    <button
+                      onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}
+                      className="flex items-center space-x-1 text-[#172033] hover:text-[#2563EB] transition-colors py-2 focus:outline-none"
+                    >
+                      <span>Services</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+
+                    {servicesDropdownOpen && (
+                      <div className="absolute left-0 mt-1 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-50 text-xs space-y-1">
+                        <Link
+                          to="/services"
+                          onClick={() => setServicesDropdownOpen(false)}
+                          className="block p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#2563EB] font-bold transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>All Agency Services (14)</span>
+                            <span className="text-[10px] uppercase tracking-wider font-extrabold">View All →</span>
+                          </div>
+                        </Link>
+                        <div className="border-t border-slate-100 my-1"></div>
+                        {agencyServiceCategories.map((c, cIdx) => (
+                          <Link
+                            key={cIdx}
+                            to={c.path}
+                            onClick={() => setServicesDropdownOpen(false)}
+                            className="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors"
+                          >
+                            <span className="font-bold text-[#08152F] block">{c.title}</span>
+                            <span className="text-[11px] text-[#667085] leading-tight block mt-0.5">{c.desc}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={idx}
+                  to={item.path}
+                  className="text-[#172033] hover:text-[#2563EB] transition-colors"
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </div>
@@ -349,11 +415,26 @@ export const Navbar: React.FC = () => {
               key={idx}
               to={item.path}
               onClick={() => setMobileMenuOpen(false)}
-              className="block text-slate-700 hover:text-indigo-600 font-semibold py-1.5 text-sm"
+              className="block text-[#172033] hover:text-[#2563EB] font-semibold py-1.5 text-sm"
             >
               {item.label}
             </Link>
           ))}
+          <div className="pt-2 border-t border-slate-100 space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1">
+              Agency Categories
+            </span>
+            {agencyServiceCategories.map((c, cIdx) => (
+              <Link
+                key={cIdx}
+                to={c.path}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-xs text-[#667085] hover:text-[#2563EB] py-1 px-1 font-medium"
+              >
+                • {c.title}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </header>

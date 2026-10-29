@@ -27,7 +27,7 @@ export const FloatingSocialBar: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-10 rounded-l-xl bg-white border-l border-y border-slate-200 shadow-md text-slate-500 hover:text-indigo-600 flex items-center justify-center transition-colors"
+          className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-10 rounded-l-xl bg-white border-l border-y border-slate-200 shadow-md text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors"
           title={isCollapsed ? 'Expand social links' : 'Collapse social links'}
         >
           {isCollapsed ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
@@ -39,7 +39,7 @@ export const FloatingSocialBar: React.FC = () => {
             const option = SOCIAL_ICON_OPTIONS.find(
               (o) => o.key.toLowerCase() === (item.iconKey || '').toLowerCase()
             );
-            const brandColor = option?.color || '#4F46E5';
+            const brandColor = option?.color || '#2563EB';
 
             return (
               <a
@@ -54,9 +54,9 @@ export const FloatingSocialBar: React.FC = () => {
                 <SocialIcon link={item} size={18} className="transition-transform group-hover:scale-110" />
 
                 {/* Floating Tooltip Bubble */}
-                <span className="pointer-events-none absolute right-full mr-3.5 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all shadow-lg scale-95 group-hover:scale-100">
+                <span className="pointer-events-none absolute right-full mr-3.5 px-2.5 py-1 rounded-lg bg-[#08152F] text-white text-[11px] font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all shadow-lg scale-95 group-hover:scale-100">
                   {item.platform}
-                  <span className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-slate-900" />
+                  <span className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-[#08152F]" />
                 </span>
               </a>
             );

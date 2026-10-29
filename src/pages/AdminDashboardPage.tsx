@@ -12,6 +12,7 @@ import {
   Plus,
   Trash2,
   ExternalLink,
+  ArrowUpRight,
   LogOut,
   Edit2,
   Package,
@@ -80,6 +81,12 @@ import {
   getAllServices,
   saveService,
   deleteService,
+  syncOrSeedAgencyServices,
+  getAllSubservices,
+  saveSubservice,
+  deleteSubservice,
+  getAllServiceCategories,
+  saveServiceCategory,
   getAllProducts,
   saveProduct,
   deleteProduct,
@@ -112,8 +119,11 @@ import {
   defaultFooterConfig,
   defaultSiteSettings
 } from '../services/firestoreService';
+import { getSeedServicesList } from '../data/agencyServicesSeed';
 import {
   Service,
+  SubService,
+  ServiceCategory,
   DigitalProduct,
   ProductCategory,
   Lead,
@@ -137,6 +147,7 @@ import { useSettings } from '../context/SettingsContext';
 import { SocialIcon, SOCIAL_ICON_OPTIONS } from '../components/SocialIcon';
 import { ADMIN_UID, BUSINESS_EMAIL } from '../lib/firebase';
 import { EmptyState } from '../components/EmptyState';
+import { getServicePricingDisplay, getProductPricingDisplay } from '../utils/pricing';
 
 export const AdminDashboardPage: React.FC = () => {
   const { currentUser, isAdmin, adminRole, logout, refreshAdminStatus, loading: authLoading } = useAuth();
@@ -350,11 +361,32 @@ export const AdminDashboardPage: React.FC = () => {
     slug: '',
     shortDescription: '',
     longDescription: '',
-    category: 'Digital Marketing & Ads',
-    timeline: '2-4 Weeks',
-    status: 'published'
+    category: 'Digital Marketing',
+    timeline: 'Ongoing Monthly Engagement',
+    price: null,
+    pricingType: 'on_request',
+    status: 'published',
+    isFeatured: false,
+    sortOrder: 1,
+    benefits: [],
+    deliverables: [],
+    scopeOfWork: [],
+    subservices: []
   });
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [serviceCategoryFilter, setServiceCategoryFilter] = useState('all');
+  const [serviceStatusFilter, setServiceStatusFilter] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
+  const [serviceFeaturedFilter, setServiceFeaturedFilter] = useState<'all' | 'featured' | 'not-featured'>('all');
+  const [isSyncingServices, setIsSyncingServices] = useState(false);
+  const [syncStatusResult, setSyncStatusResult] = useState<string | null>(null);
+
+  // Subservice & item helpers inside service form
+  const [newSubserviceName, setNewSubserviceName] = useState('');
+  const [newSubserviceDesc, setNewSubserviceDesc] = useState('');
+  const [newBenefitInput, setNewBenefitInput] = useState('');
+  const [newDeliverableInput, setNewDeliverableInput] = useState('');
+  const [newScopeInput, setNewScopeInput] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Mobile Navigation Drawer State
@@ -722,7 +754,7 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       const [bData, sData, pData, cData, lData, oData, aData, nData] = await Promise.all([
         getBentoConfig().catch(() => defaultBentoConfig),
-        getAllServices().catch(() => []),
+        getAllServices().catch(() => getSeedServicesList()),
         getAllProducts().catch(() => []),
         getAllCategories().catch(() => []),
         getAllLeads().catch(() => []),
@@ -731,13 +763,21 @@ export const AdminDashboardPage: React.FC = () => {
         getNotificationSettings().catch(() => ({ leadRecipientEmails: [DEFAULT_RECIPIENT_EMAIL] }))
       ]);
       setBentoForm(bData);
-      setServices(sData);
+      const activeServices = (sData && sData.length > 0) ? sData : getSeedServicesList();
+      setServices(activeServices);
       setProducts(pData);
       setCategories(cData);
       setLeads(lData);
       setOrders(oData);
       setAdmins(aData);
       setNotificationSettings(nData);
+
+      // If Firestore services collection is empty, trigger an auto-seed in the background
+      if (isAdmin && (!sData || sData.length === 0)) {
+        syncOrSeedAgencyServices(false).catch((err) => {
+          console.warn('Auto-seed notice:', err);
+        });
+      }
     } catch (err) {
       console.error('Failed to load admin collections:', err);
     } finally {
@@ -782,17 +822,17 @@ export const AdminDashboardPage: React.FC = () => {
 
   if (!isSessionUnlocked && currentAdminProfile) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#F3F5F9] flex items-center justify-center p-4">
         <div className="bg-white border border-slate-200/90 shadow-2xl rounded-3xl max-w-md w-full p-8 text-center space-y-5 animate-in fade-in zoom-in duration-150">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-600/30">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#08152F] to-[#2563EB] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#2563EB]/25">
             <Lock className="w-8 h-8" />
           </div>
 
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 block mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#2563EB] block mb-1">
               Admin Access Verification
             </span>
-            <h2 className="text-xl font-black text-slate-900">
+            <h2 className="text-xl font-black text-[#08152F]">
               Enter Admin Security Password
             </h2>
             <p className="text-xs text-slate-500 mt-1">
@@ -855,7 +895,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/25 transition-all flex items-center justify-center space-x-2 active:scale-[0.99]"
+              className="w-full py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-md shadow-[#2563EB]/25 transition-all flex items-center justify-center space-x-2 active:scale-[0.99]"
             >
               <Unlock className="w-4 h-4" />
               <span>Unlock Admin Panel (প্যানেলে প্রবেশ করুন)</span>
@@ -1272,10 +1312,71 @@ export const AdminDashboardPage: React.FC = () => {
   // Submit Service
   const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!serviceForm.name || !serviceForm.slug) return;
-    await saveService(serviceForm);
+    if (!serviceForm.name || !serviceForm.name.trim()) {
+      alert('Please provide a service title.');
+      return;
+    }
+    const finalSlug = (serviceForm.slug || serviceForm.name)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const cleanPrice =
+      serviceForm.price !== undefined &&
+      serviceForm.price !== null &&
+      serviceForm.price !== ('' as any) &&
+      !isNaN(Number(serviceForm.price)) &&
+      Number(serviceForm.price) > 0
+        ? Number(serviceForm.price)
+        : null;
+
+    const payload: Partial<Service> = {
+      ...serviceForm,
+      name: serviceForm.name.trim(),
+      slug: finalSlug,
+      price: cleanPrice,
+      pricingType: cleanPrice !== null ? (serviceForm.pricingType || 'fixed') : 'on_request',
+      status: serviceForm.status || 'published',
+      isFeatured: Boolean(serviceForm.isFeatured),
+      sortOrder: Number(serviceForm.sortOrder) || 1
+    };
+
+    await saveService(payload);
     setIsServiceModalOpen(false);
-    loadData();
+    await loadData();
+  };
+
+  // Quick Action: Toggle Service Publication Status
+  const handleToggleServiceStatus = async (srv: Service) => {
+    const newStatus: Service['status'] = srv.status === 'published' ? 'draft' : 'published';
+    await saveService({ id: srv.id, status: newStatus });
+    await loadData();
+  };
+
+  // Quick Action: Toggle Service Featured on Homepage
+  const handleToggleServiceFeatured = async (srv: Service) => {
+    await saveService({ id: srv.id, isFeatured: !srv.isFeatured });
+    await loadData();
+  };
+
+  // Trigger Automatic Seed / Sync of All 14 Main Services & 144 Subservices
+  const handleSyncAllServices = async () => {
+    if (!confirm('This will verify and sync all 14 Agency Services and 144 Subservices into the database without removing your existing custom records. Proceed?')) {
+      return;
+    }
+    setIsSyncingServices(true);
+    setSyncStatusResult(null);
+    try {
+      const res = await syncOrSeedAgencyServices(false);
+      setSyncStatusResult(
+        `✓ Sync Complete: ${res.servicesCreated} new services created, ${res.servicesUpdated} verified/updated, ${res.subservicesCreated} subservices verified. Total: ${res.totalServices} Services, ${res.totalSubservices} Subservices.`
+      );
+      await loadData();
+    } catch (err: any) {
+      setSyncStatusResult(`Sync Error: ${err.message || 'Failed to sync'}`);
+    } finally {
+      setIsSyncingServices(false);
+    }
   };
 
   // Submit Bento
@@ -1891,7 +1992,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setSidePreviewScope('section')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   sidePreviewScope === 'section'
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-[#2563EB] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
                 title="কারেন্ট সেকশন প্রিভিউ (ডিফল্ট)"
@@ -1905,7 +2006,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setSidePreviewScope('full')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   sidePreviewScope === 'full'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    ? 'bg-[#2563EB] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
                 title="সম্পূর্ণ লাইভ ওয়েবসাইট প্রিভিউ"
@@ -1922,7 +2023,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setPreviewDevice('phone')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   previewDevice === 'phone'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    ? 'bg-[#2563EB] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -1935,7 +2036,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setPreviewDevice('laptop')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   previewDevice === 'laptop'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    ? 'bg-[#2563EB] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -1948,7 +2049,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setPreviewDevice('tablet')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   previewDevice === 'tablet'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                    ? 'bg-[#2563EB] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -1999,7 +2100,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeMenu === 'settings' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
                         <Settings className="w-3.5 h-3.5" />
                         Site Identity & Header Preview
                       </span>
@@ -2010,8 +2111,8 @@ export const AdminDashboardPage: React.FC = () => {
 
                     {/* Announcement Bar */}
                     {headerForm.showAnnouncement !== false && (
-                      <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
+                      <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 border border-[#112855]">
+                        <Sparkles className="w-3 h-3 text-[#FFC629] animate-spin-slow flex-shrink-0" />
                         <span className="truncate">{headerForm.announcementText || 'Special Offer Available'}</span>
                       </div>
                     )}
@@ -2019,7 +2120,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {/* Live Brand Navbar Card */}
                     <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-xs flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-sm flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-[#08152F] border border-[#112855] p-0.5 shadow-sm flex items-center justify-center">
                           {siteForm.logoUrl ? (
                             <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
                           ) : (
@@ -2027,7 +2128,7 @@ export const AdminDashboardPage: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <div className="text-xs font-black text-slate-900 leading-none">
+                          <div className="text-xs font-black text-[#08152F] leading-none">
                             {siteForm.brandName || 'Eagle Eye Digital'}
                           </div>
                           <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
@@ -2070,7 +2171,7 @@ export const AdminDashboardPage: React.FC = () => {
                         <span className="text-slate-500">Official Email:</span>
                         <a
                           href={`mailto:${siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
-                          className="font-mono text-indigo-700 font-bold hover:underline truncate max-w-[180px]"
+                          className="font-mono text-[#2563EB] font-bold hover:underline truncate max-w-[180px]"
                         >
                           {siteForm.businessEmail || 'support@eagleeyedigital.com'}
                         </a>
@@ -2086,7 +2187,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {headerFooterActiveTab === 'social' && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                          <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
                             <Globe className="w-3.5 h-3.5" />
                             Social Presence Placements
                           </span>
@@ -2099,12 +2200,12 @@ export const AdminDashboardPage: React.FC = () => {
                         <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
                           <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
                             <span>1. Sticky Floating Sidebar Dock</span>
-                            <span className="text-indigo-600 font-mono">
+                            <span className="text-[#2563EB] font-mono">
                               {activeSidebarSocials.length} Icons
                             </span>
                           </div>
-                          <div className="h-16 bg-slate-900 rounded-lg p-2 flex items-center justify-end">
-                            <div className="flex gap-1.5 p-1 bg-slate-950/90 rounded-xl border border-slate-700 shadow-md">
+                          <div className="h-16 bg-[#08152F] rounded-lg p-2 flex items-center justify-end">
+                            <div className="flex gap-1.5 p-1 bg-[#050E20] rounded-xl border border-[#112855] shadow-md">
                               {activeSidebarSocials.length > 0 ? (
                                 activeSidebarSocials.map((item) => (
                                   <a
@@ -2113,7 +2214,7 @@ export const AdminDashboardPage: React.FC = () => {
                                     target="_blank"
                                     rel="noreferrer"
                                     title={item.platform}
-                                    className="w-6 h-6 rounded-lg bg-white/10 hover:bg-indigo-600 text-white flex items-center justify-center transition-all hover:scale-110"
+                                    className="w-6 h-6 rounded-lg bg-white/10 hover:bg-[#2563EB] text-white flex items-center justify-center transition-all hover:scale-110"
                                   >
                                     <SocialIcon link={item} className="w-3 h-3" size={12} />
                                   </a>
@@ -2138,7 +2239,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={item.platform}
-                                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center transition-all shadow-xs"
+                                className="w-7 h-7 rounded-full bg-[#08152F] hover:bg-[#2563EB] text-white flex items-center justify-center transition-all shadow-xs"
                               >
                                 <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
                               </a>
@@ -2152,7 +2253,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {headerFooterActiveTab === 'header' && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                          <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
                             <Sliders className="w-3.5 h-3.5" />
                             Header & Nav Preview
                           </span>
@@ -2160,8 +2261,8 @@ export const AdminDashboardPage: React.FC = () => {
 
                         {/* Announcement Bar */}
                         {headerForm.showAnnouncement !== false && (
-                          <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5">
-                            <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
+                          <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 border border-[#112855]">
+                            <Sparkles className="w-3 h-3 text-[#FFC629] animate-spin-slow flex-shrink-0" />
                             <span className="truncate">{headerForm.announcementText || 'Special Offer!'}</span>
                           </div>
                         )}
@@ -2169,7 +2270,7 @@ export const AdminDashboardPage: React.FC = () => {
                         {/* Navbar Preview */}
                         <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
                           <div className="flex items-center justify-between">
-                            <div className="font-bold text-xs text-slate-900">{siteForm.brandName || 'Eagle Eye'}</div>
+                            <div className="font-bold text-xs text-[#08152F]">{siteForm.brandName || 'Eagle Eye'}</div>
                             {headerForm.showChatSupport !== false && (
                               <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
                                 {headerForm.chatSupportText || 'Chat Support'}
@@ -2191,20 +2292,20 @@ export const AdminDashboardPage: React.FC = () => {
                     {headerFooterActiveTab === 'footer' && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                          <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
                             <Layers className="w-3.5 h-3.5" />
                             Footer Columns Preview
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-900 text-slate-300 rounded-xl space-y-3">
+                        <div className="p-3 bg-[#08152F] text-slate-300 rounded-xl space-y-3 border border-[#112855]">
                           <div className="text-xs font-black text-white">{siteForm.brandName || 'Eagle Eye Digital'}</div>
                           <p className="text-[10px] text-slate-400 line-clamp-2">
                             {footerForm.aboutText || 'Empowering businesses worldwide.'}
                           </p>
-                          <div className="pt-2 border-t border-slate-800 text-[10px] flex justify-between text-slate-500">
+                          <div className="pt-2 border-t border-[#112855] text-[10px] flex justify-between text-slate-400">
                             <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
-                            <span className="text-indigo-400">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                            <span className="text-[#FFC629] font-bold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
                           </div>
                         </div>
                       </div>
@@ -2216,11 +2317,11 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeMenu === 'products' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
                         <Package className="w-3.5 h-3.5" />
                         Live Product Card Preview
                       </span>
-                      <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] bg-blue-100 text-[#2563EB] font-bold px-2 py-0.5 rounded-full">
                         {prodForm.productType || 'Template'}
                       </span>
                     </div>
@@ -2244,7 +2345,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <h4 className="text-xs font-black text-slate-900 leading-snug">
+                        <h4 className="text-xs font-black text-[#08152F] leading-snug">
                           {prodForm.name || 'Sample Digital Product Title'}
                         </h4>
                         <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
@@ -2254,7 +2355,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-black text-blue-600">
+                          <span className="text-xs font-black text-[#2563EB]">
                             ৳{prodForm.salePrice || prodForm.price || 0} BDT
                           </span>
                           {prodForm.salePrice && prodForm.price && prodForm.price > prodForm.salePrice ? (
@@ -2265,7 +2366,7 @@ export const AdminDashboardPage: React.FC = () => {
                         </div>
                         <button
                           type="button"
-                          className="px-3 py-1 bg-blue-600 text-white rounded-lg font-bold text-[10px] shadow-xs hover:bg-blue-700"
+                          className="px-3 py-1 bg-[#2563EB] text-white rounded-lg font-bold text-[10px] shadow-xs hover:bg-[#1D4ED8] transition-colors"
                         >
                           {prodForm.customDownloadBtnText || 'Order Now'}
                         </button>
@@ -2278,20 +2379,20 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeMenu === 'services' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
                         <Layers className="w-3.5 h-3.5" />
                         Live Service Card Preview
                       </span>
-                      <span className="text-[9px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] bg-blue-100 text-[#2563EB] font-bold px-2 py-0.5 rounded-full">
                         Agency Service
                       </span>
                     </div>
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2.5 shadow-sm">
-                      <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                      <span className="text-[9px] font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded">
                         {serviceForm.category || 'Client Service'}
                       </span>
-                      <h4 className="text-sm font-black text-slate-900">
+                      <h4 className="text-sm font-black text-[#08152F]">
                         {serviceForm.name || 'Premium Agency Web Development'}
                       </h4>
                       <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -2302,7 +2403,7 @@ export const AdminDashboardPage: React.FC = () => {
                           href={`https://wa.me/${(siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-[10px] shadow-xs"
+                          className="px-3 py-1.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[10px] shadow-xs transition-colors"
                         >
                           Book Strategy Call →
                         </a>
@@ -2311,56 +2412,291 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* 1.5 HOMEPAGE SPECIFIC SECTION PREVIEW */}
-                {activeMenu === 'homepage' && (
+                {/* 1.5 CATEGORIES SPECIFIC SECTION PREVIEW */}
+                {activeMenu === 'categories' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider flex items-center gap-1.5">
-                        <ImagePlus className="w-3.5 h-3.5" />
-                        Hero Banner Preview
+                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                        <FolderTree className="w-3.5 h-3.5" />
+                        Live Category Pill & Card Preview
+                      </span>
+                      <span className="text-[9px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">
+                        Order #{newCatOrder || 1}
                       </span>
                     </div>
 
-                    {/* Hero Slider Box */}
-                    <div className="rounded-xl bg-slate-950 text-white p-4 relative overflow-hidden shadow-md min-h-[140px] flex flex-col justify-between">
-                      {currentSlide?.bgImage && (
-                        <div className="absolute inset-0 z-0">
-                          <img src={currentSlide.bgImage} alt="Banner" className="w-full h-full object-cover opacity-40" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                    {/* Live Pill Simulation (how it looks in Category Navigation bar) */}
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+                      <div className="text-[10px] font-bold text-slate-500">Shop Navigation Bar:</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-2 shadow-xs ring-2 ring-blue-600/30">
+                          {newCatIcon ? (
+                            <img src={newCatIcon} alt="" className="w-4 h-4 rounded object-cover" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          )}
+                          <span>{newCatName || 'Category Name'}</span>
+                          <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded-full font-mono">
+                            {products.filter(p => (newCatName ? p.category === newCatName : false)).length || 12}
+                          </span>
                         </div>
-                      )}
-                      <div className="relative z-10 space-y-1">
-                        <span className="text-[8px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-400/30">
-                          {currentSlide?.tag || 'Next-Gen Solutions'}
-                        </span>
-                        <h4 className="text-xs font-black text-white leading-tight">
-                          {currentSlide?.title || 'Empower Your Growth'}
-                        </h4>
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs flex items-center gap-2">
+                          <span>Templates</span>
+                        </div>
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs flex items-center gap-2">
+                          <span>Graphic Resources</span>
+                        </div>
                       </div>
-                      <div className="relative z-10 pt-2 flex items-center justify-between">
-                        <span className="text-[9px] bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded">
-                          {currentSlide?.btn1Text || 'Browse'}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {(bentoForm.heroSlides || []).map((_, idx) => (
-                            <div
-                              key={idx}
-                              className={`rounded-full ${previewSlideIndex === idx ? 'w-2.5 h-1 bg-amber-400' : 'w-1 h-1 bg-white/40'}`}
-                            />
-                          ))}
+                    </div>
+
+                    {/* Live Card Mockup */}
+                    <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center overflow-hidden border border-purple-200 shrink-0">
+                          {newCatIcon ? (
+                            <img src={newCatIcon} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <FolderTree className="w-6 h-6" />
+                          )}
                         </div>
+                        <div>
+                          <h4 className="text-sm font-black text-slate-900">
+                            {newCatName || 'New Product Category'}
+                          </h4>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            Slug: /{newCatSlug || 'category-slug'}
+                          </div>
+                        </div>
+                      </div>
+                      {newCatDesc && (
+                        <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-100 pt-2">
+                          {newCatDesc}
+                        </p>
+                      )}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                        <span>Display Order: <strong className="text-slate-800">{newCatOrder}</strong></span>
+                        <span className="text-[#2563EB] font-bold">Active in Catalog →</span>
                       </div>
                     </div>
                   </div>
                 )}
+
+                {/* 1.6 HOMEPAGE SPECIFIC SECTION PREVIEW (RICH HERO BENTO FROM SCREEN 2) */}
+                {activeMenu === 'homepage' && (() => {
+                  const previewSlides = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
+                    ? bentoForm.heroSlides
+                    : defaultHeroSlides;
+                  const isUploadedFocused = previewFocusUploaded && Boolean(newSlideImg);
+                  const currentPreview = previewSlides[previewSlideIndex] || previewSlides[0];
+                  const activeBg = isUploadedFocused
+                    ? newSlideImg
+                    : (editingSlideIndex === previewSlideIndex && newSlideImg)
+                    ? newSlideImg
+                    : currentPreview?.bgImage;
+                  const previewIsPure = isUploadedFocused
+                    ? newSlideIsPureBanner
+                    : Boolean(currentPreview?.isPureBanner || (currentPreview?.bgImage && !currentPreview?.title));
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Controls: Focus Uploaded, Prev/Next, Auto-Slide, Bento Mode */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                        <div className="flex items-center space-x-1.5">
+                          {newSlideImg && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewFocusUploaded(!previewFocusUploaded)}
+                              className={`text-[10px] font-extrabold px-2 py-1 rounded-lg border transition-all flex items-center space-x-1 ${
+                                previewFocusUploaded
+                                  ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-xs'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                              }`}
+                            >
+                              <Sparkles className="w-3 h-3 text-slate-950" />
+                              <span>{previewFocusUploaded ? 'Viewing Upload' : 'Focus Upload'}</span>
+                            </button>
+                          )}
+                          <span className="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
+                            Slide {previewSlideIndex + 1}/{previewSlides.length}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPreviewFocusUploaded(false);
+                              setPreviewSlideIndex((prev) => (prev - 1 + previewSlides.length) % previewSlides.length);
+                            }}
+                            className="w-6 h-6 rounded border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
+                            title="Previous Slide"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPreviewFocusUploaded(false);
+                              setPreviewAutoPlay(!previewAutoPlay);
+                            }}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 ${
+                              previewAutoPlay && !isUploadedFocused
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {previewAutoPlay && !isUploadedFocused ? (
+                              <>
+                                <Pause className="w-2.5 h-2.5 text-emerald-600" />
+                                <span>Auto ON</span>
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-2.5 h-2.5 text-slate-500" />
+                                <span>Paused</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPreviewFocusUploaded(false);
+                              setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length);
+                            }}
+                            className="w-6 h-6 rounded border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
+                            title="Next Slide"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Hero Slider Box */}
+                      <div className="rounded-2xl overflow-hidden relative min-h-[220px] bg-slate-950 p-4 sm:p-5 flex flex-col justify-between text-white shadow-xl transition-all duration-700 group border border-slate-800">
+                        {/* Ken Burns Animated Background Image */}
+                        {activeBg && (
+                          <div className="absolute inset-0 z-0 overflow-hidden">
+                            <img
+                              key={`hero-bg-${previewSlideIndex}-${activeBg}`}
+                              src={activeBg}
+                              alt="Banner"
+                              className="w-full h-full object-cover animate-ken-burns transition-opacity duration-1000 opacity-75"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                          </div>
+                        )}
+
+                        {!previewIsPure ? (
+                          <>
+                            <div className="relative z-10 space-y-2 max-w-sm">
+                              <span className="inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30 backdrop-blur-xs">
+                                {currentPreview?.tag || 'Next-Gen Solutions'}
+                              </span>
+                              <h3
+                                key={`hero-title-${previewSlideIndex}`}
+                                className="text-sm sm:text-base font-black tracking-tight text-white leading-tight animate-fade-in"
+                              >
+                                {currentPreview?.title || 'Empower Your Growth With Intelligent Strategy'}
+                              </h3>
+                              <p className="text-[10px] text-slate-300 line-clamp-2 leading-relaxed">
+                                {currentPreview?.desc || 'From performance marketing to ready-to-deploy UI assets, Eagle Eye Digital fuels modern brands.'}
+                              </p>
+                            </div>
+
+                            <div className="relative z-10 pt-3 flex items-center justify-between border-t border-white/10 mt-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-[#FFC629] to-[#E5B01F] text-[#08152F] font-black text-[9px] shadow-xs flex items-center space-x-1">
+                                  <span>{currentPreview?.btn1Text || 'Browse Products'}</span>
+                                  <ArrowRight className="w-2.5 h-2.5" />
+                                </span>
+                              </div>
+
+                              <div className="flex items-center space-x-1 bg-slate-950/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/15">
+                                {previewSlides.map((_, idx) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => {
+                                      setPreviewFocusUploaded(false);
+                                      setPreviewSlideIndex(idx);
+                                    }}
+                                    className={`transition-all duration-300 rounded-full ${
+                                      previewSlideIndex === idx && !isUploadedFocused
+                                        ? 'w-4 h-1.5 bg-[#FFC629]'
+                                        : 'w-1.5 h-1.5 bg-white/40'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="relative z-10 h-full flex flex-col justify-between py-6">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-black/60 text-amber-300 border border-white/20 self-start backdrop-blur-xs">
+                              ✨ Clean Graphic Banner Mode
+                            </span>
+                            <div className="flex items-center justify-between pt-8 text-[9px] text-white/80">
+                              <span>Link: {newSlideLink || '/products'}</span>
+                              <div className="flex items-center space-x-1">
+                                {previewSlides.map((_, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`rounded-full ${
+                                      previewSlideIndex === idx ? 'w-3 h-1 bg-[#FFC629]' : 'w-1 h-1 bg-white/40'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bento Side Promo Cards Simulation */}
+                      {previewDevice !== 'phone' && (
+                        <div className="grid grid-cols-3 gap-2 pt-1">
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white flex items-center justify-between">
+                            <div className="min-w-0 pr-1">
+                              <span className="text-[7px] uppercase font-bold text-sky-400 block truncate">{bentoForm.card1Tag || 'MEDIA'}</span>
+                              <h5 className="text-[10px] font-black truncate">{bentoForm.card1Title || 'Social Growth'}</h5>
+                            </div>
+                            <div className="w-6 h-6 rounded bg-slate-800 text-white flex items-center justify-center shrink-0 text-[8px] font-black">
+                              In
+                            </div>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white flex items-center justify-between">
+                            <div className="min-w-0 pr-1">
+                              <span className="text-[7px] uppercase font-bold text-amber-400 block truncate">{bentoForm.card2Tag || 'CODE'}</span>
+                              <h5 className="text-[10px] font-black truncate">{bentoForm.card2Title || 'UI Assets'}</h5>
+                            </div>
+                            <div className="w-6 h-6 rounded bg-slate-800 text-white flex items-center justify-center shrink-0 text-[8px] font-black">
+                              ui
+                            </div>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white flex items-center justify-between">
+                            <div className="min-w-0 pr-1">
+                              <span className="text-[7px] uppercase font-bold text-emerald-400 block truncate">{bentoForm.card3Tag || 'STORE'}</span>
+                              <h5 className="text-[10px] font-black truncate">{bentoForm.card3Title || 'Digital Store'}</h5>
+                            </div>
+                            <div className="w-6 h-6 rounded bg-slate-800 text-white flex items-center justify-center shrink-0 text-[8px] font-black">
+                              shop
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               /* ================= CONDITION 2: FULL SCROLLABLE WEBSITE PREVIEW ================= */
               <div className="w-full flex flex-col">
                 {/* 1. Announcement Bar */}
                 {headerForm.showAnnouncement !== false && (
-                  <div className="bg-gradient-to-r from-blue-700 via-indigo-600 to-indigo-800 text-white px-3 py-1.5 text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 leading-tight">
-                    <Sparkles className="w-3 h-3 text-amber-300 animate-spin-slow flex-shrink-0" />
+                  <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white px-3 py-1.5 text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 leading-tight border-b border-[#112855]">
+                    <Sparkles className="w-3 h-3 text-[#FFC629] animate-spin-slow flex-shrink-0" />
                     <span className="truncate">
                       {headerForm.announcementText || '⚡ SPECIAL OFFER: Empower your digital presence with Eagle Eye Digital!'}
                     </span>
@@ -2369,7 +2705,7 @@ export const AdminDashboardPage: React.FC = () => {
                         href={headerForm.announcementLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[9px] underline font-bold bg-white/20 px-1.5 py-0.5 rounded ml-0.5 hover:bg-white/30"
+                        className="text-[9px] underline font-bold bg-[#FFC629]/20 text-[#FFC629] px-1.5 py-0.5 rounded ml-0.5 hover:bg-[#FFC629]/30"
                       >
                         View →
                       </a>
@@ -2381,19 +2717,19 @@ export const AdminDashboardPage: React.FC = () => {
                 <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 py-2 flex items-center justify-between gap-2 shadow-xs">
                   {/* Brand Logo & Name */}
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-800 p-0.5 shadow-sm flex items-center justify-center flex-shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#08152F] border border-[#112855] p-0.5 shadow-sm flex items-center justify-center flex-shrink-0">
                       {siteForm.logoUrl ? (
                         <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
                       ) : (
-                        <div className="w-full h-full bg-slate-900 rounded-md flex items-center justify-center text-white font-black text-[9px]">
+                        <div className="w-full h-full bg-[#08152F] rounded-md flex items-center justify-center text-white font-black text-[9px]">
                           EE
                         </div>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-black tracking-tight text-slate-900 truncate flex items-center gap-1">
+                      <div className="text-xs font-black tracking-tight text-[#08152F] truncate flex items-center gap-1">
                         <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2563EB] to-[#1D4ED8]">
                           {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
                         </span>
                       </div>
@@ -2412,7 +2748,7 @@ export const AdminDashboardPage: React.FC = () => {
                           href={link.path}
                           target="_blank"
                           rel="noreferrer"
-                          className="hover:text-indigo-600 transition-colors py-0.5"
+                          className="hover:text-[#2563EB] transition-colors py-0.5"
                         >
                           {link.label}
                         </a>
@@ -2432,7 +2768,7 @@ export const AdminDashboardPage: React.FC = () => {
                             target="_blank"
                             rel="noreferrer"
                             title={item.platform}
-                            className="p-1 rounded-md bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition-colors"
+                            className="p-1 rounded-md bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-[#2563EB] transition-colors"
                           >
                             <SocialIcon link={item} className="w-3 h-3" size={12} />
                           </a>
@@ -2511,7 +2847,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {/* 3. Hero Banner & Bento Section */}
                 <div className="p-3 bg-slate-50 space-y-3">
                   {/* Main Slider Box */}
-                  <div className="rounded-xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white p-4 relative overflow-hidden shadow-sm flex flex-col justify-between min-h-[160px]">
+                  <div className="rounded-xl bg-gradient-to-tr from-[#08152F] via-[#0D2044] to-[#050E20] border border-[#112855] text-white p-4 relative overflow-hidden shadow-sm flex flex-col justify-between min-h-[160px]">
                     {currentSlide?.bgImage && (
                       <div className="absolute inset-0 z-0">
                         <img
@@ -2519,13 +2855,13 @@ export const AdminDashboardPage: React.FC = () => {
                           alt="Banner"
                           className="w-full h-full object-cover opacity-35"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#08152F] via-[#08152F]/60 to-transparent" />
                       </div>
                     )}
 
                     <div className="relative z-10 space-y-1">
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-[8px] font-black uppercase tracking-wider">
-                        <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFC629]/20 border border-[#FFC629]/40 text-[#FFC629] text-[8px] font-black uppercase tracking-wider">
+                        <Sparkles className="w-2.5 h-2.5 text-[#FFC629]" />
                         <span>{currentSlide?.tag || 'Premium Digital Solutions'}</span>
                       </div>
                       <h3 className="text-sm font-black text-white leading-tight line-clamp-2">
@@ -2542,7 +2878,7 @@ export const AdminDashboardPage: React.FC = () => {
                           href={currentSlide?.btn1Link || '/products'}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-black text-[9px] shadow-xs hover:bg-amber-300 transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-[#FFC629] text-[#08152F] font-black text-[9px] shadow-xs hover:bg-[#E5B01F] transition-colors"
                         >
                           {currentSlide?.btn1Text || 'Products'}
                         </a>
@@ -2564,7 +2900,7 @@ export const AdminDashboardPage: React.FC = () => {
                             type="button"
                             onClick={() => setPreviewSlideIndex(idx)}
                             className={`rounded-full transition-all ${
-                              previewSlideIndex === idx ? 'w-3 h-1 bg-amber-400' : 'w-1 h-1 bg-white/40'
+                              previewSlideIndex === idx ? 'w-3 h-1 bg-[#FFC629]' : 'w-1 h-1 bg-white/40'
                             }`}
                           />
                         ))}
@@ -2575,15 +2911,15 @@ export const AdminDashboardPage: React.FC = () => {
                   {/* Side Bento Posters */}
                   {previewDevice !== 'phone' && (
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                      <div className="rounded-lg bg-[#08152F] text-white p-2 border border-[#112855]">
                         <span className="text-[8px] font-bold text-sky-400 uppercase block">{bentoForm.card1Tag || 'Growth'}</span>
                         <div className="text-[10px] font-black truncate">{bentoForm.card1Title || 'Social Media'}</div>
                       </div>
-                      <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
-                        <span className="text-[8px] font-bold text-amber-400 uppercase block">{bentoForm.card2Tag || 'Ready'}</span>
+                      <div className="rounded-lg bg-[#050E20] text-white p-2 border border-[#112855]">
+                        <span className="text-[8px] font-bold text-[#FFC629] uppercase block">{bentoForm.card2Tag || 'Ready'}</span>
                         <div className="text-[10px] font-black truncate">{bentoForm.card2Title || 'Products'}</div>
                       </div>
-                      <div className="rounded-lg bg-slate-900 text-white p-2 border border-slate-800">
+                      <div className="rounded-lg bg-[#0D2044] text-white p-2 border border-[#112855]">
                         <span className="text-[8px] font-bold text-emerald-400 uppercase block">{bentoForm.card3Tag || 'Enterprise'}</span>
                         <div className="text-[10px] font-black truncate">{bentoForm.card3Title || 'Web Design'}</div>
                       </div>
@@ -2594,18 +2930,18 @@ export const AdminDashboardPage: React.FC = () => {
                 {/* 4. Popular Services Showcase */}
                 <div className="p-3 bg-white space-y-2 border-t border-slate-100">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">
+                    <span className="text-[10px] font-black uppercase text-[#08152F] tracking-wider">
                       Agency Services
                     </span>
-                    <span className="text-[9px] text-blue-600 font-bold">Solutions</span>
+                    <span className="text-[9px] text-[#2563EB] font-bold">Solutions</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {(services || []).slice(0, 2).map((srv) => (
                       <div key={srv.id} className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
-                        <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                        <span className="text-[8px] font-bold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded">
                           {srv.category || 'Service'}
                         </span>
-                        <div className="text-[10px] font-black text-slate-900 truncate">{srv.name}</div>
+                        <div className="text-[10px] font-black text-[#08152F] truncate">{srv.name}</div>
                         <p className="text-[8px] text-slate-500 line-clamp-1">{srv.shortDescription}</p>
                       </div>
                     ))}
@@ -2615,10 +2951,10 @@ export const AdminDashboardPage: React.FC = () => {
                 {/* 5. Popular Products Showcase */}
                 <div className="p-3 bg-slate-50 space-y-2 border-t border-slate-100">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">
+                    <span className="text-[10px] font-black uppercase text-[#08152F] tracking-wider">
                       Digital Resources
                     </span>
-                    <span className="text-[9px] text-blue-600 font-bold">Catalog</span>
+                    <span className="text-[9px] text-[#2563EB] font-bold">Catalog</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {(products || []).slice(0, 2).map((prod) => (
@@ -2630,9 +2966,9 @@ export const AdminDashboardPage: React.FC = () => {
                             <Package className="w-5 h-5 text-slate-400" />
                           )}
                         </div>
-                        <div className="text-[9px] font-bold text-slate-900 truncate">{prod.name}</div>
+                        <div className="text-[9px] font-bold text-[#08152F] truncate">{prod.name}</div>
                         <div className="flex items-center justify-between text-[9px]">
-                          <span className="font-extrabold text-blue-600">৳{prod.salePrice || prod.price || 0}</span>
+                          <span className="font-extrabold text-[#2563EB]">৳{prod.salePrice || prod.price || 0}</span>
                           <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1 rounded font-bold">Order</span>
                         </div>
                       </div>
@@ -2642,7 +2978,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                 {/* 6. Sticky Floating Sidebar Simulation inside Preview */}
                 {activeSidebarSocials.length > 0 && (
-                  <div className="absolute right-2 top-32 z-30 flex flex-col gap-1 p-1 bg-slate-950/90 backdrop-blur-md rounded-xl border border-slate-700 shadow-xl">
+                  <div className="absolute right-2 top-32 z-30 flex flex-col gap-1 p-1 bg-[#08152F]/95 backdrop-blur-md rounded-xl border border-[#112855] shadow-xl">
                     {activeSidebarSocials.map((item) => (
                       <a
                         key={item.id}
@@ -2650,7 +2986,7 @@ export const AdminDashboardPage: React.FC = () => {
                         target="_blank"
                         rel="noreferrer"
                         title={`Open ${item.platform}: ${item.url}`}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/10 hover:bg-indigo-600 text-white transition-all hover:scale-110 shadow-xs"
+                        className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/10 hover:bg-[#2563EB] text-white transition-all hover:scale-110 shadow-xs"
                       >
                         <SocialIcon link={item} className="w-3 h-3" size={12} />
                       </a>
@@ -2659,12 +2995,12 @@ export const AdminDashboardPage: React.FC = () => {
                 )}
 
                 {/* 7. Footer */}
-                <footer className="bg-slate-950 text-slate-300 p-4 space-y-4 border-t border-slate-800">
+                <footer className="bg-[#08152F] text-slate-300 p-4 space-y-4 border-t border-[#112855]">
                   <div className={`grid gap-4 ${previewDevice === 'phone' ? 'grid-cols-1' : 'grid-cols-3'}`}>
                     {/* Brand & Bio */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-indigo-600/30 border border-indigo-400/40 p-0.5 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-md bg-[#08152F] border border-[#112855] p-0.5 flex items-center justify-center">
                           {siteForm.logoUrl ? (
                             <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-sm" />
                           ) : (
@@ -2689,7 +3025,7 @@ export const AdminDashboardPage: React.FC = () => {
                             target="_blank"
                             rel="noreferrer"
                             title={item.platform}
-                            className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 hover:bg-indigo-600 text-white flex items-center justify-center transition-all hover:scale-110"
+                            className="w-6 h-6 rounded-full bg-[#050E20] border border-[#112855] hover:bg-[#2563EB] text-white flex items-center justify-center transition-all hover:scale-110"
                           >
                             <SocialIcon link={item} className="w-3 h-3" size={12} />
                           </a>
@@ -2719,7 +3055,7 @@ export const AdminDashboardPage: React.FC = () => {
                       <div>
                         <a
                           href={`mailto:${footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
-                          className="hover:text-indigo-400 font-mono block truncate"
+                          className="hover:text-[#2563EB] font-mono block truncate"
                         >
                           ✉ {footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}
                         </a>
@@ -2737,9 +3073,9 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px] text-slate-500">
+                  <div className="pt-2 border-t border-[#112855] flex items-center justify-between text-[9px] text-slate-400">
                     <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
-                    <span className="text-indigo-400 font-semibold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                    <span className="text-[#FFC629] font-bold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
                   </div>
                 </footer>
               </div>
@@ -2751,7 +3087,7 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-[#F8FAFC] flex font-sans text-slate-800 overflow-hidden relative">
+    <div className="h-screen w-full bg-[#F3F5F9] flex font-sans text-[#172033] overflow-hidden relative">
       {/* Mobile Backdrop Overlay */}
       {isMobileSidebarOpen && (
         <div
@@ -2778,10 +3114,10 @@ export const AdminDashboardPage: React.FC = () => {
                 className="h-8 w-auto object-contain rounded border border-slate-200"
               />
               <div className="flex flex-col">
-                <span className="text-base font-black tracking-tight text-slate-900 leading-none">
+                <span className="text-base font-black tracking-tight text-[#08152F] leading-none">
                   Eagle Eye
                 </span>
-                <span className="text-[9px] uppercase tracking-wider text-blue-600 font-extrabold mt-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[#2563EB] font-extrabold mt-0.5">
                   Admin Console
                 </span>
               </div>
@@ -2828,8 +3164,8 @@ export const AdminDashboardPage: React.FC = () => {
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                      ? 'bg-[#2563EB] text-white shadow-md shadow-[#2563EB]/25'
+                      : 'text-slate-600 hover:text-[#08152F] hover:bg-slate-100/80'
                   }`}
                 >
                   <div className="flex items-center space-x-2.5">
@@ -2838,7 +3174,7 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
                   {item.badge && (
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      isActive ? 'bg-white text-blue-600' : 'bg-amber-100 text-amber-700'
+                      isActive ? 'bg-white text-[#2563EB]' : 'bg-amber-100 text-amber-700'
                     }`}>
                       {item.badge}
                     </span>
@@ -2854,7 +3190,7 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Logged in Admin Profile Card */}
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
             <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+              <div className="w-7 h-7 rounded-lg bg-[#2563EB] text-white font-bold flex items-center justify-center text-xs shadow-sm">
                 {(currentUser?.displayName || currentUser?.email || 'A').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
@@ -2879,9 +3215,9 @@ export const AdminDashboardPage: React.FC = () => {
                 setPassRequestMsg(null);
                 setNewRequestedPassInput('');
               }}
-              className="w-full mt-2 py-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg text-[10px] font-bold text-slate-700 hover:text-blue-600 flex items-center justify-center space-x-1.5 transition-all shadow-xs"
+              className="w-full mt-2 py-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg text-[10px] font-bold text-slate-700 hover:text-[#2563EB] flex items-center justify-center space-x-1.5 transition-all shadow-xs"
             >
-              <Key className="w-3 h-3 text-blue-500" />
+              <Key className="w-3 h-3 text-[#2563EB]" />
               <span>
                 {currentAdminProfile?.pendingPasswordRequest?.status === 'pending'
                   ? 'Password Pending ⏳'
@@ -2893,7 +3229,7 @@ export const AdminDashboardPage: React.FC = () => {
           <Link
             to="/"
             target="_blank"
-            className="flex items-center space-x-2 px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-colors font-medium"
+            className="flex items-center space-x-2 px-3 py-2 text-slate-600 hover:text-[#2563EB] hover:bg-slate-50 rounded-lg transition-colors font-medium"
           >
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
             <span>Customer Storefront</span>
@@ -2926,10 +3262,10 @@ export const AdminDashboardPage: React.FC = () => {
             </button>
             <div className="flex items-center space-x-2">
               <img src="/logo.jpg" alt="Logo" className="h-7 w-auto object-contain rounded border border-slate-200" />
-              <span className="font-black text-sm text-slate-900">Eagle Eye Admin</span>
+              <span className="font-black text-sm text-[#08152F]">Eagle Eye Admin</span>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200 uppercase tracking-wider">
             {activeMenu}
           </span>
         </div>
@@ -3844,10 +4180,12 @@ export const AdminDashboardPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
               
-              {/* Left Column: ADD / EDIT CATEGORY FORM */}
-              <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
+              {/* Left Column: Form & Existing Categories Table */}
+              <div className="xl:col-span-7 space-y-6">
+                {/* ADD / EDIT CATEGORY FORM */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 font-black text-slate-800 text-xs uppercase tracking-wider">
                     <Sparkles className="w-4 h-4 text-blue-600" />
@@ -4334,69 +4672,304 @@ export const AdminDashboardPage: React.FC = () => {
         {/* ================= AGENCY SERVICES ================= */}
         {activeMenu === 'services' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            {/* Header & Main Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Agency Services</h2>
-                <p className="text-xs text-slate-500">Manage client service packages, timelines, and deliverables</p>
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <span>Agency Services Management</span>
+                  <span className="text-xs bg-blue-100 text-[#2563EB] font-bold px-2 py-0.5 rounded-full">
+                    {services.length} Total
+                  </span>
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Manage agency service offerings, pricing, deliverables, subservices, and homepage featured status
+                </p>
               </div>
-              <button
-                onClick={() => {
-                  setServiceForm({
-                    name: '',
-                    slug: '',
-                    shortDescription: '',
-                    longDescription: '',
-                    category: 'Digital Marketing & Ads',
-                    timeline: '2-4 Weeks',
-                    status: 'published'
-                  });
-                  setIsServiceModalOpen(true);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Service</span>
-              </button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSyncAllServices}
+                  disabled={isSyncingServices}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
+                  title="Verifies and seeds all 14 Main Services and 144 Subservices into the persistent database"
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isSyncingServices ? 'animate-spin' : ''}`} />
+                  <span>{isSyncingServices ? 'Syncing Catalog...' : 'Sync / Seed All 14 Services'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setServiceForm({
+                      name: '',
+                      slug: '',
+                      shortDescription: '',
+                      longDescription: '',
+                      category: 'Digital Marketing',
+                      timeline: 'Ongoing Monthly Engagement',
+                      price: null,
+                      pricingType: 'on_request',
+                      status: 'published',
+                      isFeatured: false,
+                      sortOrder: (services.length || 0) + 1,
+                      benefits: [],
+                      deliverables: [],
+                      scopeOfWork: [],
+                      subservices: []
+                    });
+                    setIsServiceModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add New Service</span>
+                </button>
+              </div>
             </div>
 
+            {/* Sync Notification Banner */}
+            {syncStatusResult && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center justify-between">
+                <span>{syncStatusResult}</span>
+                <button
+                  onClick={() => setSyncStatusResult(null)}
+                  className="text-emerald-700 font-bold hover:underline ml-3"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
+            {/* Filter & Search Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+              {/* Search */}
+              <div className="relative flex-1 max-w-sm">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search by name, category, or subservice..."
+                  value={serviceSearch}
+                  onChange={(e) => setServiceSearch(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Category Filter */}
+                <select
+                  value={serviceCategoryFilter}
+                  onChange={(e) => setServiceCategoryFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none"
+                >
+                  <option value="all">All Categories</option>
+                  <option value="Digital Marketing">Digital Marketing</option>
+                  <option value="Web Development and Creative Services">Web Development & Creative</option>
+                  <option value="AI and Business Automation">AI & Business Automation</option>
+                </select>
+
+                {/* Status Filter */}
+                <select
+                  value={serviceStatusFilter}
+                  onChange={(e) => setServiceStatusFilter(e.target.value as any)}
+                  className="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="archived">Archived</option>
+                </select>
+
+                {/* Featured Filter */}
+                <select
+                  value={serviceFeaturedFilter}
+                  onChange={(e) => setServiceFeaturedFilter(e.target.value as any)}
+                  className="bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none"
+                >
+                  <option value="all">All Services</option>
+                  <option value="featured">Featured on Homepage</option>
+                  <option value="not-featured">Standard Services</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Services Grid & Interactive Live Website Preview Pane */}
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-              <div className="xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-5">
-                {services.map((srv) => (
-                  <div key={srv.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase text-blue-600">{srv.category}</span>
-                        <h4 className="text-base font-bold text-slate-900 mt-0.5">{srv.name}</h4>
+              <div className="xl:col-span-7 space-y-4">
+                {(() => {
+                  const filtered = services.filter((srv) => {
+                    const q = serviceSearch.trim().toLowerCase();
+                    const matchesSearch =
+                      !q ||
+                      srv.name.toLowerCase().includes(q) ||
+                      srv.category.toLowerCase().includes(q) ||
+                      (srv.subservices && srv.subservices.some(sub => sub.name.toLowerCase().includes(q)));
+                    const matchesCategory =
+                      serviceCategoryFilter === 'all' || srv.category === serviceCategoryFilter;
+                    const matchesStatus =
+                      serviceStatusFilter === 'all' || srv.status === serviceStatusFilter;
+                    const matchesFeatured =
+                      serviceFeaturedFilter === 'all' ||
+                      (serviceFeaturedFilter === 'featured' && srv.isFeatured) ||
+                      (serviceFeaturedFilter === 'not-featured' && !srv.isFeatured);
+                    return matchesSearch && matchesCategory && matchesStatus && matchesFeatured;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center space-y-3">
+                        <Layers className="w-8 h-8 text-slate-400 mx-auto" />
+                        <h4 className="text-sm font-bold text-slate-800">No services match your filters</h4>
+                        <p className="text-xs text-slate-500">Try adjusting your search query or reset the filters.</p>
+                        <button
+                          onClick={() => {
+                            setServiceSearch('');
+                            setServiceCategoryFilter('all');
+                            setServiceStatusFilter('all');
+                            setServiceFeaturedFilter('all');
+                          }}
+                          className="px-4 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-bold text-xs"
+                        >
+                          Clear Filters
+                        </button>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700">
-                        {srv.status}
-                      </span>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filtered.map((srv) => {
+                        const pricing = getServicePricingDisplay(srv);
+                        const subCount = srv.subservices?.length || 0;
+
+                        return (
+                          <div
+                            key={srv.id}
+                            className="bg-white border border-slate-200 hover:border-blue-400 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-colors"
+                          >
+                            <div className="space-y-2.5">
+                              {/* Top Pills */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded truncate max-w-[170px]">
+                                  {srv.category}
+                                </span>
+                                
+                                <div className="flex items-center space-x-1.5">
+                                  {/* Featured Toggle */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleServiceFeatured(srv)}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center space-x-1 transition-colors ${
+                                      srv.isFeatured
+                                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                    }`}
+                                    title="Click to toggle featured on homepage"
+                                  >
+                                    <span>★</span>
+                                    <span>{srv.isFeatured ? 'Featured' : 'Standard'}</span>
+                                  </button>
+
+                                  {/* Status Toggle */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleServiceStatus(srv)}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                                      srv.status === 'published'
+                                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                        : srv.status === 'draft'
+                                        ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                                        : 'bg-slate-100 text-slate-600'
+                                    }`}
+                                    title="Click to toggle between published and draft"
+                                  >
+                                    {srv.status}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Title & Slug */}
+                              <div>
+                                <h4 className="text-base font-bold text-slate-900 leading-snug">
+                                  {srv.name}
+                                </h4>
+                                <a
+                                  href={`/services/${srv.slug}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] text-blue-600 font-mono hover:underline inline-flex items-center gap-1 mt-0.5"
+                                  title="View Public Page"
+                                >
+                                  <span>/services/{srv.slug}</span>
+                                  <ArrowUpRight className="w-3 h-3" />
+                                </a>
+                              </div>
+
+                              {/* Short Description */}
+                              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                                {srv.shortDescription}
+                              </p>
+
+                              {/* Price & Subservices Count */}
+                              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <div>
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                                    Price:
+                                  </span>
+                                  <span className={`font-black ${pricing.hasExactPrice ? 'text-slate-900' : 'text-blue-600'}`}>
+                                    {pricing.displayText}
+                                  </span>
+                                </div>
+
+                                <div className="text-right">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                                    Subservices:
+                                  </span>
+                                  <span className="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                                    {subCount} Included
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Card Footer Actions */}
+                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                              <button
+                                onClick={() => {
+                                  setServiceForm({
+                                    ...srv,
+                                    benefits: srv.benefits || [],
+                                    deliverables: srv.deliverables || [],
+                                    scopeOfWork: srv.scopeOfWork || [],
+                                    subservices: srv.subservices || []
+                                  });
+                                  setIsServiceModalOpen(true);
+                                }}
+                                className="text-xs text-blue-600 font-bold hover:underline flex items-center space-x-1"
+                              >
+                                <span>Edit Service & Subservices</span>
+                                <ArrowRight className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={async () => {
+                                  if (confirm(`Permanently delete service: "${srv.name}" and its subservices?`)) {
+                                    await deleteService(srv.id);
+                                    await loadData();
+                                  }
+                                }}
+                                className="text-xs text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                title="Delete Service"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <p className="text-xs text-slate-500 line-clamp-2">{srv.shortDescription}</p>
-                    <div className="flex justify-between items-center pt-3 border-t border-slate-100">
-                      <button
-                        onClick={() => {
-                          setServiceForm(srv);
-                          setIsServiceModalOpen(true);
-                        }}
-                        className="text-xs text-blue-600 font-bold hover:underline"
-                      >
-                        Edit Service
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm(`Delete service: ${srv.name}?`)) {
-                            await deleteService(srv.id);
-                            loadData();
-                          }
-                        }}
-                        className="text-xs text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })()}
               </div>
 
               {/* Right Column: Live Service Card & Full Website Preview (Pinned) */}
@@ -4896,8 +5469,8 @@ export const AdminDashboardPage: React.FC = () => {
                     {/* Preview Top Header & Controls */}
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                       <div>
-                        <h3 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-indigo-700">
-                          <Sparkles className="w-4 h-4 text-indigo-600 animate-spin-slow" />
+                        <h3 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-[#2563EB]">
+                          <Sparkles className="w-4 h-4 text-[#2563EB] animate-spin-slow" />
                           <span>LIVE HOMEPAGE PREVIEW (ওয়েবসাইটে যেমন দেখাবে)</span>
                         </h3>
                         <p className="text-[11px] text-slate-400 mt-0.5">
@@ -4912,7 +5485,7 @@ export const AdminDashboardPage: React.FC = () => {
                           onClick={() => setPreviewViewMode('slider')}
                           className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
                             previewViewMode === 'slider'
-                              ? 'bg-white text-indigo-700 shadow-sm'
+                              ? 'bg-white text-[#2563EB] shadow-sm'
                               : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
@@ -4924,7 +5497,7 @@ export const AdminDashboardPage: React.FC = () => {
                           onClick={() => setPreviewViewMode('full-layout')}
                           className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
                             previewViewMode === 'full-layout'
-                              ? 'bg-white text-indigo-700 shadow-sm'
+                              ? 'bg-white text-[#2563EB] shadow-sm'
                               : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
@@ -4936,7 +5509,7 @@ export const AdminDashboardPage: React.FC = () => {
                           onClick={() => setPreviewViewMode('full-website')}
                           className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
                             previewViewMode === 'full-website'
-                              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm'
+                              ? 'bg-[#2563EB] text-white shadow-sm'
                               : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
@@ -5097,7 +5670,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 style={
                                   activeBg
                                     ? { backgroundImage: `url(${activeBg})` }
-                                    : { backgroundImage: 'linear-gradient(135deg, #1d4ed8 0%, #4338ca 50%, #0f172a 100%)' }
+                                    : { backgroundImage: 'linear-gradient(135deg, #08152F 0%, #0D2044 50%, #2563EB 100%)' }
                                 }
                               />
 
@@ -5273,7 +5846,7 @@ export const AdminDashboardPage: React.FC = () => {
                                   {/* Buttons and Indicator Dots */}
                                   <div className="relative z-20 pt-4 flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
-                                      <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-[10px] shadow-sm flex items-center space-x-1">
+                                      <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FFC629] to-[#E5B01F] text-[#08152F] font-black text-[10px] shadow-sm flex items-center space-x-1">
                                         <span>Browse Products</span>
                                         <ArrowRight className="w-3 h-3" />
                                       </span>
@@ -5295,7 +5868,7 @@ export const AdminDashboardPage: React.FC = () => {
                                           aria-label={`Slide ${idx + 1}`}
                                           className={`transition-all duration-300 rounded-full ${
                                             previewSlideIndex === idx && !isUploadedFocused
-                                              ? 'w-5 h-2 bg-gradient-to-r from-amber-400 to-amber-300 shadow-sm'
+                                              ? 'w-5 h-2 bg-[#FFC629] shadow-sm'
                                               : 'w-2 h-2 bg-white/35 hover:bg-white'
                                           }`}
                                         />
@@ -8112,64 +8685,536 @@ export const AdminDashboardPage: React.FC = () => {
 
       </main>
 
-      {/* SERVICE MODAL */}
+      {/* COMPREHENSIVE SERVICE & SUBSERVICES MANAGEMENT MODAL */}
       {isServiceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white border border-slate-200 shadow-xl rounded-2xl max-w-lg w-full p-6 space-y-4 text-xs">
-            <h3 className="text-base font-bold text-slate-900">
-              {serviceForm.id ? 'Edit Service' : 'Add Agency Service'}
-            </h3>
-            <form onSubmit={handleSaveService} className="space-y-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white border border-slate-200 shadow-2xl rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 text-xs max-h-[92vh] overflow-y-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Service Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={serviceForm.name || ''}
-                  onChange={(e) =>
-                    setServiceForm({
-                      ...serviceForm,
-                      name: e.target.value,
-                      slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-                    })
-                  }
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
-                />
+                <h3 className="text-lg font-black text-slate-900">
+                  {serviceForm.id ? `Edit Service: ${serviceForm.name || 'Untitled'}` : 'Create New Agency Service'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Update service specifications, dynamic pricing, deliverables, subservices, and metadata
+                </p>
               </div>
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Category</label>
-                <input
-                  type="text"
-                  value={serviceForm.category || ''}
-                  onChange={(e) => setServiceForm({ ...serviceForm, category: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
-                />
+              <button
+                type="button"
+                onClick={() => setIsServiceModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveService} className="space-y-6">
+              
+              {/* 1. Core Identification */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 block">
+                  1. Service Identification
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Service Title *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Social Media Management"
+                      value={serviceForm.name || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setServiceForm({
+                          ...serviceForm,
+                          name: val,
+                          slug: serviceForm.id ? serviceForm.slug : val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+                        });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">URL Slug *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. social-media-management"
+                      value={serviceForm.slug || ''}
+                      onChange={(e) =>
+                        setServiceForm({
+                          ...serviceForm,
+                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '')
+                        })
+                      }
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-mono text-slate-900 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Category *</label>
+                    <select
+                      value={serviceForm.category || 'Digital Marketing'}
+                      onChange={(e) => setServiceForm({ ...serviceForm, category: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none"
+                    >
+                      <option value="Digital Marketing">Digital Marketing</option>
+                      <option value="Web Development and Creative Services">Web Development and Creative Services</option>
+                      <option value="AI and Business Automation">AI and Business Automation</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Icon Identifier</label>
+                    <input
+                      type="text"
+                      placeholder="Share2, Target, Laptop, Bot..."
+                      value={serviceForm.iconName || ''}
+                      onChange={(e) => setServiceForm({ ...serviceForm, iconName: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">Display Order</label>
+                    <input
+                      type="number"
+                      value={serviceForm.sortOrder ?? 1}
+                      onChange={(e) => setServiceForm({ ...serviceForm, sortOrder: Number(e.target.value) })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-slate-700 font-bold mb-1">Short Description *</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={serviceForm.shortDescription || ''}
-                  onChange={(e) => setServiceForm({ ...serviceForm, shortDescription: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
-                />
+
+              {/* 2. Dynamic Pricing Management (Section 16) */}
+              <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <span>💵</span>
+                    <span>2. Dynamic Pricing Controls (Section 16)</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-blue-600 bg-blue-100/60 px-2 py-0.5 rounded-full">
+                    {serviceForm.price ? `Exact Price: ৳${Number(serviceForm.price).toLocaleString()}` : '"Price on Request" Active'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Price Amount (Optional BDT ৳)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="Leave blank for 'Price on Request'"
+                      value={serviceForm.price ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setServiceForm({
+                          ...serviceForm,
+                          price: val === '' ? null : Number(val)
+                        });
+                      }}
+                      className="w-full bg-white border border-slate-300 rounded-xl p-2.5 font-bold text-slate-900 focus:outline-none focus:border-blue-500"
+                    />
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      ℹ️ If empty or removed, public pages automatically display <strong>"Price on Request"</strong>.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">
+                      Billing / Pricing Model
+                    </label>
+                    <select
+                      value={serviceForm.pricingType || (serviceForm.price ? 'fixed' : 'on_request')}
+                      onChange={(e) => setServiceForm({ ...serviceForm, pricingType: e.target.value as any })}
+                      className="w-full bg-white border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none"
+                    >
+                      <option value="on_request">Price on Request (Tailored Scope)</option>
+                      <option value="fixed">Fixed Engagement Fee</option>
+                      <option value="monthly">Monthly Retainer</option>
+                      <option value="custom">Starting Price</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-end space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsServiceModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 rounded-lg font-bold"
+
+              {/* 3. Status, Timeline & Homepage Featured */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Publication Status</label>
+                  <select
+                    value={serviceForm.status || 'published'}
+                    onChange={(e) => setServiceForm({ ...serviceForm, status: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-slate-800 focus:outline-none"
+                  >
+                    <option value="published">Published (Visible on site)</option>
+                    <option value="draft">Draft (Hidden from public)</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Delivery Timeline</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2 - 4 Weeks / Ongoing Monthly"
+                    value={serviceForm.timeline || ''}
+                    onChange={(e) => setServiceForm({ ...serviceForm, timeline: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex flex-col justify-end">
+                  <label className="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-300 bg-slate-50 cursor-pointer hover:bg-slate-100">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(serviceForm.isFeatured)}
+                      onChange={(e) => setServiceForm({ ...serviceForm, isFeatured: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded"
+                    />
+                    <span className="font-bold text-slate-800">Featured on Homepage</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* 4. Descriptions */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 block">
+                  3. Content & Descriptions
+                </span>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Short Description *</label>
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder="Concise overview for service cards and homepage..."
+                    value={serviceForm.shortDescription || ''}
+                    onChange={(e) => setServiceForm({ ...serviceForm, shortDescription: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Full Service Overview & Architecture</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Comprehensive description for the dedicated service detail page..."
+                    value={serviceForm.longDescription || ''}
+                    onChange={(e) => setServiceForm({ ...serviceForm, longDescription: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* 5. Subservices Management (Section 4 & 7) */}
+              <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-900 block">
+                      4. Included Subservices ({serviceForm.subservices?.length || 0})
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Subservices are directly editable, toggleable, and managed persistently.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Subservice List */}
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {(serviceForm.subservices || []).map((sub, idx) => (
+                    <div
+                      key={sub.id || idx}
+                      className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-2 shadow-xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-slate-900 truncate">{sub.name}</span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                              sub.status === 'active'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {sub.status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{sub.shortDescription}</p>
+                      </div>
+
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
+                        {/* Toggle active status */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...(serviceForm.subservices || [])];
+                            updated[idx] = {
+                              ...updated[idx],
+                              status: updated[idx].status === 'active' ? 'inactive' : 'active'
+                            };
+                            setServiceForm({ ...serviceForm, subservices: updated });
+                          }}
+                          className="px-2 py-1 rounded text-[10px] font-bold border border-slate-200 hover:bg-slate-100"
+                        >
+                          {sub.status === 'active' ? 'Deactivate' : 'Activate'}
+                        </button>
+
+                        {/* Remove subservice */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (serviceForm.subservices || []).filter((_, i) => i !== idx);
+                            setServiceForm({ ...serviceForm, subservices: updated });
+                          }}
+                          className="text-red-500 hover:text-red-700 p-1"
+                          title="Remove Subservice"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick Add Subservice Input */}
+                <div className="pt-2 border-t border-slate-200 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-700 block">Add New Subservice to this Service:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Subservice Title (e.g. Lead Generation Campaigns)"
+                      value={newSubserviceName}
+                      onChange={(e) => setNewSubserviceName(e.target.value)}
+                      className="sm:col-span-5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Short Description of capability..."
+                      value={newSubserviceDesc}
+                      onChange={(e) => setNewSubserviceDesc(e.target.value)}
+                      className="sm:col-span-5 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newSubserviceName.trim()) return;
+                        const newSlug = newSubserviceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+                        const newSub: SubService = {
+                          id: `sub-${serviceForm.slug || 'service'}-${newSlug}-${Date.now()}`,
+                          name: newSubserviceName.trim(),
+                          slug: newSlug,
+                          shortDescription: newSubserviceDesc.trim() || newSubserviceName.trim(),
+                          parentServiceId: serviceForm.id || 'new',
+                          parentServiceName: serviceForm.name || '',
+                          category: serviceForm.category || 'Digital Marketing',
+                          sortOrder: (serviceForm.subservices?.length || 0) + 1,
+                          status: 'active',
+                          createdAt: Date.now(),
+                          updatedAt: Date.now()
+                        };
+                        setServiceForm({
+                          ...serviceForm,
+                          subservices: [...(serviceForm.subservices || []), newSub]
+                        });
+                        setNewSubserviceName('');
+                        setNewSubserviceDesc('');
+                      }}
+                      className="sm:col-span-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. Benefits List */}
+              <div className="space-y-2">
+                <label className="block text-slate-700 font-bold">Key Benefits (Shown on cards & detail page)</label>
+                <div className="flex flex-wrap gap-2">
+                  {(serviceForm.benefits || []).map((b, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px]"
+                    >
+                      <span>✓ {b}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (serviceForm.benefits || []).filter((_, i) => i !== idx);
+                          setServiceForm({ ...serviceForm, benefits: updated });
+                        }}
+                        className="text-emerald-700 hover:text-red-600 font-bold ml-1"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a key benefit..."
+                    value={newBenefitInput}
+                    onChange={(e) => setNewBenefitInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newBenefitInput.trim()) {
+                          setServiceForm({
+                            ...serviceForm,
+                            benefits: [...(serviceForm.benefits || []), newBenefitInput.trim()]
+                          });
+                          setNewBenefitInput('');
+                        }
+                      }
+                    }}
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2 text-slate-800 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newBenefitInput.trim()) {
+                        setServiceForm({
+                          ...serviceForm,
+                          benefits: [...(serviceForm.benefits || []), newBenefitInput.trim()]
+                        });
+                        setNewBenefitInput('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* 7. Deliverables List */}
+              <div className="space-y-2">
+                <label className="block text-slate-700 font-bold">Scope Deliverables</label>
+                <div className="flex flex-wrap gap-2">
+                  {(serviceForm.deliverables || []).map((d, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-[11px]"
+                    >
+                      <span>• {d}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (serviceForm.deliverables || []).filter((_, i) => i !== idx);
+                          setServiceForm({ ...serviceForm, deliverables: updated });
+                        }}
+                        className="text-blue-700 hover:text-red-600 font-bold ml-1"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a deliverable item..."
+                    value={newDeliverableInput}
+                    onChange={(e) => setNewDeliverableInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newDeliverableInput.trim()) {
+                          setServiceForm({
+                            ...serviceForm,
+                            deliverables: [...(serviceForm.deliverables || []), newDeliverableInput.trim()]
+                          });
+                          setNewDeliverableInput('');
+                        }
+                      }
+                    }}
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2 text-slate-800 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newDeliverableInput.trim()) {
+                        setServiceForm({
+                          ...serviceForm,
+                          deliverables: [...(serviceForm.deliverables || []), newDeliverableInput.trim()]
+                        });
+                        setNewDeliverableInput('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* 8. SEO Metadata */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 block">
+                  5. Search Engine Optimization (SEO) Metadata
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">SEO Page Title</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Social Media Management | Eagle Eye Digital"
+                      value={serviceForm.seoTitle || ''}
+                      onChange={(e) => setServiceForm({ ...serviceForm, seoTitle: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-700 font-bold mb-1">SEO Meta Description</label>
+                    <input
+                      type="text"
+                      placeholder="Concise 150-160 character description for search engine snippets..."
+                      value={serviceForm.seoDescription || ''}
+                      onChange={(e) => setServiceForm({ ...serviceForm, seoDescription: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Action Buttons */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+                <a
+                  href={serviceForm.slug ? `/services/${serviceForm.slug}` : '/services'}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-blue-600 text-white font-bold rounded-lg"
-                >
-                  Save Service
-                </button>
+                  <span>Preview Live Page</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+
+                <div className="flex space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsServiceModalOpen(false)}
+                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold text-slate-700 text-xs transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md transition-colors"
+                  >
+                    Save Service Record
+                  </button>
+                </div>
               </div>
+
             </form>
           </div>
         </div>

@@ -14,6 +14,8 @@ import {
 import { db, ADMIN_UID, BUSINESS_EMAIL } from '../lib/firebase';
 import {
   Service,
+  SubService,
+  ServiceCategory,
   DigitalProduct,
   ProductCategory,
   PortfolioItem,
@@ -36,6 +38,11 @@ import {
   FooterConfig,
   SiteSettings
 } from '../types';
+import {
+  getSeedServicesList,
+  getSeedSubservicesList,
+  INITIAL_SERVICE_CATEGORIES
+} from '../data/agencyServicesSeed';
 
 // ================= HOMEPAGE BENTO & COLLECTIONS SETTINGS =================
 export const defaultHeroSlides: HeroSlide[] = [
@@ -307,43 +314,347 @@ export const saveSiteSettings = async (settings: Partial<SiteSettings>) => {
   await setDoc(docRef, settings, { merge: true });
 };
 
+// Clean helper to prevent Firestore undefined errors
+const cleanObjectPayload = <T extends Record<string, any>>(obj: T): Record<string, any> => {
+  const result: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v !== undefined) {
+      if (Array.isArray(v)) {
+        result[k] = v.map((item) => (typeof item === 'object' && item !== null ? cleanObjectPayload(item) : item));
+      } else if (typeof v === 'object' && v !== null && !(v instanceof Date)) {
+        result[k] = cleanObjectPayload(v);
+      } else {
+        result[k] = v;
+      }
+    }
+  }
+  return result;
+};
+
 // ================= SERVICES =================
 export const getPublishedServices = async (): Promise<Service[]> => {
-  const q = query(collection(db, 'services'), where('status', '==', 'published'));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Service));
+  try {
+    const q = query(collection(db, 'services'), where('status', '==', 'published'));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const services = snap.docs.map(d => ({ id: d.id, ...d.data() } as Service));
+      return services.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    }
+  } catch (err) {
+    console.warn('Could not query published services from Firestore, falling back to seed:', err);
+  }
+  // Fallback to seed catalog if collection is empty or offline
+  const seedList = getSeedServicesList();
+  return seedList.filter(s => s.status === 'published').sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+};
+
+export const getFeaturedServices = async (): Promise<Service[]> => {
+  const published = await getPublishedServices();
+  const featured = published.filter(s => s.isFeatured);
+  return featured.length > 0 ? featured : published.slice(0, 6);
 };
 
 export const getAllServices = async (): Promise<Service[]> => {
-  const snap = await getDocs(collection(db, 'services'));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Service));
+  try {
+    const snap = await getDocs(collection(db, 'services'));
+    if (!snap.empty) {
+      const services = snap.docs.map(d => ({ id: d.id, ...d.data() } as Service));
+      return services.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    }
+  } catch (err) {
+    console.warn('Could not query all services from Firestore, falling back to seed:', err);
+  }
+  // Fallback to seed catalog
+  return getSeedServicesList().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 };
 
 export const getServiceBySlug = async (slug: string): Promise<Service | null> => {
-  const q = query(collection(db, 'services'), where('slug', '==', slug));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() } as Service;
+  try {
+    const q = query(collection(db, 'services'), where('slug', '==', slug));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      return { id: snap.docs[0].id, ...snap.docs[0].data() } as Service;
+    }
+  } catch (err) {
+    console.warn(`Could not get service by slug (${slug}) from Firestore:`, err);
+  }
+  const fallback = getSeedServicesList().find(s => s.slug === slug);
+  return fallback || null;
 };
 
-export const saveService = async (service: Partial<Service> & { id?: string }) => {
+export const saveService = async (service: Partial<Service> & { id?: string }): Promise<string> => {
+  const now = Date.now();
+  const payload = cleanObjectPayload({
+    ...service,
+    updatedAt: now
+  });
+
   if (service.id) {
     const docRef = doc(db, 'services', service.id);
-    await updateDoc(docRef, { ...service, updatedAt: Date.now() });
+    await setDoc(docRef, payload, { merge: true });
     return service.id;
   } else {
-    const docRef = await addDoc(collection(db, 'services'), {
-      ...service,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    });
+    payload.createdAt = now;
+    const docRef = await addDoc(collection(db, 'services'), payload);
     return docRef.id;
   }
 };
 
-export const deleteService = async (id: string) => {
+export const deleteService = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, 'services', id));
+
+  // Also clean up associated subservices in subservices collection
+  try {
+    const subQ = query(collection(db, 'subservices'), where('parentServiceId', '==', id));
+    const subSnap = await getDocs(subQ);
+    for (const d of subSnap.docs) {
+      await deleteDoc(d.ref);
+    }
+  } catch (e) {
+    console.warn('Cleanup of subservices failed:', e);
+  }
 };
+
+// ================= SUBSERVICES =================
+export const getAllSubservices = async (): Promise<SubService[]> => {
+  try {
+    const snap = await getDocs(collection(db, 'subservices'));
+    if (!snap.empty) {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as SubService));
+      return list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    }
+  } catch (err) {
+    console.warn('Could not query subservices from Firestore, falling back to seed:', err);
+  }
+  return getSeedSubservicesList();
+};
+
+export const getSubservicesByParent = async (parentServiceId: string): Promise<SubService[]> => {
+  try {
+    const q = query(collection(db, 'subservices'), where('parentServiceId', '==', parentServiceId));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as SubService)).sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+  } catch (err) {
+    console.warn('Could not query subservices for parent:', err);
+  }
+  return getSeedSubservicesList().filter(s => s.parentServiceId === parentServiceId);
+};
+
+export const saveSubservice = async (sub: Partial<SubService> & { id?: string; parentServiceId: string }): Promise<string> => {
+  const now = Date.now();
+  const subId = sub.id || `sub-${sub.slug || Date.now()}`;
+  const payload = cleanObjectPayload({
+    ...sub,
+    id: subId,
+    updatedAt: now
+  });
+  if (!sub.createdAt) payload.createdAt = now;
+
+  // 1. Save in subservices collection
+  await setDoc(doc(db, 'subservices', subId), payload, { merge: true });
+
+  // 2. Also sync inside parent Service doc's subservices array
+  try {
+    const parentRef = doc(db, 'services', sub.parentServiceId);
+    const parentSnap = await getDoc(parentRef);
+    if (parentSnap.exists()) {
+      const parentData = parentSnap.data() as Service;
+      const currentSubs = parentData.subservices || [];
+      const existingIdx = currentSubs.findIndex(s => s.id === subId || s.slug === sub.slug);
+      let updatedSubs: SubService[];
+      if (existingIdx >= 0) {
+        updatedSubs = [...currentSubs];
+        updatedSubs[existingIdx] = { ...updatedSubs[existingIdx], ...payload } as SubService;
+      } else {
+        updatedSubs = [...currentSubs, payload as SubService];
+      }
+      await updateDoc(parentRef, {
+        subservices: updatedSubs.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)),
+        updatedAt: now
+      });
+    }
+  } catch (err) {
+    console.warn('Syncing subservice to parent service doc failed:', err);
+  }
+
+  return subId;
+};
+
+export const deleteSubservice = async (subId: string, parentServiceId?: string): Promise<void> => {
+  // 1. Delete from subservices collection
+  await deleteDoc(doc(db, 'subservices', subId));
+
+  // 2. Remove from parent service doc
+  if (parentServiceId) {
+    try {
+      const parentRef = doc(db, 'services', parentServiceId);
+      const parentSnap = await getDoc(parentRef);
+      if (parentSnap.exists()) {
+        const parentData = parentSnap.data() as Service;
+        const currentSubs = parentData.subservices || [];
+        const filtered = currentSubs.filter(s => s.id !== subId);
+        await updateDoc(parentRef, { subservices: filtered, updatedAt: Date.now() });
+      }
+    } catch (err) {
+      console.warn('Removing subservice from parent doc failed:', err);
+    }
+  }
+};
+
+// ================= SERVICE CATEGORIES =================
+export const getAllServiceCategories = async (): Promise<ServiceCategory[]> => {
+  try {
+    const snap = await getDocs(collection(db, 'serviceCategories'));
+    if (!snap.empty) {
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as ServiceCategory)).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    }
+  } catch (err) {
+    console.warn('Could not load service categories from Firestore:', err);
+  }
+  return INITIAL_SERVICE_CATEGORIES;
+};
+
+export const saveServiceCategory = async (cat: Partial<ServiceCategory> & { id?: string }): Promise<string> => {
+  const catId = cat.id || `cat-${cat.slug || Date.now()}`;
+  const payload = cleanObjectPayload({ ...cat, id: catId });
+  await setDoc(doc(db, 'serviceCategories', catId), payload, { merge: true });
+  return catId;
+};
+
+export const deleteServiceCategory = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'serviceCategories', id));
+};
+
+// ================= IDEMPOTENT SEED & MIGRATION =================
+export interface SeedResult {
+  servicesCreated: number;
+  servicesUpdated: number;
+  totalServices: number;
+  subservicesCreated: number;
+  totalSubservices: number;
+  categoriesCreated: number;
+  status: 'success' | 'partial' | 'error';
+  message: string;
+}
+
+/**
+ * Automatically creates all 14 Main Services and their 144 Named Subservices.
+ * Idempotent: Does not duplicate records if run multiple times.
+ * Preserves existing admin customizations and user data.
+ */
+export const syncOrSeedAgencyServices = async (forceUpdate: boolean = false): Promise<SeedResult> => {
+  let servicesCreated = 0;
+  let servicesUpdated = 0;
+  let subservicesCreated = 0;
+  let categoriesCreated = 0;
+
+  try {
+    const seedServices = getSeedServicesList();
+    const seedSubservices = getSeedSubservicesList();
+    const now = Date.now();
+
+    // 1. Seed Categories
+    for (const cat of INITIAL_SERVICE_CATEGORIES) {
+      try {
+        const catRef = doc(db, 'serviceCategories', cat.id);
+        const snap = await getDoc(catRef);
+        if (!snap.exists() || forceUpdate) {
+          await setDoc(catRef, cleanObjectPayload(cat), { merge: true });
+          categoriesCreated++;
+        }
+      } catch (e) {
+        console.warn(`Category seed notice for ${cat.name}:`, e);
+      }
+    }
+
+    // 2. Fetch existing services from Firestore to prevent duplicate creation
+    const existingSnap = await getDocs(collection(db, 'services'));
+    const existingMap = new Map<string, Service>();
+    existingSnap.docs.forEach(d => {
+      const data = { id: d.id, ...d.data() } as Service;
+      existingMap.set(data.slug, data);
+      existingMap.set(data.id, data);
+    });
+
+    // 3. Upsert each of the 14 Main Services
+    for (const seedSrv of seedServices) {
+      const match = existingMap.get(seedSrv.slug) || existingMap.get(seedSrv.id);
+      const targetDocId = match ? match.id : seedSrv.id;
+      const targetDocRef = doc(db, 'services', targetDocId);
+
+      if (!match) {
+        // Completely new record
+        const payload = cleanObjectPayload({
+          ...seedSrv,
+          id: targetDocId,
+          createdAt: now,
+          updatedAt: now
+        });
+        await setDoc(targetDocRef, payload);
+        servicesCreated++;
+      } else {
+        // Existing record: preserve user price and status, but ensure subservices and descriptions are populated
+        const mergedPayload = cleanObjectPayload({
+          ...seedSrv,
+          id: targetDocId,
+          // Preserve admin edited values if present
+          name: match.name || seedSrv.name,
+          price: match.price !== undefined ? match.price : seedSrv.price,
+          pricingType: match.pricingType || seedSrv.pricingType,
+          status: match.status || seedSrv.status,
+          isFeatured: match.isFeatured !== undefined ? match.isFeatured : seedSrv.isFeatured,
+          sortOrder: match.sortOrder !== undefined ? match.sortOrder : seedSrv.sortOrder,
+          subservices: match.subservices && match.subservices.length > 0 && !forceUpdate
+            ? match.subservices
+            : seedSrv.subservices,
+          updatedAt: now
+        });
+        await setDoc(targetDocRef, mergedPayload, { merge: true });
+        servicesUpdated++;
+      }
+    }
+
+    // 4. Upsert Subservices into subservices collection
+    for (const sub of seedSubservices) {
+      try {
+        const subRef = doc(db, 'subservices', sub.id);
+        const subSnap = await getDoc(subRef);
+        if (!subSnap.exists() || forceUpdate) {
+          await setDoc(subRef, cleanObjectPayload(sub), { merge: true });
+          subservicesCreated++;
+        }
+      } catch (e) {
+        console.warn(`Subservice seed notice for ${sub.name}:`, e);
+      }
+    }
+
+    return {
+      servicesCreated,
+      servicesUpdated,
+      totalServices: seedServices.length,
+      subservicesCreated,
+      totalSubservices: seedSubservices.length,
+      categoriesCreated,
+      status: 'success',
+      message: `Successfully processed ${seedServices.length} agency services and ${seedSubservices.length} subservices.`
+    };
+  } catch (err: any) {
+    console.error('Error during agency services seeding:', err);
+    return {
+      servicesCreated,
+      servicesUpdated,
+      totalServices: 14,
+      subservicesCreated,
+      totalSubservices: 144,
+      categoriesCreated,
+      status: 'error',
+      message: err.message || 'Failed to complete seeding.'
+    };
+  }
+};
+
 
 // ================= DIGITAL PRODUCTS =================
 export const getPublishedProducts = async (): Promise<DigitalProduct[]> => {

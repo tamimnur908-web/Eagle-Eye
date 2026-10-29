@@ -1,3 +1,17 @@
+export interface SubService {
+  id: string;
+  name: string;
+  slug: string;
+  shortDescription: string;
+  parentServiceId: string;
+  parentServiceName?: string;
+  category?: string;
+  sortOrder: number;
+  status: 'active' | 'inactive';
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -5,25 +19,33 @@ export interface Service {
   shortDescription: string;
   longDescription: string;
   category: string;
+  categoryId?: string;
   iconName?: string;
   imageUrl?: string;
   benefits: string[];
   deliverables: string[];
+  scopeOfWork?: string[];
   timeline: string;
-  pricingPackages: {
+  price?: number | null;
+  pricingType?: 'fixed' | 'monthly' | 'custom' | 'on_request';
+  pricingPackages?: {
     name: string;
     price: number;
     billingType: 'one-time' | 'monthly' | 'custom';
     features: string[];
   }[];
-  faqs: {
+  subservices?: SubService[];
+  faqs?: {
     question: string;
     answer: string;
   }[];
   seoTitle?: string;
   seoDescription?: string;
   status: 'published' | 'draft' | 'archived';
+  isFeatured?: boolean;
   sortOrder: number;
+  ctaText?: string;
+  ctaLink?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -33,6 +55,7 @@ export interface ServiceCategory {
   name: string;
   slug: string;
   description?: string;
+  sortOrder?: number;
 }
 
 export interface DigitalProduct {

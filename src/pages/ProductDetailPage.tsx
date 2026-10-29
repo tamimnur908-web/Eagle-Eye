@@ -40,9 +40,9 @@ export const ProductDetailPage: React.FC = () => {
   if (!product) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-slate-900">Product Not Found</h2>
-        <p className="text-sm text-slate-600">The product you are looking for has not been published or does not exist.</p>
-        <Link to="/products" className="inline-block px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-lg shadow-sm">
+        <h2 className="text-2xl font-bold text-[#08152F]">Product Not Found</h2>
+        <p className="text-sm text-[#667085]">The product you are looking for has not been published or does not exist.</p>
+        <Link to="/products" className="inline-block px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
           Back to Store
         </Link>
       </div>
@@ -73,7 +73,7 @@ export const ProductDetailPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div>
-        <Link to="/products" className="inline-flex items-center space-x-1.5 text-xs font-medium text-slate-500 hover:text-amber-600">
+        <Link to="/products" className="inline-flex items-center space-x-1.5 text-xs font-medium text-[#667085] hover:text-[#2563EB] transition-colors">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Digital Store</span>
         </Link>
@@ -102,12 +102,12 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Installation / Setup Guide */}
           {product.installGuide && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-3 shadow-sm">
-              <div className="flex items-center space-x-2 text-indigo-700">
+            <div className="bg-[#F3F5F9] border border-slate-200 rounded-xl p-6 space-y-3 shadow-sm">
+              <div className="flex items-center space-x-2 text-[#2563EB]">
                 <BookOpen className="w-5 h-5" />
-                <h3 className="text-base font-bold text-slate-900">Installation & Setup Guide</h3>
+                <h3 className="text-base font-bold text-[#08152F]">Installation & Setup Guide</h3>
               </div>
-              <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-line bg-white p-4 rounded-lg border border-slate-200 font-mono">
+              <div className="text-xs text-[#172033] leading-relaxed whitespace-pre-line bg-white p-4 rounded-lg border border-slate-200 font-mono">
                 {product.installGuide}
               </div>
             </div>
@@ -115,8 +115,8 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Description */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900">Product Overview</h3>
-            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+            <h3 className="text-lg font-bold text-[#08152F]">Product Overview</h3>
+            <p className="text-sm text-[#172033] leading-relaxed whitespace-pre-line">
               {product.description}
             </p>
           </div>
@@ -127,16 +127,16 @@ export const ProductDetailPage: React.FC = () => {
           <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 space-y-6 shadow-md">
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#2563EB] uppercase tracking-wider">
                   {product.category}
                 </span>
                 {product.itemType && (
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#F3F5F9] text-[#667085]">
                     {product.itemType}
                   </span>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#08152F] mt-1">
                 {product.name}
               </h1>
             </div>
@@ -152,7 +152,7 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  <span className="text-3xl font-black text-slate-900">
+                  <span className="text-3xl font-black text-[#08152F]">
                     ৳{product.salePrice ?? product.price}
                   </span>
                   {product.salePrice && (
@@ -169,16 +169,16 @@ export const ProductDetailPage: React.FC = () => {
 
             {/* ZIP Password box if present */}
             {product.zipPassword && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+              <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold text-[#08152F]">
                   <span className="flex items-center space-x-1.5">
-                    <Key className="w-3.5 h-3.5 text-amber-700" />
+                    <Key className="w-3.5 h-3.5 text-[#2563EB]" />
                     <span>Archive / ZIP Password:</span>
                   </span>
                   <button
                     type="button"
                     onClick={copyPassword}
-                    className="flex items-center space-x-1 text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-200/60 px-2 py-0.5 rounded transition"
+                    className="flex items-center space-x-1 text-[11px] font-bold text-[#2563EB] hover:text-[#1D4ED8] bg-blue-100 hover:bg-blue-200 px-2 py-0.5 rounded transition"
                   >
                     {copiedPass ? (
                       <>
@@ -193,7 +193,7 @@ export const ProductDetailPage: React.FC = () => {
                     )}
                   </button>
                 </div>
-                <div className="font-mono text-sm font-bold bg-white px-3 py-1.5 rounded border border-amber-200 text-slate-800">
+                <div className="font-mono text-sm font-bold bg-white px-3 py-1.5 rounded border border-blue-200 text-[#172033]">
                   {product.zipPassword}
                 </div>
               </div>
@@ -203,10 +203,10 @@ export const ProductDetailPage: React.FC = () => {
             <div className="space-y-3">
               <button
                 onClick={handleAction}
-                className={`w-full py-3.5 px-6 rounded-xl text-white font-extrabold text-sm transition-all flex items-center justify-center space-x-2 shadow-md ${
+                className={`w-full py-3.5 px-6 rounded-xl font-black text-sm transition-all flex items-center justify-center space-x-2 shadow-md ${
                   isFree
-                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-                    : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                    : 'bg-[#FFC629] hover:bg-[#E5B01F] text-[#08152F] shadow-[#FFC629]/25 cursor-pointer active:scale-[0.99]'
                 }`}
               >
                 {isFree ? (
@@ -216,13 +216,13 @@ export const ProductDetailPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="w-4 h-4" />
+                    <ShoppingBag className="w-4 h-4 text-[#08152F]" />
                     <span>{buttonText}</span>
                   </>
                 )}
               </button>
 
-              <p className="text-[11px] text-center text-slate-500">
+              <p className="text-[11px] text-center text-[#667085]">
                 {isFree
                   ? 'Instant high-speed download link available.'
                   : 'Instant download link unlocked upon payment verification.'}
@@ -230,34 +230,34 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* Technical Specs */}
-            <div className="space-y-3 pt-4 border-t border-slate-200 text-xs text-slate-600">
+            <div className="space-y-3 pt-4 border-t border-slate-200 text-xs text-[#667085]">
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-400">Format:</span>
-                <span className="font-semibold text-slate-800">{product.format || 'Digital Archive (.ZIP)'}</span>
+                <span className="text-[#667085]">Format:</span>
+                <span className="font-semibold text-[#172033]">{product.format || 'Digital Archive (.ZIP)'}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-400">Delivery:</span>
-                <span className="font-semibold text-slate-800">
+                <span className="text-[#667085]">Delivery:</span>
+                <span className="font-semibold text-[#172033]">
                   {product.googleDriveLink ? 'Direct Google Drive' : 'Digital Cloud Download'}
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-400">License:</span>
-                <span className="font-semibold text-slate-800">{product.license || 'Standard Commercial'}</span>
+                <span className="text-[#667085]">License:</span>
+                <span className="font-semibold text-[#172033]">{product.license || 'Standard Commercial'}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-400">Version:</span>
-                <span className="font-semibold text-slate-800">{product.version || '1.0.0'}</span>
+                <span className="text-[#667085]">Version:</span>
+                <span className="font-semibold text-[#172033]">{product.version || '1.0.0'}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-400">Product Type:</span>
-                <span className="font-semibold text-slate-800 capitalize">{(product.productType || 'digital').replace('_', ' ')}</span>
+                <span className="text-[#667085]">Product Type:</span>
+                <span className="font-semibold text-[#172033] capitalize">{(product.productType || 'digital').replace('_', ' ')}</span>
               </div>
             </div>
 
             {/* License Note */}
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-600 flex items-start space-x-2">
-              <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="p-3 bg-[#F3F5F9] rounded-lg border border-slate-200 text-[11px] text-[#667085] flex items-start space-x-2">
+              <ShieldCheck className="w-4 h-4 text-[#2563EB] flex-shrink-0 mt-0.5" />
               <span>
                 Licensed for personal and commercial projects. Resale, sub-licensing, or redistribution of the raw source files is strictly prohibited.
               </span>
