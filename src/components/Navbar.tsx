@@ -35,11 +35,6 @@ export const Navbar: React.FC = () => {
   const catRef = useRef<HTMLDivElement>(null);
   const servicesRef = useRef<HTMLDivElement>(null);
 
-  const cartTotal = cart.reduce(
-    (sum, item) => sum + (item.product.salePrice ?? item.product.price ?? 0),
-    0
-  );
-
   const headerSocials = (socialLinks || []).filter(
     (s) => s.isActive && s.showInHeader && Boolean(s.url?.trim())
   );
@@ -366,9 +361,9 @@ export const Navbar: React.FC = () => {
             </nav>
           </div>
 
-          {/* Right: Wishlist Heart Button + User Profile Avatar + Purple Cart Capsule (Matching Vyrqonix) */}
+          {/* Right: Wishlist Heart -> Cart Button -> User Profile Avatar (At the far right) */}
           <div className="flex items-center space-x-3">
-            {/* Wishlist Heart Icon Button */}
+            {/* 1. Wishlist Heart Icon Button */}
             <button
               onClick={() => navigate('/products')}
               className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#2563EB] text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors shadow-2xs hover:bg-slate-50 cursor-pointer"
@@ -377,7 +372,21 @@ export const Navbar: React.FC = () => {
               <Heart className="w-4 h-4" />
             </button>
 
-            {/* Profile Avatar / Dropdown */}
+            {/* 2. Cart Button (Right next to Wishlist, with 0 badge and Tk removed) */}
+            <Link
+              to="/cart"
+              className="w-10 h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shadow-md shadow-[#7C3AED]/20 transition-all relative group cursor-pointer"
+              title="Shopping Cart"
+            >
+              <ShoppingBag className="w-5 h-5 text-white" />
+              {cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs">
+                  {cart.length}
+                </span>
+              )}
+            </Link>
+
+            {/* 3. User Profile Avatar / Dropdown (At the far right) */}
             {currentUser ? (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -442,21 +451,6 @@ export const Navbar: React.FC = () => {
                 <UserIcon className="w-4 h-4" />
               </Link>
             )}
-
-            {/* Cart Capsule Pill Button (Vyrqonix Purple Style with Count & Total Price) */}
-            <Link
-              to="/cart"
-              className="flex items-center space-x-2.5 px-4 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-md shadow-[#7C3AED]/25 transition-all group"
-              title="Shopping Cart"
-            >
-              <div className="relative">
-                <ShoppingBag className="w-4 h-4 text-white" />
-                <span className="absolute -top-2 -right-2.5 min-w-[17px] h-[17px] px-1 bg-white text-[#7C3AED] text-[10px] font-black rounded-full flex items-center justify-center shadow-xs">
-                  {cart.length}
-                </span>
-              </div>
-              <span className="text-white text-xs font-bold pl-1 border-l border-white/20">{cartTotal} ৳</span>
-            </Link>
           </div>
 
         </div>
