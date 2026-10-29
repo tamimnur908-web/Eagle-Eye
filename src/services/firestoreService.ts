@@ -604,6 +604,7 @@ export const syncOrSeedAgencyServices = async (forceUpdate: boolean = false): Pr
           price: match.price !== undefined ? match.price : seedSrv.price,
           pricingType: match.pricingType || seedSrv.pricingType,
           status: match.status || seedSrv.status,
+          imageUrl: match.imageUrl !== undefined ? match.imageUrl : seedSrv.imageUrl,
           isFeatured: match.isFeatured !== undefined ? match.isFeatured : seedSrv.isFeatured,
           sortOrder: match.sortOrder !== undefined ? match.sortOrder : seedSrv.sortOrder,
           subservices: match.subservices && match.subservices.length > 0 && !forceUpdate

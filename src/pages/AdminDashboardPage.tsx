@@ -362,6 +362,8 @@ export const AdminDashboardPage: React.FC = () => {
     shortDescription: '',
     longDescription: '',
     category: 'Digital Marketing',
+    imageUrl: '',
+    iconName: 'Share2',
     timeline: 'Ongoing Monthly Engagement',
     price: null,
     pricingType: 'on_request',
@@ -380,6 +382,36 @@ export const AdminDashboardPage: React.FC = () => {
   const [serviceFeaturedFilter, setServiceFeaturedFilter] = useState<'all' | 'featured' | 'not-featured'>('all');
   const [isSyncingServices, setIsSyncingServices] = useState(false);
   const [syncStatusResult, setSyncStatusResult] = useState<string | null>(null);
+
+  // Service Picture Upload States & Handler
+  const serviceFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isServiceImageDragging, setIsServiceImageDragging] = useState(false);
+  const [serviceImageUploadStatus, setServiceImageUploadStatus] = useState<string | null>(null);
+
+  const handleServiceFileUpload = (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file (PNG, JPG, WebP, SVG, GIF).');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Image file size must be under 8MB.');
+      return;
+    }
+    setServiceImageUploadStatus('Loading picture...');
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setServiceForm((prev) => ({ ...prev, imageUrl: reader.result as string }));
+        setServiceImageUploadStatus(null);
+      }
+    };
+    reader.onerror = () => {
+      alert('Failed to process image file.');
+      setServiceImageUploadStatus(null);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Subservice & item helpers inside service form
   const [newSubserviceName, setNewSubserviceName] = useState('');
@@ -1338,7 +1370,8 @@ export const AdminDashboardPage: React.FC = () => {
       pricingType: cleanPrice !== null ? (serviceForm.pricingType || 'fixed') : 'on_request',
       status: serviceForm.status || 'published',
       isFeatured: Boolean(serviceForm.isFeatured),
-      sortOrder: Number(serviceForm.sortOrder) || 1
+      sortOrder: Number(serviceForm.sortOrder) || 1,
+      imageUrl: serviceForm.imageUrl?.trim() || ''
     };
 
     await saveService(payload);
@@ -2937,7 +2970,12 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {(services || []).slice(0, 2).map((srv) => (
-                      <div key={srv.id} className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1">
+                      <div key={srv.id} className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1 overflow-hidden">
+                        {srv.imageUrl && (
+                          <div className="w-full h-12 rounded-lg overflow-hidden bg-slate-100 mb-1 border border-slate-200/60">
+                            <img src={srv.imageUrl} alt={srv.name} className="w-full h-full object-cover" />
+                          </div>
+                        )}
                         <span className="text-[8px] font-bold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded">
                           {srv.category || 'Service'}
                         </span>
@@ -4712,6 +4750,8 @@ export const AdminDashboardPage: React.FC = () => {
                       shortDescription: '',
                       longDescription: '',
                       category: 'Digital Marketing',
+                      imageUrl: '',
+                      iconName: 'Share2',
                       timeline: 'Ongoing Monthly Engagement',
                       price: null,
                       pricingType: 'on_request',
@@ -4851,16 +4891,38 @@ export const AdminDashboardPage: React.FC = () => {
                         return (
                           <div
                             key={srv.id}
-                            className="bg-white border border-slate-200 hover:border-blue-400 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-colors"
+                            className="bg-white border border-slate-200 hover:border-blue-400 rounded-2xl p-5 shadow-sm space-y-3 flex flex-col justify-between transition-colors overflow-hidden"
                           >
                             <div className="space-y-2.5">
+                              {/* Service Picture on Top if set */}
+                              {srv.imageUrl && (
+                                <div className="relative w-full h-36 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 mb-2.5 group/img">
+                                  <img
+                                    src={srv.imageUrl}
+                                    alt={srv.name}
+                                    className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
+                                    loading="lazy"
+                                  />
+                                  <div className="absolute top-2 left-2">
+                                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-800 bg-white/95 backdrop-blur-sm px-2 py-0.5 rounded shadow-xs border border-slate-200/80">
+                                      {srv.category}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
                               {/* Top Pills */}
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded truncate max-w-[170px]">
-                                  {srv.category}
-                                </span>
+                                {!srv.imageUrl && (
+                                  <span className="text-[10px] font-bold uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded truncate max-w-[170px]">
+                                    {srv.category}
+                                  </span>
+                                )}
+                                {srv.imageUrl && (
+                                  <span className="text-[10px] font-semibold text-slate-400">Cover Photo</span>
+                                )}
                                 
-                                <div className="flex items-center space-x-1.5">
+                                <div className="flex items-center space-x-1.5 ml-auto">
                                   {/* Featured Toggle */}
                                   <button
                                     type="button"
@@ -4894,7 +4956,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 </div>
                               </div>
 
-                              {/* Title & Slug */}
+                              {/* Title & Slug (Always Underneath Picture) */}
                               <div>
                                 <h4 className="text-base font-bold text-slate-900 leading-snug">
                                   {srv.name}
@@ -4944,6 +5006,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 onClick={() => {
                                   setServiceForm({
                                     ...srv,
+                                    imageUrl: srv.imageUrl || '',
                                     benefits: srv.benefits || [],
                                     deliverables: srv.deliverables || [],
                                     scopeOfWork: srv.scopeOfWork || [],
@@ -4954,7 +5017,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 className="text-xs text-blue-600 font-bold hover:underline flex items-center space-x-1"
                               >
                                 <span>Edit Service & Subservices</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
+                                <span>&rarr;</span>
                               </button>
 
                               <button
@@ -8270,6 +8333,147 @@ export const AdminDashboardPage: React.FC = () => {
                       onChange={(e) => setServiceForm({ ...serviceForm, sortOrder: Number(e.target.value) })}
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:outline-none"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Service Picture / Cover Photo Management */}
+              <div className="space-y-3 p-4 bg-slate-50/70 rounded-2xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 flex items-center gap-1.5">
+                    <ImagePlus className="w-4 h-4 text-blue-600" />
+                    <span>Service Picture / Cover Photo (সার্ভিস ছবি)</span>
+                  </span>
+                  {serviceForm.imageUrl ? (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span>Custom Picture Active</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                      Default: Clean Icon Style
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Upload or paste an image URL for this service. If a picture is provided, it will be displayed on top of the card with the title underneath across the website. If no picture is provided, the clean card style with icon is used.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                  {/* Left: Drag & Drop / File Input & URL */}
+                  <div className="md:col-span-7 space-y-3">
+                    {/* Hidden file input */}
+                    <input
+                      ref={serviceFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleServiceFileUpload(file);
+                      }}
+                    />
+
+                    {/* Drag & Drop Upload Zone */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsServiceImageDragging(true);
+                      }}
+                      onDragLeave={() => setIsServiceImageDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsServiceImageDragging(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) handleServiceFileUpload(file);
+                      }}
+                      onClick={() => serviceFileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                        isServiceImageDragging
+                          ? 'border-blue-500 bg-blue-50/80 scale-[0.99]'
+                          : 'border-slate-300 hover:border-blue-400 bg-white hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center justify-center space-y-1.5">
+                        <Upload className="w-6 h-6 text-blue-600" />
+                        <span className="font-bold text-slate-700 text-xs">
+                          {serviceImageUploadStatus || 'Click to Browse or Drag & Drop Image'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          PNG, JPG, WebP, SVG up to 8MB • Supports copy & paste (Ctrl+V)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Image URL text input */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Or Paste Direct Image Link (URL)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="https://images.unsplash.com/... or /assets/..."
+                          value={serviceForm.imageUrl || ''}
+                          onChange={(e) => setServiceForm({ ...serviceForm, imageUrl: e.target.value })}
+                          className="w-full bg-white border border-slate-300 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-800 focus:outline-none focus:border-blue-500 font-mono"
+                        />
+                        {serviceForm.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setServiceForm({ ...serviceForm, imageUrl: '' })}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500 p-1"
+                            title="Clear picture"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Real-time Picture Preview Box */}
+                  <div className="md:col-span-5">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Preview (প্রিভিউ)
+                    </label>
+                    <div className="border border-slate-200 rounded-xl bg-white p-2 min-h-[140px] flex flex-col items-center justify-center relative overflow-hidden">
+                      {serviceForm.imageUrl ? (
+                        <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-100 group/prev">
+                          <img
+                            src={serviceForm.imageUrl}
+                            alt="Service preview"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/prev:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => serviceFileInputRef.current?.click()}
+                              className="px-2.5 py-1 bg-white/90 hover:bg-white text-slate-900 font-bold text-[10px] rounded-md shadow-xs"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setServiceForm({ ...serviceForm, imageUrl: '' })}
+                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] rounded-md shadow-xs"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 px-3 text-slate-400 space-y-1">
+                          <ImagePlus className="w-8 h-8 mx-auto text-slate-300" />
+                          <span className="text-[11px] font-semibold block text-slate-500">No Picture Selected</span>
+                          <span className="text-[10px] text-slate-400 block">Clean icon card style will be used</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

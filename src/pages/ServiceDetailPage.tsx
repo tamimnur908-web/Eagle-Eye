@@ -157,43 +157,89 @@ export const ServiceDetailPage: React.FC = () => {
 
       {/* 2. Hero Header & Information Banner */}
       <div className="bg-gradient-to-br from-[#08152F] via-[#0D2044] to-[#050E20] border border-[#112855] rounded-3xl p-6 sm:p-10 lg:p-12 text-white relative overflow-hidden shadow-xl">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-sky-200">
-            <span className="w-2 h-2 rounded-full bg-[#FFC629]" />
-            <span>{service.category}</span>
+        {service.imageUrl ? (
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-7 space-y-4">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-sky-200">
+                <span className="w-2 h-2 rounded-full bg-[#FFC629]" />
+                <span>{service.category}</span>
+              </div>
+
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+                {service.name}
+              </h1>
+
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
+                {service.shortDescription}
+              </p>
+
+              {/* Quick Metrics Bar */}
+              <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/10 text-xs font-semibold text-slate-200">
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-[#FFC629]" />
+                  <span>Timeline: {service.timeline || 'Tailored to requirements'}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Commercial NDA & Direct Strategy Lead</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="w-4 h-4 text-sky-300" />
+                  <span>Investment: <strong className="text-white">{pricing.displayText}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5">
+              <div className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black/40 aspect-video lg:aspect-[4/3] group">
+                <img
+                  src={service.imageUrl}
+                  alt={service.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+              </div>
+            </div>
           </div>
+        ) : (
+          <>
+            <div className="relative z-10 max-w-3xl space-y-4">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-sky-200">
+                <span className="w-2 h-2 rounded-full bg-[#FFC629]" />
+                <span>{service.category}</span>
+              </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-            {service.name}
-          </h1>
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+                {service.name}
+              </h1>
 
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-            {service.shortDescription}
-          </p>
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
+                {service.shortDescription}
+              </p>
 
-          {/* Quick Metrics Bar */}
-          <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/10 text-xs font-semibold text-slate-200">
-            <div className="flex items-center space-x-2">
-              <Clock className="w-4 h-4 text-[#FFC629]" />
-              <span>Timeline: {service.timeline || 'Tailored to requirements'}</span>
+              {/* Quick Metrics Bar */}
+              <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/10 text-xs font-semibold text-slate-200">
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-[#FFC629]" />
+                  <span>Timeline: {service.timeline || 'Tailored to requirements'}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Commercial NDA & Direct Strategy Lead</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="w-4 h-4 text-sky-300" />
+                  <span>Investment: <strong className="text-white">{pricing.displayText}</strong></span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Commercial NDA & Direct Strategy Lead</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <DollarSign className="w-4 h-4 text-sky-300" />
-              <span>Investment: <strong className="text-white">{pricing.displayText}</strong></span>
-            </div>
-          </div>
 
-        </div>
-
-        {/* Decorative Floating Icon Visual */}
-        <div className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 w-44 h-44 rounded-3xl bg-white/5 border border-white/10 items-center justify-center text-[#2563EB] shadow-2xl backdrop-blur-md">
-          <IconComponent className="w-20 h-20 text-sky-300 opacity-90" />
-        </div>
+            {/* Decorative Floating Icon Visual */}
+            <div className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 w-44 h-44 rounded-3xl bg-white/5 border border-white/10 items-center justify-center text-[#2563EB] shadow-2xl backdrop-blur-md">
+              <IconComponent className="w-20 h-20 text-sky-300 opacity-90" />
+            </div>
+          </>
+        )}
       </div>
 
       {/* 3. Main Content & Sidebar Layout */}

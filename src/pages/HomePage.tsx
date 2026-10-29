@@ -618,14 +618,35 @@ export const HomePage: React.FC = () => {
                   className="bg-white border border-slate-200 hover:border-[#2563EB] rounded-2xl p-6 transition-all group flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-1"
                 >
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold tracking-wider uppercase text-[#2563EB] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
-                        {service.category}
-                      </span>
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] text-[#2563EB] group-hover:text-white flex items-center justify-center transition-all">
-                        <IconComp className="w-5 h-5" />
+                    {/* Top Image if provided, with category pill and icon overlay */}
+                    {service.imageUrl ? (
+                      <div className="relative w-full h-44 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 group/img">
+                        <img
+                          src={service.imageUrl}
+                          alt={service.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="text-[10px] font-bold tracking-wider uppercase text-[#08152F] bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-sm border border-slate-200/60">
+                            {service.category}
+                          </span>
+                        </div>
+                        <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-lg bg-white/95 backdrop-blur-sm border border-slate-200/60 text-[#2563EB] flex items-center justify-center shadow-sm">
+                          <IconComp className="w-4 h-4" />
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      /* Category Pill & Icon (Default Clean Layout) */
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold tracking-wider uppercase text-[#2563EB] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
+                          {service.category}
+                        </span>
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] text-[#2563EB] group-hover:text-white flex items-center justify-center transition-all">
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                      </div>
+                    )}
 
                     <div>
                       <h3 className="text-lg font-bold text-[#08152F] group-hover:text-[#2563EB] transition-colors">
