@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
@@ -30,9 +30,15 @@ export const Navbar: React.FC = () => {
   const { cart } = useCart();
   const { settings, headerConfig, socialLinks } = useSettings();
   const navigate = useNavigate();
+  const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const catRef = useRef<HTMLDivElement>(null);
   const servicesRef = useRef<HTMLDivElement>(null);
+
+  const cartTotal = cart.reduce(
+    (sum, item) => sum + (item.product.salePrice ?? item.product.price ?? 0),
+    0
+  );
 
   const headerSocials = (socialLinks || []).filter(
     (s) => s.isActive && s.showInHeader && Boolean(s.url?.trim())
@@ -149,25 +155,25 @@ export const Navbar: React.FC = () => {
           {/* Central Rounded Search Bar with Action Pill (Like Vyrqonix) */}
           <form
             onSubmit={handleSearch}
-            className="hidden md:flex flex-1 max-w-2xl mx-4 relative items-center"
+            className="hidden md:flex flex-1 max-w-2xl mx-6 relative items-center"
           >
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for digital products, templates, services..."
-              className="w-full h-11 pl-5 pr-14 rounded-full border border-slate-300 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none text-xs sm:text-sm text-[#172033] bg-[#F3F5F9]/50 hover:bg-white focus:bg-white transition-all shadow-inner"
+              placeholder="Search for products..."
+              className="w-full h-11 pl-5 pr-12 rounded-full border border-slate-200 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none text-xs sm:text-sm text-[#172033] bg-white transition-all shadow-xs"
             />
             <button
               type="submit"
-              className="absolute right-1.5 w-8 h-8 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center transition-colors shadow-sm"
+              className="absolute right-1.5 w-8 h-8 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center transition-colors shadow-xs"
               title="Search"
             >
               <Search className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Right Support Pill, Social Icons & User Actions */}
+          {/* Right Side: Header Socials & WhatsApp Chat Support Pill (Desktop), Mobile Actions (Mobile) */}
           <div className="flex items-center space-x-2.5 sm:space-x-3.5 flex-shrink-0">
             {/* Header Social Icons (If Enabled in Placement) */}
             {headerSocials.length > 0 && (
@@ -187,54 +193,196 @@ export const Navbar: React.FC = () => {
               </div>
             )}
 
-            {/* Dynamic WhatsApp Chat Support Pill (Vyrqonix style) */}
+            {/* Dynamic WhatsApp Chat Support Pill (Vyrqonix style in Row 1) */}
             {headerConfig?.showChatSupport !== false && (
               <a
                 href={`https://wa.me/88${(headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden sm:flex items-center space-x-2.5 px-3 py-1.5 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 transition-colors group"
+                className="hidden sm:flex items-center space-x-2.5 px-3.5 py-1.5 rounded-2xl border border-slate-200/80 bg-white hover:bg-emerald-50/50 transition-colors group shadow-2xs"
               >
-                <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-sm">
-                  <MessageCircle className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-[#25D366] flex items-center justify-center text-white shadow-xs">
+                  <MessageCircle className="w-4 h-4 fill-white text-white" />
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="text-[10px] text-[#667085] font-semibold leading-tight">
+                  <span className="text-[11px] text-[#172033] font-bold leading-tight">
                     {headerConfig?.chatSupportText || 'Chat Support'}
                   </span>
-                  <span className="text-xs font-bold text-emerald-700 leading-tight">
+                  <span className="text-xs font-black text-[#10B981] leading-tight">
                     {headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791'}
                   </span>
                 </div>
               </a>
             )}
 
-            {/* Wishlist Heart Icon */}
-            <button
-              onClick={() => navigate('/products')}
-              className="p-2 rounded-full text-[#667085] hover:text-[#2563EB] hover:bg-slate-100 transition-colors hidden sm:block"
-              title="Favorites"
-            >
-              <Heart className="w-5 h-5" />
-            </button>
-
-            {/* Cart Capsule Button */}
+            {/* Mobile Actions: Compact Cart & User Icon on Small Screens Only */}
             <Link
               to="/cart"
-              className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs shadow-md shadow-[#2563EB]/20 transition-all shrink-0"
+              className="lg:hidden flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full bg-[#7C3AED] text-white font-bold text-xs shadow-xs"
               title="Cart"
             >
-              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <ShoppingBag className="w-3.5 h-3.5" />
               <span>{cart.length}</span>
-              <span className="hidden sm:inline border-l border-white/30 pl-1.5">৳0</span>
             </Link>
+
+            <Link
+              to="/account"
+              className="lg:hidden p-1 rounded-full border border-slate-200 text-[#172033]"
+              title="Account"
+            >
+              {currentUser ? (
+                <UserAvatar user={currentUser} size="sm" />
+              ) : (
+                <UserIcon className="w-4 h-4 text-slate-600" />
+              )}
+            </Link>
+
+            {/* Mobile menu toggle */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 rounded-lg border border-slate-200 text-[#172033] lg:hidden hover:bg-slate-100"
+              aria-label="Toggle Navigation"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Search Bar */}
+        <form onSubmit={handleSearch} className="mt-3 md:hidden relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search products..."
+            className="w-full h-10 pl-4 pr-12 rounded-full border border-slate-300 text-xs text-[#172033] bg-[#F3F5F9] focus:outline-none focus:border-[#2563EB]"
+          />
+          <button
+            type="submit"
+            className="absolute right-1 top-1 w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center"
+          >
+            <Search className="w-3.5 h-3.5" />
+          </button>
+        </form>
+      </div>
+
+      {/* Sub Header Navigation Bar (Desktop Only: All Categories Pill + Nav Links + Right Wishlist, Account, Cart Pill) */}
+      <div className="hidden lg:block w-full px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-slate-100 bg-white">
+        <div className="flex items-center justify-between h-14">
+          
+          {/* Left: "All Categories" Purple Pill Button + Nav Items */}
+          <div className="flex items-center space-x-4 xl:space-x-6">
+            {/* "All Categories" Pill Button with Dropdown (Vyrqonix Purple Pill) */}
+            <div className="relative" ref={catRef}>
+              <button
+                onClick={() => setCategoriesOpen(!categoriesOpen)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-md shadow-[#7C3AED]/20 transition-all cursor-pointer"
+              >
+                <Menu className="w-4 h-4 text-white" />
+                <span>All Categories</span>
+                <ChevronDown className="w-3 h-3 ml-0.5 text-purple-200" />
+              </button>
+
+              {categoriesOpen && (
+                <div className="absolute left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 text-xs">
+                  {categories.map((cat, idx) => (
+                    <Link
+                      key={idx}
+                      to={cat.path}
+                      onClick={() => setCategoriesOpen(false)}
+                      className="block px-4 py-2.5 text-[#172033] hover:bg-purple-50 hover:text-[#7C3AED] font-semibold transition-colors"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Dynamic Horizontal Links (Header Config) */}
+            <nav className="flex items-center space-x-1.5 xl:space-x-2 text-xs sm:text-sm">
+              {navItems.map((item, idx) => {
+                const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                
+                if (item.label.toLowerCase() === 'services') {
+                  return (
+                    <div key={idx} className="relative" ref={servicesRef}>
+                      <button
+                        onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}
+                        className={`flex items-center space-x-1 px-3.5 py-1.5 rounded-full transition-all text-xs font-bold cursor-pointer ${
+                          isActive
+                            ? 'bg-blue-50 text-[#2563EB] shadow-2xs'
+                            : 'text-[#172033] hover:text-[#2563EB] hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>Services</span>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                      </button>
+
+                      {servicesDropdownOpen && (
+                        <div className="absolute left-0 mt-1 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-50 text-xs space-y-1">
+                          <Link
+                            to="/services"
+                            onClick={() => setServicesDropdownOpen(false)}
+                            className="block p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#2563EB] font-bold transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>All Agency Services (14)</span>
+                              <span className="text-[10px] uppercase tracking-wider font-extrabold">View All →</span>
+                            </div>
+                          </Link>
+                          <div className="border-t border-slate-100 my-1"></div>
+                          {agencyServiceCategories.map((c, cIdx) => (
+                            <Link
+                              key={cIdx}
+                              to={c.path}
+                              onClick={() => setServicesDropdownOpen(false)}
+                              className="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors"
+                            >
+                              <span className="font-bold text-[#08152F] block">{c.title}</span>
+                              <span className="text-[11px] text-[#667085] leading-tight block mt-0.5">{c.desc}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={idx}
+                    to={item.path}
+                    className={`px-3.5 py-1.5 rounded-full transition-all text-xs font-bold ${
+                      isActive
+                        ? 'bg-blue-50 text-[#2563EB] shadow-2xs'
+                        : 'text-[#172033] hover:text-[#2563EB] hover:bg-slate-50'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Right: Wishlist Heart Button + User Profile Avatar + Purple Cart Capsule (Matching Vyrqonix) */}
+          <div className="flex items-center space-x-3">
+            {/* Wishlist Heart Icon Button */}
+            <button
+              onClick={() => navigate('/products')}
+              className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#2563EB] text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors shadow-2xs hover:bg-slate-50 cursor-pointer"
+              title="Favorites / Wishlist"
+            >
+              <Heart className="w-4 h-4" />
+            </button>
 
             {/* Profile Avatar / Dropdown */}
             {currentUser ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="flex items-center space-x-1.5 p-1 rounded-full border border-slate-200 hover:bg-slate-100 transition-colors focus:outline-none"
+                  className="flex items-center space-x-1.5 p-1 rounded-full border border-slate-200 hover:border-[#2563EB] transition-colors focus:outline-none cursor-pointer"
                   title="My Account"
                 >
                   <UserAvatar user={currentUser} size="sm" showBorder />
@@ -242,7 +390,7 @@ export const Navbar: React.FC = () => {
                 </button>
 
                 {accountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 text-xs">
+                  <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4 py-3 border-b border-slate-100 flex items-center space-x-3">
                       <UserAvatar user={currentUser} size="md" showBorder />
                       <div className="overflow-hidden">
@@ -277,7 +425,7 @@ export const Navbar: React.FC = () => {
 
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center space-x-2 px-4 py-2 text-left text-red-600 hover:bg-red-50 font-semibold transition-colors"
+                      className="w-full flex items-center space-x-2 px-4 py-2 text-left text-red-600 hover:bg-red-50 font-semibold transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 text-red-500" />
                       <span>Sign Out</span>
@@ -288,127 +436,29 @@ export const Navbar: React.FC = () => {
             ) : (
               <Link
                 to="/account"
-                className="w-8 h-8 rounded-full border border-slate-200 hover:border-[#2563EB] flex items-center justify-center text-[#667085] hover:text-[#2563EB] transition-colors shadow-sm"
+                className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#2563EB] flex items-center justify-center text-[#667085] hover:text-[#2563EB] transition-colors shadow-2xs hover:bg-slate-50"
                 title="Account"
               >
                 <UserIcon className="w-4 h-4" />
               </Link>
             )}
 
-            {/* Mobile menu toggle */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 rounded-lg border border-slate-200 text-[#172033] lg:hidden hover:bg-slate-100"
+            {/* Cart Capsule Pill Button (Vyrqonix Purple Style with Count & Total Price) */}
+            <Link
+              to="/cart"
+              className="flex items-center space-x-2.5 px-4 py-2 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs shadow-md shadow-[#7C3AED]/25 transition-all group"
+              title="Shopping Cart"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Search Bar */}
-        <form onSubmit={handleSearch} className="mt-3 md:hidden relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search products..."
-            className="w-full h-10 pl-4 pr-12 rounded-full border border-slate-300 text-xs text-[#172033] bg-[#F3F5F9] focus:outline-none focus:border-[#2563EB]"
-          />
-          <button
-            type="submit"
-            className="absolute right-1 top-1 w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center"
-          >
-            <Search className="w-3.5 h-3.5" />
-          </button>
-        </form>
-      </div>
-
-      {/* Sub Header Navigation Bar (Desktop Only: All Categories Pill + Navigation Links) */}
-      <div className="hidden lg:block w-full px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-slate-100 bg-white">
-        <div className="flex items-center space-x-6 h-12">
-          
-          {/* "All Categories" Pill Button with Dropdown (Deep Navy Pill) */}
-          <div className="relative" ref={catRef}>
-            <button
-              onClick={() => setCategoriesOpen(!categoriesOpen)}
-              className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#08152F] hover:bg-[#0D2044] text-white font-bold text-xs shadow-sm transition-all"
-            >
-              <LayoutGrid className="w-3.5 h-3.5 text-[#FFC629]" />
-              <span>All Categories</span>
-              <ChevronDown className="w-3 h-3 ml-0.5 text-slate-300" />
-            </button>
-
-            {categoriesOpen && (
-              <div className="absolute left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 text-xs">
-                {categories.map((cat, idx) => (
-                  <Link
-                    key={idx}
-                    to={cat.path}
-                    onClick={() => setCategoriesOpen(false)}
-                    className="block px-4 py-2.5 text-[#172033] hover:bg-blue-50 hover:text-[#2563EB] font-semibold transition-colors"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
+              <div className="relative">
+                <ShoppingBag className="w-4 h-4 text-white" />
+                <span className="absolute -top-2 -right-2.5 min-w-[17px] h-[17px] px-1 bg-white text-[#7C3AED] text-[10px] font-black rounded-full flex items-center justify-center shadow-xs">
+                  {cart.length}
+                </span>
               </div>
-            )}
+              <span className="text-white text-xs font-bold pl-1 border-l border-white/20">{cartTotal} ৳</span>
+            </Link>
           </div>
 
-          {/* Dynamic Horizontal Links (Header Config) */}
-          <nav className="hidden lg:flex items-center space-x-6 text-xs sm:text-sm font-semibold">
-            {navItems.map((item, idx) => {
-              if (item.label.toLowerCase() === 'services') {
-                return (
-                  <div key={idx} className="relative" ref={servicesRef}>
-                    <button
-                      onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}
-                      className="flex items-center space-x-1 text-[#172033] hover:text-[#2563EB] transition-colors py-2 focus:outline-none"
-                    >
-                      <span>Services</span>
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                    </button>
-
-                    {servicesDropdownOpen && (
-                      <div className="absolute left-0 mt-1 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-50 text-xs space-y-1">
-                        <Link
-                          to="/services"
-                          onClick={() => setServicesDropdownOpen(false)}
-                          className="block p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#2563EB] font-bold transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>All Agency Services (14)</span>
-                            <span className="text-[10px] uppercase tracking-wider font-extrabold">View All →</span>
-                          </div>
-                        </Link>
-                        <div className="border-t border-slate-100 my-1"></div>
-                        {agencyServiceCategories.map((c, cIdx) => (
-                          <Link
-                            key={cIdx}
-                            to={c.path}
-                            onClick={() => setServicesDropdownOpen(false)}
-                            className="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors"
-                          >
-                            <span className="font-bold text-[#08152F] block">{c.title}</span>
-                            <span className="text-[11px] text-[#667085] leading-tight block mt-0.5">{c.desc}</span>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              return (
-                <Link
-                  key={idx}
-                  to={item.path}
-                  className="text-[#172033] hover:text-[#2563EB] transition-colors"
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
         </div>
       </div>
 
