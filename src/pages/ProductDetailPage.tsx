@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProductBySlug } from '../services/firestoreService';
 import { DigitalProduct } from '../types';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { ArrowLeft, ShoppingBag, Download, ShieldCheck, Key, BookOpen, Copy, Check } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
@@ -11,6 +13,8 @@ export const ProductDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [copiedPass, setCopiedPass] = useState(false);
   const { addToCart } = useCart();
+  const { currentUser } = useAuth();
+  const { openLoginModal } = useAuthModal();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -54,6 +58,15 @@ export const ProductDetailPage: React.FC = () => {
   const buttonText = product.customDownloadBtnText || (isFree ? 'Instant Google Drive Download' : 'Add to Cart / Purchase');
 
   const handleAction = () => {
+    if (!currentUser) {
+      openLoginModal({
+        title: 'Login Required',
+        message: 'Please log in to your account to add products to your cart and continue shopping.',
+        redirectPath: `/products/${product.slug}`,
+      });
+      return;
+    }
+
     if (isFree && downloadUrl) {
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
       return;

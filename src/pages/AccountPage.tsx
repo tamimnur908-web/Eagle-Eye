@@ -28,15 +28,21 @@ import {
   XCircle
 } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { EmptyState } from '../components/EmptyState';
 import { UserAvatar } from '../components/UserAvatar';
 
 export const AccountPage: React.FC = () => {
   const { currentUser, logout } = useAuth();
-  
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const modeParam = searchParams.get('mode');
+
   // Auth Form State: 'login' | 'register'
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(
+    modeParam === 'login' ? 'login' : 'register'
+  );
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,7 +50,18 @@ export const AccountPage: React.FC = () => {
   const [resetSent, setResetSent] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    if (modeParam === 'login' || modeParam === 'register') {
+      setAuthMode(modeParam);
+    }
+  }, [modeParam]);
+
+  // If already logged in or login completes, redirect to requested page
+  useEffect(() => {
+    if (currentUser && redirectParam) {
+      navigate(redirectParam, { replace: true });
+    }
+  }, [currentUser, redirectParam, navigate]);
 
   // User Data State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -347,7 +364,7 @@ export const AccountPage: React.FC = () => {
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full py-3 rounded-xl bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs transition-colors disabled:opacity-50 shadow-md shadow-[#246BFD]/25"
+              className="w-full py-3 rounded-xl bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs transition-colors disabled:opacity-50 shadow-md shadow-[#246BFD]/25 cursor-pointer"
             >
               {authLoading ? 'Processing...' : authMode === 'register' ? 'Complete Registration' : 'Sign In'}
             </button>

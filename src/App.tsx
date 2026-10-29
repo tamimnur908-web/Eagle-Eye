@@ -1,11 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { AuthModalProvider } from './context/AuthModalContext';
 import { CartProvider } from './context/CartContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { FloatingSocialBar } from './components/FloatingSocialBar';
+import { LoginRequiredModal } from './components/LoginRequiredModal';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -83,6 +85,9 @@ function AppLayout() {
       {/* Hide customer storefront Footer and Floating bar in Admin panel */}
       {!isAdminRoute && <Footer />}
       {!isAdminRoute && <FloatingSocialBar />}
+
+      {/* Global Login-First / Protected Action Modal */}
+      <LoginRequiredModal />
     </div>
   );
 }
@@ -92,11 +97,13 @@ export function App() {
     <ErrorBoundary>
       <AuthProvider>
         <SettingsProvider>
-          <CartProvider>
-            <Router>
-              <AppLayout />
-            </Router>
-          </CartProvider>
+          <Router>
+            <AuthModalProvider>
+              <CartProvider>
+                <AppLayout />
+              </CartProvider>
+            </AuthModalProvider>
+          </Router>
         </SettingsProvider>
       </AuthProvider>
     </ErrorBoundary>

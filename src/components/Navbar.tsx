@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { UserAvatar } from './UserAvatar';
@@ -28,6 +29,7 @@ export const Navbar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { currentUser, isAdmin, logout } = useAuth();
   const { cart } = useCart();
+  const { openLoginModal } = useAuthModal();
   const { settings, headerConfig, socialLinks } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,6 +78,17 @@ export const Navbar: React.FC = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleCartClick = (e: React.MouseEvent) => {
+    if (!currentUser) {
+      e.preventDefault();
+      openLoginModal({
+        title: 'Login Required',
+        message: 'Please log in to your account to add products to your cart and continue shopping.',
+        redirectPath: '/cart',
+      });
     }
   };
 
@@ -213,11 +226,12 @@ export const Navbar: React.FC = () => {
             {/* Mobile Actions: Compact Cart & User Icon on Small Screens Only */}
             <Link
               to="/cart"
-              className="lg:hidden flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full bg-[#7C3AED] text-white font-bold text-xs shadow-xs"
+              onClick={handleCartClick}
+              className="lg:hidden flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
               title="Cart"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>{cart.length}</span>
+              <span>{currentUser ? cart.length : 0}</span>
             </Link>
 
             <Link
@@ -375,11 +389,12 @@ export const Navbar: React.FC = () => {
             {/* 2. Cart Button (Right next to Wishlist, with 0 badge and Tk removed) */}
             <Link
               to="/cart"
-              className="w-10 h-10 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center shadow-md shadow-[#7C3AED]/20 transition-all relative group cursor-pointer"
+              onClick={handleCartClick}
+              className="w-10 h-10 rounded-full bg-[#246BFD] hover:bg-[#1A56DB] text-white flex items-center justify-center shadow-md shadow-[#246BFD]/25 transition-all relative group cursor-pointer"
               title="Shopping Cart"
             >
               <ShoppingBag className="w-5 h-5 text-white" />
-              {cart.length > 0 && (
+              {currentUser && cart.length > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-xs">
                   {cart.length}
                 </span>

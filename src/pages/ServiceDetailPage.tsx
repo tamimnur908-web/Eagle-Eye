@@ -117,16 +117,16 @@ export const ServiceDetailPage: React.FC = () => {
   if (!service) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-24 text-center space-y-5">
-        <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 text-[#2563EB] mx-auto flex items-center justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 text-[#246BFD] mx-auto flex items-center justify-center">
           <Layers className="w-8 h-8" />
         </div>
-        <h2 className="text-3xl font-extrabold text-[#08152F]">Service Not Found</h2>
+        <h2 className="text-3xl font-extrabold text-[#101828]">Service Not Found</h2>
         <p className="text-sm text-[#667085] max-w-md mx-auto">
           The requested agency service either does not exist or has been relocated. Explore our comprehensive services catalog below.
         </p>
         <Link
           to="/services"
-          className="inline-flex items-center space-x-2 px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
+          className="inline-flex items-center space-x-2 px-6 py-3 bg-[#246BFD] hover:bg-[#1A56DB] text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to All Services</span>
@@ -144,24 +144,24 @@ export const ServiceDetailPage: React.FC = () => {
       
       {/* 1. Breadcrumbs */}
       <nav className="flex items-center space-x-2 text-xs font-medium text-[#667085]">
-        <Link to="/" className="hover:text-[#2563EB] transition-colors">
+        <Link to="/" className="hover:text-[#246BFD] transition-colors">
           Home
         </Link>
         <span>/</span>
-        <Link to="/services" className="hover:text-[#2563EB] transition-colors">
+        <Link to="/services" className="hover:text-[#246BFD] transition-colors">
           Services
         </Link>
         <span>/</span>
-        <span className="text-[#08152F] font-bold truncate max-w-xs">{service.name}</span>
+        <span className="text-[#101828] font-bold truncate max-w-xs">{service.name}</span>
       </nav>
 
       {/* 2. Hero Header & Information Banner */}
-      <div className="bg-gradient-to-br from-[#08152F] via-[#0D2044] to-[#050E20] border border-[#112855] rounded-3xl p-6 sm:p-10 lg:p-12 text-white relative overflow-hidden shadow-xl">
+      <div className="bg-gradient-to-br from-[#101828] via-[#1E293B] to-[#0A0F1D] border border-slate-800 rounded-3xl p-6 sm:p-10 lg:p-12 text-white relative overflow-hidden shadow-xl">
         {service.imageUrl ? (
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-4">
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-sky-200">
-                <span className="w-2 h-2 rounded-full bg-[#FFC629]" />
+                <span className="w-2 h-2 rounded-full bg-[#36D6E7]" />
                 <span>{service.category}</span>
               </div>
 
@@ -176,7 +176,7 @@ export const ServiceDetailPage: React.FC = () => {
               {/* Quick Metrics Bar */}
               <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/10 text-xs font-semibold text-slate-200">
                 <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-[#FFC629]" />
+                  <Clock className="w-4 h-4 text-[#36D6E7]" />
                   <span>Timeline: {service.timeline || 'Tailored to requirements'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -205,7 +205,7 @@ export const ServiceDetailPage: React.FC = () => {
           <>
             <div className="relative z-10 max-w-3xl space-y-4">
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-sky-200">
-                <span className="w-2 h-2 rounded-full bg-[#FFC629]" />
+                <span className="w-2 h-2 rounded-full bg-[#36D6E7]" />
                 <span>{service.category}</span>
               </div>
 
@@ -220,7 +220,7 @@ export const ServiceDetailPage: React.FC = () => {
               {/* Quick Metrics Bar */}
               <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/10 text-xs font-semibold text-slate-200">
                 <div className="flex items-center space-x-2">
-                  <Clock className="w-4 h-4 text-[#FFC629]" />
+                  <Clock className="w-4 h-4 text-[#36D6E7]" />
                   <span>Timeline: {service.timeline || 'Tailored to requirements'}</span>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -235,7 +235,7 @@ export const ServiceDetailPage: React.FC = () => {
             </div>
 
             {/* Decorative Floating Icon Visual */}
-            <div className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 w-44 h-44 rounded-3xl bg-white/5 border border-white/10 items-center justify-center text-[#2563EB] shadow-2xl backdrop-blur-md">
+            <div className="hidden lg:flex absolute right-12 top-1/2 -translate-y-1/2 w-44 h-44 rounded-3xl bg-white/5 border border-white/10 items-center justify-center text-[#246BFD] shadow-2xl backdrop-blur-md">
               <IconComponent className="w-20 h-20 text-sky-300 opacity-90" />
             </div>
           </>
@@ -254,7 +254,7 @@ export const ServiceDetailPage: React.FC = () => {
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                 Standard Engagement Investment
               </span>
-              <div className="text-2xl font-black text-[#08152F] mt-0.5">
+              <div className="text-2xl font-black text-[#101828] mt-0.5">
                 {pricing.displayText}
               </div>
               <p className="text-xs text-[#667085] mt-1">
@@ -264,7 +264,7 @@ export const ServiceDetailPage: React.FC = () => {
 
             <a
               href={`#consultation-form`}
-              className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors shadow-sm text-center flex-shrink-0"
+              className="px-5 py-2.5 rounded-xl bg-[#246BFD] hover:bg-[#1A56DB] text-white text-xs font-bold transition-colors shadow-sm text-center flex-shrink-0"
             >
               Request Scoped Proposal
             </a>
@@ -272,10 +272,10 @@ export const ServiceDetailPage: React.FC = () => {
 
           {/* Detailed Overview */}
           <section className="space-y-4">
-            <h2 className="text-xl font-bold text-[#08152F] flex items-center space-x-2">
+            <h2 className="text-xl font-bold text-[#101828] flex items-center space-x-2">
               <span>Service Architecture & Strategy</span>
             </h2>
-            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-sm text-sm text-[#172033] leading-relaxed whitespace-pre-line">
+            <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-sm text-sm text-[#101828] leading-relaxed whitespace-pre-line">
               {service.longDescription || service.shortDescription}
             </div>
           </section>
@@ -283,7 +283,7 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Key Business Benefits */}
           {service.benefits && service.benefits.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Key Business Benefits</h2>
+              <h2 className="text-xl font-bold text-[#101828]">Key Business Benefits</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {service.benefits.map((benefit, idx) => (
                   <div
@@ -293,7 +293,7 @@ export const ServiceDetailPage: React.FC = () => {
                     <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Check className="w-4 h-4" />
                     </div>
-                    <span className="text-xs sm:text-sm text-[#172033] font-medium leading-relaxed">
+                    <span className="text-xs sm:text-sm text-[#101828] font-medium leading-relaxed">
                       {benefit}
                     </span>
                   </div>
@@ -306,12 +306,12 @@ export const ServiceDetailPage: React.FC = () => {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-[#08152F]">Included Specialized Subservices</h2>
+                <h2 className="text-xl font-bold text-[#101828]">Included Specialized Subservices</h2>
                 <p className="text-xs text-[#667085] mt-0.5">
                   Every main service includes execution across these core technical capabilities.
                 </p>
               </div>
-              <span className="text-xs font-bold text-[#2563EB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+              <span className="text-xs font-bold text-[#246BFD] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
                 {activeSubservices.length} Subservices
               </span>
             </div>
@@ -320,10 +320,10 @@ export const ServiceDetailPage: React.FC = () => {
               {activeSubservices.map((sub, idx) => (
                 <div
                   key={sub.id || idx}
-                  className="bg-white border border-slate-200 hover:border-[#2563EB]/60 rounded-2xl p-5 shadow-sm space-y-2 transition-colors"
+                  className="bg-white border border-slate-200 hover:border-[#246BFD]/60 rounded-2xl p-5 shadow-sm space-y-2 transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-[#08152F]">{sub.name}</h4>
+                    <h4 className="text-sm font-bold text-[#101828]">{sub.name}</h4>
                     <span className="w-2 h-2 rounded-full bg-emerald-500" title="Active Capability" />
                   </div>
                   <p className="text-xs text-[#667085] leading-relaxed">
@@ -337,18 +337,18 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Deliverables & Scope of Work */}
           {(service.deliverables?.length || service.scopeOfWork?.length) && (
             <section className="space-y-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Scope of Work & Deliverables</h2>
+              <h2 className="text-xl font-bold text-[#101828]">Scope of Work & Deliverables</h2>
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-sm space-y-6">
                 
                 {service.deliverables && service.deliverables.length > 0 && (
                   <div>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#2563EB] mb-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#246BFD] mb-3">
                       Tangible Deliverables
                     </h3>
                     <ul className="space-y-2.5">
                       {service.deliverables.map((item, idx) => (
-                        <li key={idx} className="flex items-start space-x-2.5 text-xs sm:text-sm text-[#172033]">
-                          <CheckCircle2 className="w-4 h-4 text-[#2563EB] flex-shrink-0 mt-0.5" />
+                        <li key={idx} className="flex items-start space-x-2.5 text-xs sm:text-sm text-[#101828]">
+                          <CheckCircle2 className="w-4 h-4 text-[#246BFD] flex-shrink-0 mt-0.5" />
                           <span>{item}</span>
                         </li>
                       ))}
@@ -358,7 +358,7 @@ export const ServiceDetailPage: React.FC = () => {
 
                 {service.scopeOfWork && service.scopeOfWork.length > 0 && (
                   <div className="pt-4 border-t border-slate-100">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#2563EB] mb-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#246BFD] mb-3">
                       Process & Execution Steps
                     </h3>
                     <ul className="space-y-2.5">
@@ -381,12 +381,12 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Service FAQs */}
           {service.faqs && service.faqs.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Frequently Asked Questions</h2>
+              <h2 className="text-xl font-bold text-[#101828]">Frequently Asked Questions</h2>
               <div className="space-y-3">
                 {service.faqs.map((faq, idx) => (
                   <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
-                    <h4 className="text-sm font-bold text-[#08152F] flex items-center space-x-2">
-                      <HelpCircle className="w-4 h-4 text-[#2563EB] flex-shrink-0" />
+                    <h4 className="text-sm font-bold text-[#101828] flex items-center space-x-2">
+                      <HelpCircle className="w-4 h-4 text-[#246BFD] flex-shrink-0" />
                       <span>{faq.question}</span>
                     </h4>
                     <p className="text-xs sm:text-sm text-[#667085] leading-relaxed pl-6">
@@ -401,23 +401,23 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Related Services in the Same Category */}
           {relatedServices.length > 0 && (
             <section className="space-y-4 pt-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Related {service.category} Services</h2>
+              <h2 className="text-xl font-bold text-[#101828]">Related {service.category} Services</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {relatedServices.map((rel) => (
                   <Link
                     key={rel.id}
                     to={`/services/${rel.slug}`}
-                    className="bg-white border border-slate-200 hover:border-[#2563EB] p-4 rounded-xl shadow-xs transition-all hover:-translate-y-0.5 flex flex-col justify-between"
+                    className="bg-white border border-slate-200 hover:border-[#246BFD] p-4 rounded-xl shadow-xs transition-all hover:-translate-y-0.5 flex flex-col justify-between"
                   >
                     <div>
-                      <h4 className="text-xs font-bold text-[#08152F] hover:text-[#2563EB] transition-colors">
+                      <h4 className="text-xs font-bold text-[#101828] hover:text-[#246BFD] transition-colors">
                         {rel.name}
                       </h4>
                       <p className="text-[11px] text-[#667085] mt-1 line-clamp-2">
                         {rel.shortDescription}
                       </p>
                     </div>
-                    <span className="text-[11px] font-bold text-[#2563EB] inline-flex items-center space-x-1 mt-3">
+                    <span className="text-[11px] font-bold text-[#246BFD] inline-flex items-center space-x-1 mt-3">
                       <span>Learn More</span>
                       <ArrowRight className="w-3 h-3" />
                     </span>
@@ -436,7 +436,7 @@ export const ServiceDetailPage: React.FC = () => {
 
           {/* Direct WhatsApp Consultation Card */}
           <div className="bg-white border border-slate-200 shadow-sm p-5 rounded-2xl space-y-3 text-xs text-[#667085]">
-            <h4 className="font-bold text-sm text-[#08152F]">Have a Custom Scope Question?</h4>
+            <h4 className="font-bold text-sm text-[#101828]">Have a Custom Scope Question?</h4>
             <p className="leading-relaxed">
               Connect directly with our senior agency strategists on WhatsApp for quick scoping and quote estimates.
             </p>

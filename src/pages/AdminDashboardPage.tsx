@@ -75,7 +75,10 @@ import {
   Terminal,
   Box,
   Type,
-  Wand2
+  Wand2,
+  RefreshCw,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import {
   getAllServices,
@@ -142,8 +145,10 @@ import {
   FooterConfig,
   SiteSettings,
   TextAnimationStyle,
-  SlideVisualType
+  SlideVisualType,
+  ThemeSettings
 } from '../types';
+import { defaultThemeSettings, isValidHex, normalizeHex, adjustColorBrightness } from '../utils/theme';
 import { useSettings } from '../context/SettingsContext';
 import { SocialIcon, SOCIAL_ICON_OPTIONS } from '../components/SocialIcon';
 import { ADMIN_UID, BUSINESS_EMAIL } from '../lib/firebase';
@@ -164,6 +169,7 @@ export const AdminDashboardPage: React.FC = () => {
     | 'leads'
     | 'homepage'
     | 'footer'
+    | 'appearance'
     | 'settings'
     | 'admins';
 
@@ -176,6 +182,7 @@ export const AdminDashboardPage: React.FC = () => {
     'leads',
     'homepage',
     'footer',
+    'appearance',
     'settings',
     'admins'
   ];
@@ -540,8 +547,63 @@ export const AdminDashboardPage: React.FC = () => {
     headerConfig: globalHeaderConfig,
     footerConfig: globalFooterConfig,
     socialLinks: globalSocialLinks,
-    saveSettings: persistSiteSettings
+    theme: activeTheme,
+    saveSettings: persistSiteSettings,
+    saveThemeSettings: persistThemeSettings
   } = useSettings();
+
+  // Appearance & Theme Settings State
+  const [draftTheme, setDraftTheme] = useState<ThemeSettings>(() => activeTheme || defaultThemeSettings);
+  const [themeSaving, setThemeSaving] = useState(false);
+  const [themeFeedback, setThemeFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Sync draftTheme whenever activeTheme changes from Firestore
+  useEffect(() => {
+    if (activeTheme) {
+      setDraftTheme(activeTheme);
+    }
+  }, [activeTheme]);
+
+  const handleUpdateDraftColor = (tokenKey: keyof ThemeSettings, value: string) => {
+    setDraftTheme((prev) => ({
+      ...prev,
+      [tokenKey]: value
+    }));
+  };
+
+  const handleSaveTheme = async () => {
+    try {
+      setThemeSaving(true);
+      setThemeFeedback(null);
+      await persistThemeSettings(draftTheme);
+      setThemeFeedback({
+        type: 'success',
+        message: 'Theme settings saved successfully! All 8 brand tokens are live across the website.'
+      });
+      setTimeout(() => setThemeFeedback(null), 4000);
+    } catch (err: any) {
+      setThemeFeedback({
+        type: 'error',
+        message: err?.message || 'Failed to save theme settings.'
+      });
+    } finally {
+      setThemeSaving(false);
+    }
+  };
+
+  const handleResetThemeToDefaults = () => {
+    setDraftTheme(defaultThemeSettings);
+    setThemeFeedback({
+      type: 'success',
+      message: 'Draft reset to Modern Tech defaults (#246BFD, #101828, #36D6E7). Click Save to apply.'
+    });
+    setTimeout(() => setThemeFeedback(null), 3500);
+  };
+
+  const handleCancelThemeChanges = () => {
+    setDraftTheme(activeTheme || defaultThemeSettings);
+    setThemeFeedback(null);
+  };
 
   // Site Settings Form State
   const [siteForm, setSiteForm] = useState<SiteSettings>(globalSiteSettings || defaultSiteSettings);
@@ -857,15 +919,15 @@ export const AdminDashboardPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#F3F5F9] flex items-center justify-center p-4">
         <div className="bg-white border border-slate-200/90 shadow-2xl rounded-3xl max-w-md w-full p-8 text-center space-y-5 animate-in fade-in zoom-in duration-150">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#08152F] to-[#2563EB] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#2563EB]/25">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#101828] to-[#246BFD] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#246BFD]/25">
             <Lock className="w-8 h-8" />
           </div>
 
           <div>
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#2563EB] block mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#246BFD] block mb-1">
               Admin Access Verification
             </span>
-            <h2 className="text-xl font-black text-[#08152F]">
+            <h2 className="text-xl font-black text-[#101828]">
               Enter Admin Security Password
             </h2>
             <p className="text-xs text-slate-500 mt-1">
@@ -928,7 +990,7 @@ export const AdminDashboardPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-md shadow-[#2563EB]/25 transition-all flex items-center justify-center space-x-2 active:scale-[0.99]"
+              className="w-full py-3 bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs rounded-xl shadow-md shadow-[#246BFD]/25 transition-all flex items-center justify-center space-x-2 active:scale-[0.99]"
             >
               <Unlock className="w-4 h-4" />
               <span>Unlock Admin Panel (প্যানেলে প্রবেশ করুন)</span>
@@ -2026,7 +2088,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setSidePreviewScope('section')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   sidePreviewScope === 'section'
-                    ? 'bg-[#2563EB] text-white shadow-sm'
+                    ? 'bg-[#246BFD] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
                 title="কারেন্ট সেকশন প্রিভিউ (ডিফল্ট)"
@@ -2040,7 +2102,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setSidePreviewScope('full')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   sidePreviewScope === 'full'
-                    ? 'bg-[#2563EB] text-white shadow-sm'
+                    ? 'bg-[#246BFD] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
                 title="সম্পূর্ণ লাইভ ওয়েবসাইট প্রিভিউ"
@@ -2057,7 +2119,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setPreviewDevice('phone')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   previewDevice === 'phone'
-                    ? 'bg-[#2563EB] text-white shadow-sm'
+                    ? 'bg-[#246BFD] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -2070,7 +2132,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setPreviewDevice('laptop')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   previewDevice === 'laptop'
-                    ? 'bg-[#2563EB] text-white shadow-sm'
+                    ? 'bg-[#246BFD] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -2083,7 +2145,7 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={() => setPreviewDevice('tablet')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
                   previewDevice === 'tablet'
-                    ? 'bg-[#2563EB] text-white shadow-sm'
+                    ? 'bg-[#246BFD] text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -2134,7 +2196,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeMenu === 'settings' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
                         <Settings className="w-3.5 h-3.5" />
                         Site Identity & Header Preview
                       </span>
@@ -2145,8 +2207,8 @@ export const AdminDashboardPage: React.FC = () => {
 
                     {/* Announcement Bar */}
                     {headerForm.showAnnouncement !== false && (
-                      <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 border border-[#112855]">
-                        <Sparkles className="w-3 h-3 text-[#FFC629] animate-spin-slow flex-shrink-0" />
+                      <div className="bg-gradient-to-r from-[#101828] via-[#1E293B] to-[#101828] text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 border border-[#1E293B]">
+                        <Sparkles className="w-3 h-3 text-[#36D6E7] animate-spin-slow flex-shrink-0" />
                         <span className="truncate">{headerForm.announcementText || 'Special Offer Available'}</span>
                       </div>
                     )}
@@ -2154,7 +2216,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {/* Live Brand Navbar Card */}
                     <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-xs flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-[#08152F] border border-[#112855] p-0.5 shadow-sm flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-[#101828] border border-[#1E293B] p-0.5 shadow-sm flex items-center justify-center">
                           {siteForm.logoUrl ? (
                             <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
                           ) : (
@@ -2162,7 +2224,7 @@ export const AdminDashboardPage: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <div className="text-xs font-black text-[#08152F] leading-none">
+                          <div className="text-xs font-black text-[#101828] leading-none">
                             {siteForm.brandName || 'Eagle Eye Digital'}
                           </div>
                           <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
@@ -2205,7 +2267,7 @@ export const AdminDashboardPage: React.FC = () => {
                         <span className="text-slate-500">Official Email:</span>
                         <a
                           href={`mailto:${siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
-                          className="font-mono text-[#2563EB] font-bold hover:underline truncate max-w-[180px]"
+                          className="font-mono text-[#246BFD] font-bold hover:underline truncate max-w-[180px]"
                         >
                           {siteForm.businessEmail || 'support@eagleeyedigital.com'}
                         </a>
@@ -2221,7 +2283,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {headerFooterActiveTab === 'social' && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                          <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
                             <Globe className="w-3.5 h-3.5" />
                             Social Presence Placements
                           </span>
@@ -2234,12 +2296,12 @@ export const AdminDashboardPage: React.FC = () => {
                         <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
                           <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
                             <span>1. Sticky Floating Sidebar Dock</span>
-                            <span className="text-[#2563EB] font-mono">
+                            <span className="text-[#246BFD] font-mono">
                               {activeSidebarSocials.length} Icons
                             </span>
                           </div>
-                          <div className="h-16 bg-[#08152F] rounded-lg p-2 flex items-center justify-end">
-                            <div className="flex gap-1.5 p-1 bg-[#050E20] rounded-xl border border-[#112855] shadow-md">
+                          <div className="h-16 bg-[#101828] rounded-lg p-2 flex items-center justify-end">
+                            <div className="flex gap-1.5 p-1 bg-[#0A0F1D] rounded-xl border border-[#1E293B] shadow-md">
                               {activeSidebarSocials.length > 0 ? (
                                 activeSidebarSocials.map((item) => (
                                   <a
@@ -2248,7 +2310,7 @@ export const AdminDashboardPage: React.FC = () => {
                                     target="_blank"
                                     rel="noreferrer"
                                     title={item.platform}
-                                    className="w-6 h-6 rounded-lg bg-white/10 hover:bg-[#2563EB] text-white flex items-center justify-center transition-all hover:scale-110"
+                                    className="w-6 h-6 rounded-lg bg-white/10 hover:bg-[#246BFD] text-white flex items-center justify-center transition-all hover:scale-110"
                                   >
                                     <SocialIcon link={item} className="w-3 h-3" size={12} />
                                   </a>
@@ -2273,7 +2335,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={item.platform}
-                                className="w-7 h-7 rounded-full bg-[#08152F] hover:bg-[#2563EB] text-white flex items-center justify-center transition-all shadow-xs"
+                                className="w-7 h-7 rounded-full bg-[#101828] hover:bg-[#246BFD] text-white flex items-center justify-center transition-all shadow-xs"
                               >
                                 <SocialIcon link={item} className="w-3.5 h-3.5" size={14} />
                               </a>
@@ -2287,7 +2349,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {headerFooterActiveTab === 'header' && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                          <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
                             <Sliders className="w-3.5 h-3.5" />
                             Header & Nav Preview
                           </span>
@@ -2295,8 +2357,8 @@ export const AdminDashboardPage: React.FC = () => {
 
                         {/* Announcement Bar */}
                         {headerForm.showAnnouncement !== false && (
-                          <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 border border-[#112855]">
-                            <Sparkles className="w-3 h-3 text-[#FFC629] animate-spin-slow flex-shrink-0" />
+                          <div className="bg-gradient-to-r from-[#101828] via-[#1E293B] to-[#101828] text-white px-3 py-1.5 rounded-lg text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 border border-[#1E293B]">
+                            <Sparkles className="w-3 h-3 text-[#36D6E7] animate-spin-slow flex-shrink-0" />
                             <span className="truncate">{headerForm.announcementText || 'Special Offer!'}</span>
                           </div>
                         )}
@@ -2304,7 +2366,7 @@ export const AdminDashboardPage: React.FC = () => {
                         {/* Navbar Preview */}
                         <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
                           <div className="flex items-center justify-between">
-                            <div className="font-bold text-xs text-[#08152F]">{siteForm.brandName || 'Eagle Eye'}</div>
+                            <div className="font-bold text-xs text-[#101828]">{siteForm.brandName || 'Eagle Eye'}</div>
                             {headerForm.showChatSupport !== false && (
                               <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
                                 {headerForm.chatSupportText || 'Chat Support'}
@@ -2326,20 +2388,20 @@ export const AdminDashboardPage: React.FC = () => {
                     {headerFooterActiveTab === 'footer' && (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                          <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
                             <Layers className="w-3.5 h-3.5" />
                             Footer Columns Preview
                           </span>
                         </div>
 
-                        <div className="p-3 bg-[#08152F] text-slate-300 rounded-xl space-y-3 border border-[#112855]">
+                        <div className="p-3 bg-[#101828] text-slate-300 rounded-xl space-y-3 border border-[#1E293B]">
                           <div className="text-xs font-black text-white">{siteForm.brandName || 'Eagle Eye Digital'}</div>
                           <p className="text-[10px] text-slate-400 line-clamp-2">
                             {footerForm.aboutText || 'Empowering businesses worldwide.'}
                           </p>
-                          <div className="pt-2 border-t border-[#112855] text-[10px] flex justify-between text-slate-400">
+                          <div className="pt-2 border-t border-[#1E293B] text-[10px] flex justify-between text-slate-400">
                             <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
-                            <span className="text-[#FFC629] font-bold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                            <span className="text-[#36D6E7] font-bold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
                           </div>
                         </div>
                       </div>
@@ -2351,11 +2413,11 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeMenu === 'products' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
                         <Package className="w-3.5 h-3.5" />
                         Live Product Card Preview
                       </span>
-                      <span className="text-[9px] bg-blue-100 text-[#2563EB] font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] bg-blue-100 text-[#246BFD] font-bold px-2 py-0.5 rounded-full">
                         {prodForm.productType || 'Template'}
                       </span>
                     </div>
@@ -2379,7 +2441,7 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <h4 className="text-xs font-black text-[#08152F] leading-snug">
+                        <h4 className="text-xs font-black text-[#101828] leading-snug">
                           {prodForm.name || 'Sample Digital Product Title'}
                         </h4>
                         <p className="text-[10px] text-slate-400 line-clamp-2 mt-0.5">
@@ -2389,7 +2451,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                         <div>
-                          <span className="text-xs font-black text-[#2563EB]">
+                          <span className="text-xs font-black text-[#246BFD]">
                             ৳{prodForm.salePrice || prodForm.price || 0} BDT
                           </span>
                           {prodForm.salePrice && prodForm.price && prodForm.price > prodForm.salePrice ? (
@@ -2400,7 +2462,7 @@ export const AdminDashboardPage: React.FC = () => {
                         </div>
                         <button
                           type="button"
-                          className="px-3 py-1 bg-[#2563EB] text-white rounded-lg font-bold text-[10px] shadow-xs hover:bg-[#1D4ED8] transition-colors"
+                          className="px-3 py-1 bg-[#246BFD] text-white rounded-lg font-bold text-[10px] shadow-xs hover:bg-[#1A56DB] transition-colors"
                         >
                           {prodForm.customDownloadBtnText || 'Order Now'}
                         </button>
@@ -2413,20 +2475,20 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeMenu === 'services' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
                         <Layers className="w-3.5 h-3.5" />
                         Live Service Card Preview
                       </span>
-                      <span className="text-[9px] bg-blue-100 text-[#2563EB] font-bold px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] bg-blue-100 text-[#246BFD] font-bold px-2 py-0.5 rounded-full">
                         Agency Service
                       </span>
                     </div>
 
                     <div className="bg-white border border-slate-200 rounded-2xl p-4 space-y-2.5 shadow-sm">
-                      <span className="text-[9px] font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded">
+                      <span className="text-[9px] font-bold text-[#246BFD] bg-blue-50 px-2 py-0.5 rounded">
                         {serviceForm.category || 'Client Service'}
                       </span>
-                      <h4 className="text-sm font-black text-[#08152F]">
+                      <h4 className="text-sm font-black text-[#101828]">
                         {serviceForm.name || 'Premium Agency Web Development'}
                       </h4>
                       <p className="text-[11px] text-slate-500 leading-relaxed">
@@ -2437,7 +2499,7 @@ export const AdminDashboardPage: React.FC = () => {
                           href={`https://wa.me/${(siteForm.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[10px] shadow-xs transition-colors"
+                          className="px-3 py-1.5 rounded-xl bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-[10px] shadow-xs transition-colors"
                         >
                           Book Strategy Call →
                         </a>
@@ -2450,7 +2512,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {activeMenu === 'categories' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <span className="text-[11px] font-black uppercase text-[#2563EB] tracking-wider flex items-center gap-1.5">
+                      <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
                         <FolderTree className="w-3.5 h-3.5" />
                         Live Category Pill & Card Preview
                       </span>
@@ -2509,7 +2571,7 @@ export const AdminDashboardPage: React.FC = () => {
                       )}
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
                         <span>Display Order: <strong className="text-slate-800">{newCatOrder}</strong></span>
-                        <span className="text-[#2563EB] font-bold">Active in Catalog →</span>
+                        <span className="text-[#246BFD] font-bold">Active in Catalog →</span>
                       </div>
                     </div>
                   </div>
@@ -2639,7 +2701,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                             <div className="relative z-10 pt-3 flex items-center justify-between border-t border-white/10 mt-2">
                               <div className="flex items-center space-x-2">
-                                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-[#FFC629] to-[#E5B01F] text-[#08152F] font-black text-[9px] shadow-xs flex items-center space-x-1">
+                                <span className="px-2.5 py-1 rounded-full bg-gradient-to-r from-[#36D6E7] to-[#21C5D8] text-[#101828] font-black text-[9px] shadow-xs flex items-center space-x-1">
                                   <span>{currentPreview?.btn1Text || 'Browse Products'}</span>
                                   <ArrowRight className="w-2.5 h-2.5" />
                                 </span>
@@ -2656,7 +2718,7 @@ export const AdminDashboardPage: React.FC = () => {
                                     }}
                                     className={`transition-all duration-300 rounded-full ${
                                       previewSlideIndex === idx && !isUploadedFocused
-                                        ? 'w-4 h-1.5 bg-[#FFC629]'
+                                        ? 'w-4 h-1.5 bg-[#36D6E7]'
                                         : 'w-1.5 h-1.5 bg-white/40'
                                     }`}
                                   />
@@ -2676,7 +2738,7 @@ export const AdminDashboardPage: React.FC = () => {
                                   <div
                                     key={idx}
                                     className={`rounded-full ${
-                                      previewSlideIndex === idx ? 'w-3 h-1 bg-[#FFC629]' : 'w-1 h-1 bg-white/40'
+                                      previewSlideIndex === idx ? 'w-3 h-1 bg-[#36D6E7]' : 'w-1 h-1 bg-white/40'
                                     }`}
                                   />
                                 ))}
@@ -2729,8 +2791,8 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="w-full flex flex-col">
                 {/* 1. Announcement Bar */}
                 {headerForm.showAnnouncement !== false && (
-                  <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white px-3 py-1.5 text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 leading-tight border-b border-[#112855]">
-                    <Sparkles className="w-3 h-3 text-[#FFC629] animate-spin-slow flex-shrink-0" />
+                  <div className="bg-gradient-to-r from-[#101828] via-[#1E293B] to-[#101828] text-white px-3 py-1.5 text-center text-[10px] font-semibold flex items-center justify-center gap-1.5 leading-tight border-b border-[#1E293B]">
+                    <Sparkles className="w-3 h-3 text-[#36D6E7] animate-spin-slow flex-shrink-0" />
                     <span className="truncate">
                       {headerForm.announcementText || '⚡ SPECIAL OFFER: Empower your digital presence with Eagle Eye Digital!'}
                     </span>
@@ -2739,7 +2801,7 @@ export const AdminDashboardPage: React.FC = () => {
                         href={headerForm.announcementLink}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[9px] underline font-bold bg-[#FFC629]/20 text-[#FFC629] px-1.5 py-0.5 rounded ml-0.5 hover:bg-[#FFC629]/30"
+                        className="text-[9px] underline font-bold bg-[#36D6E7]/20 text-[#36D6E7] px-1.5 py-0.5 rounded ml-0.5 hover:bg-[#36D6E7]/30"
                       >
                         View →
                       </a>
@@ -2751,19 +2813,19 @@ export const AdminDashboardPage: React.FC = () => {
                 <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 py-2 flex items-center justify-between gap-2 shadow-xs">
                   {/* Brand Logo & Name */}
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-[#08152F] border border-[#112855] p-0.5 shadow-sm flex items-center justify-center flex-shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#101828] border border-[#1E293B] p-0.5 shadow-sm flex items-center justify-center flex-shrink-0">
                       {siteForm.logoUrl ? (
                         <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-md" />
                       ) : (
-                        <div className="w-full h-full bg-[#08152F] rounded-md flex items-center justify-center text-white font-black text-[9px]">
+                        <div className="w-full h-full bg-[#101828] rounded-md flex items-center justify-center text-white font-black text-[9px]">
                           EE
                         </div>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-black tracking-tight text-[#08152F] truncate flex items-center gap-1">
+                      <div className="text-xs font-black tracking-tight text-[#101828] truncate flex items-center gap-1">
                         <span>{siteForm.brandName ? siteForm.brandName.split(' ')[0] : 'Eagle'}</span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2563EB] to-[#1D4ED8]">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#246BFD] to-[#1A56DB]">
                           {siteForm.brandName ? siteForm.brandName.split(' ').slice(1).join(' ') : 'Eye Digital'}
                         </span>
                       </div>
@@ -2782,7 +2844,7 @@ export const AdminDashboardPage: React.FC = () => {
                           href={link.path}
                           target="_blank"
                           rel="noreferrer"
-                          className="hover:text-[#2563EB] transition-colors py-0.5"
+                          className="hover:text-[#246BFD] transition-colors py-0.5"
                         >
                           {link.label}
                         </a>
@@ -2802,7 +2864,7 @@ export const AdminDashboardPage: React.FC = () => {
                             target="_blank"
                             rel="noreferrer"
                             title={item.platform}
-                            className="p-1 rounded-md bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-[#2563EB] transition-colors"
+                            className="p-1 rounded-md bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-[#246BFD] transition-colors"
                           >
                             <SocialIcon link={item} className="w-3 h-3" size={12} />
                           </a>
@@ -2881,7 +2943,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {/* 3. Hero Banner & Bento Section */}
                 <div className="p-3 bg-slate-50 space-y-3">
                   {/* Main Slider Box */}
-                  <div className="rounded-xl bg-gradient-to-tr from-[#08152F] via-[#0D2044] to-[#050E20] border border-[#112855] text-white p-4 relative overflow-hidden shadow-sm flex flex-col justify-between min-h-[160px]">
+                  <div className="rounded-xl bg-gradient-to-tr from-[#101828] via-[#1E293B] to-[#0A0F1D] border border-[#1E293B] text-white p-4 relative overflow-hidden shadow-sm flex flex-col justify-between min-h-[160px]">
                     {currentSlide?.bgImage && (
                       <div className="absolute inset-0 z-0">
                         <img
@@ -2889,13 +2951,13 @@ export const AdminDashboardPage: React.FC = () => {
                           alt="Banner"
                           className="w-full h-full object-cover opacity-35"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#08152F] via-[#08152F]/60 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#101828] via-[#101828]/60 to-transparent" />
                       </div>
                     )}
 
                     <div className="relative z-10 space-y-1">
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFC629]/20 border border-[#FFC629]/40 text-[#FFC629] text-[8px] font-black uppercase tracking-wider">
-                        <Sparkles className="w-2.5 h-2.5 text-[#FFC629]" />
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#36D6E7]/20 border border-[#36D6E7]/40 text-[#36D6E7] text-[8px] font-black uppercase tracking-wider">
+                        <Sparkles className="w-2.5 h-2.5 text-[#36D6E7]" />
                         <span>{currentSlide?.tag || 'Premium Digital Solutions'}</span>
                       </div>
                       <h3 className="text-sm font-black text-white leading-tight line-clamp-2">
@@ -2912,7 +2974,7 @@ export const AdminDashboardPage: React.FC = () => {
                           href={currentSlide?.btn1Link || '/products'}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 rounded-lg bg-[#FFC629] text-[#08152F] font-black text-[9px] shadow-xs hover:bg-[#E5B01F] transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-[#36D6E7] text-[#101828] font-black text-[9px] shadow-xs hover:bg-[#21C5D8] transition-colors"
                         >
                           {currentSlide?.btn1Text || 'Products'}
                         </a>
@@ -2934,7 +2996,7 @@ export const AdminDashboardPage: React.FC = () => {
                             type="button"
                             onClick={() => setPreviewSlideIndex(idx)}
                             className={`rounded-full transition-all ${
-                              previewSlideIndex === idx ? 'w-3 h-1 bg-[#FFC629]' : 'w-1 h-1 bg-white/40'
+                              previewSlideIndex === idx ? 'w-3 h-1 bg-[#36D6E7]' : 'w-1 h-1 bg-white/40'
                             }`}
                           />
                         ))}
@@ -2945,15 +3007,15 @@ export const AdminDashboardPage: React.FC = () => {
                   {/* Side Bento Posters */}
                   {previewDevice !== 'phone' && (
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="rounded-lg bg-[#08152F] text-white p-2 border border-[#112855]">
+                      <div className="rounded-lg bg-[#101828] text-white p-2 border border-[#1E293B]">
                         <span className="text-[8px] font-bold text-sky-400 uppercase block">{bentoForm.card1Tag || 'Growth'}</span>
                         <div className="text-[10px] font-black truncate">{bentoForm.card1Title || 'Social Media'}</div>
                       </div>
-                      <div className="rounded-lg bg-[#050E20] text-white p-2 border border-[#112855]">
-                        <span className="text-[8px] font-bold text-[#FFC629] uppercase block">{bentoForm.card2Tag || 'Ready'}</span>
+                      <div className="rounded-lg bg-[#0A0F1D] text-white p-2 border border-[#1E293B]">
+                        <span className="text-[8px] font-bold text-[#36D6E7] uppercase block">{bentoForm.card2Tag || 'Ready'}</span>
                         <div className="text-[10px] font-black truncate">{bentoForm.card2Title || 'Products'}</div>
                       </div>
-                      <div className="rounded-lg bg-[#0D2044] text-white p-2 border border-[#112855]">
+                      <div className="rounded-lg bg-[#1E293B] text-white p-2 border border-[#1E293B]">
                         <span className="text-[8px] font-bold text-emerald-400 uppercase block">{bentoForm.card3Tag || 'Enterprise'}</span>
                         <div className="text-[10px] font-black truncate">{bentoForm.card3Title || 'Web Design'}</div>
                       </div>
@@ -2964,10 +3026,10 @@ export const AdminDashboardPage: React.FC = () => {
                 {/* 4. Popular Services Showcase */}
                 <div className="p-3 bg-white space-y-2 border-t border-slate-100">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-[#08152F] tracking-wider">
+                    <span className="text-[10px] font-black uppercase text-[#101828] tracking-wider">
                       Agency Services
                     </span>
-                    <span className="text-[9px] text-[#2563EB] font-bold">Solutions</span>
+                    <span className="text-[9px] text-[#246BFD] font-bold">Solutions</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {(services || []).slice(0, 2).map((srv) => (
@@ -2977,10 +3039,10 @@ export const AdminDashboardPage: React.FC = () => {
                             <img src={srv.imageUrl} alt={srv.name} className="w-full h-full object-cover" />
                           </div>
                         )}
-                        <span className="text-[8px] font-bold text-[#2563EB] bg-blue-50 px-1.5 py-0.5 rounded">
+                        <span className="text-[8px] font-bold text-[#246BFD] bg-blue-50 px-1.5 py-0.5 rounded">
                           {srv.category || 'Service'}
                         </span>
-                        <div className="text-[10px] font-black text-[#08152F] truncate">{srv.name}</div>
+                        <div className="text-[10px] font-black text-[#101828] truncate">{srv.name}</div>
                         <p className="text-[8px] text-slate-500 line-clamp-1">{srv.shortDescription}</p>
                       </div>
                     ))}
@@ -2990,10 +3052,10 @@ export const AdminDashboardPage: React.FC = () => {
                 {/* 5. Popular Products Showcase */}
                 <div className="p-3 bg-slate-50 space-y-2 border-t border-slate-100">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase text-[#08152F] tracking-wider">
+                    <span className="text-[10px] font-black uppercase text-[#101828] tracking-wider">
                       Digital Resources
                     </span>
-                    <span className="text-[9px] text-[#2563EB] font-bold">Catalog</span>
+                    <span className="text-[9px] text-[#246BFD] font-bold">Catalog</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {(products || []).slice(0, 2).map((prod) => (
@@ -3005,9 +3067,9 @@ export const AdminDashboardPage: React.FC = () => {
                             <Package className="w-5 h-5 text-slate-400" />
                           )}
                         </div>
-                        <div className="text-[9px] font-bold text-[#08152F] truncate">{prod.name}</div>
+                        <div className="text-[9px] font-bold text-[#101828] truncate">{prod.name}</div>
                         <div className="flex items-center justify-between text-[9px]">
-                          <span className="font-extrabold text-[#2563EB]">৳{prod.salePrice || prod.price || 0}</span>
+                          <span className="font-extrabold text-[#246BFD]">৳{prod.salePrice || prod.price || 0}</span>
                           <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1 rounded font-bold">Order</span>
                         </div>
                       </div>
@@ -3017,7 +3079,7 @@ export const AdminDashboardPage: React.FC = () => {
 
                 {/* 6. Sticky Floating Sidebar Simulation inside Preview */}
                 {activeSidebarSocials.length > 0 && (
-                  <div className="absolute right-2 top-32 z-30 flex flex-col gap-1 p-1 bg-[#08152F]/95 backdrop-blur-md rounded-xl border border-[#112855] shadow-xl">
+                  <div className="absolute right-2 top-32 z-30 flex flex-col gap-1 p-1 bg-[#101828]/95 backdrop-blur-md rounded-xl border border-[#1E293B] shadow-xl">
                     {activeSidebarSocials.map((item) => (
                       <a
                         key={item.id}
@@ -3025,7 +3087,7 @@ export const AdminDashboardPage: React.FC = () => {
                         target="_blank"
                         rel="noreferrer"
                         title={`Open ${item.platform}: ${item.url}`}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/10 hover:bg-[#2563EB] text-white transition-all hover:scale-110 shadow-xs"
+                        className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/10 hover:bg-[#246BFD] text-white transition-all hover:scale-110 shadow-xs"
                       >
                         <SocialIcon link={item} className="w-3 h-3" size={12} />
                       </a>
@@ -3034,12 +3096,12 @@ export const AdminDashboardPage: React.FC = () => {
                 )}
 
                 {/* 7. Footer */}
-                <footer className="bg-[#08152F] text-slate-300 p-4 space-y-4 border-t border-[#112855]">
+                <footer className="bg-[#101828] text-slate-300 p-4 space-y-4 border-t border-[#1E293B]">
                   <div className={`grid gap-4 ${previewDevice === 'phone' ? 'grid-cols-1' : 'grid-cols-3'}`}>
                     {/* Brand & Bio */}
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-[#08152F] border border-[#112855] p-0.5 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-md bg-[#101828] border border-[#1E293B] p-0.5 flex items-center justify-center">
                           {siteForm.logoUrl ? (
                             <img src={siteForm.logoUrl} alt="Logo" className="w-full h-full object-cover rounded-sm" />
                           ) : (
@@ -3064,7 +3126,7 @@ export const AdminDashboardPage: React.FC = () => {
                             target="_blank"
                             rel="noreferrer"
                             title={item.platform}
-                            className="w-6 h-6 rounded-full bg-[#050E20] border border-[#112855] hover:bg-[#2563EB] text-white flex items-center justify-center transition-all hover:scale-110"
+                            className="w-6 h-6 rounded-full bg-[#0A0F1D] border border-[#1E293B] hover:bg-[#246BFD] text-white flex items-center justify-center transition-all hover:scale-110"
                           >
                             <SocialIcon link={item} className="w-3 h-3" size={12} />
                           </a>
@@ -3094,7 +3156,7 @@ export const AdminDashboardPage: React.FC = () => {
                       <div>
                         <a
                           href={`mailto:${footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}`}
-                          className="hover:text-[#2563EB] font-mono block truncate"
+                          className="hover:text-[#246BFD] font-mono block truncate"
                         >
                           ✉ {footerForm.contactEmail || siteForm.businessEmail || 'support@eagleeyedigital.com'}
                         </a>
@@ -3112,15 +3174,108 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[#112855] flex items-center justify-between text-[9px] text-slate-400">
+                  <div className="pt-2 border-t border-[#1E293B] flex items-center justify-between text-[9px] text-slate-400">
                     <span>{footerForm.copyrightText || '© 2026 Eagle Eye Digital.'}</span>
-                    <span className="text-[#FFC629] font-bold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
+                    <span className="text-[#36D6E7] font-bold">{siteForm.tagline || 'YOUR DIGITAL WORLD'}</span>
                   </div>
                 </footer>
               </div>
             )}
           </div>
         </div>
+                {activeMenu === 'appearance' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[11px] font-black uppercase text-[#246BFD] tracking-wider flex items-center gap-1.5">
+                        <Palette className="w-3.5 h-3.5" />
+                        Theme Live Preview
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-500">Draft Colors</span>
+                    </div>
+
+                    {/* Header simulation */}
+                    <div
+                      className="p-2.5 rounded-lg border border-slate-800 flex items-center justify-between shadow-xs"
+                      style={{ backgroundColor: draftTheme.secondaryColor }}
+                    >
+                      <div className="flex items-center space-x-1.5">
+                        <div
+                          className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[9px] font-black"
+                          style={{ backgroundColor: draftTheme.primaryColor }}
+                        >
+                          EE
+                        </div>
+                        <span className="text-white text-[11px] font-black">Eagle Eye</span>
+                      </div>
+                      <span
+                        className="text-[9px] px-1.5 py-0.5 rounded font-bold"
+                        style={{
+                          backgroundColor: `${draftTheme.accentColor}25`,
+                          color: draftTheme.accentColor
+                        }}
+                      >
+                        Theme Active
+                      </span>
+                    </div>
+
+                    {/* Hero simulation */}
+                    <div
+                      className="p-3 rounded-xl text-white space-y-2 border shadow-xs"
+                      style={{
+                        backgroundColor: draftTheme.secondaryColor,
+                        borderColor: `${draftTheme.primaryColor}50`
+                      }}
+                    >
+                      <span
+                        className="text-[9px] font-bold uppercase tracking-wider block"
+                        style={{ color: draftTheme.accentColor }}
+                      >
+                        Modern Tech Brand
+                      </span>
+                      <div className="text-xs font-bold leading-tight">Full-Spectrum Agency Architecture</div>
+                      <button
+                        type="button"
+                        className="px-2.5 py-1 rounded-md text-[10px] font-bold shadow-xs"
+                        style={{
+                          backgroundColor: draftTheme.primaryColor,
+                          color: draftTheme.btnTextColor
+                        }}
+                      >
+                        Get Started
+                      </button>
+                    </div>
+
+                    {/* Service simulation */}
+                    <div
+                      className="p-3 rounded-xl border shadow-xs space-y-1.5"
+                      style={{
+                        backgroundColor: draftTheme.cardBgColor,
+                        borderColor: `${draftTheme.primaryColor}40`
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="text-[9px] font-bold uppercase"
+                          style={{ color: draftTheme.primaryColor }}
+                        >
+                          Meta Ads
+                        </span>
+                        <span
+                          className="text-[10px] font-black"
+                          style={{ color: draftTheme.textPrimaryColor }}
+                        >
+                          Custom
+                        </span>
+                      </div>
+                      <p
+                        className="text-[10px] line-clamp-1"
+                        style={{ color: draftTheme.textSecondaryColor }}
+                      >
+                        Engineered for maximum ROI and performance velocity.
+                      </p>
+                    </div>
+                  </div>
+                )}
       </div>
     );
   };
@@ -3153,10 +3308,10 @@ export const AdminDashboardPage: React.FC = () => {
                 className="h-8 w-auto object-contain rounded border border-slate-200"
               />
               <div className="flex flex-col">
-                <span className="text-base font-black tracking-tight text-[#08152F] leading-none">
+                <span className="text-base font-black tracking-tight text-[#101828] leading-none">
                   Eagle Eye
                 </span>
-                <span className="text-[9px] uppercase tracking-wider text-[#2563EB] font-extrabold mt-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[#246BFD] font-extrabold mt-0.5">
                   Admin Console
                 </span>
               </div>
@@ -3190,6 +3345,7 @@ export const AdminDashboardPage: React.FC = () => {
               { id: 'leads', label: 'Leads & Inquiries', icon: Inbox, badge: leads.filter(l => l.status === 'New').length || null },
               { id: 'homepage', label: 'Homepage Banners', icon: Image },
               { id: 'footer', label: 'Header, Footer & Social', icon: Globe },
+              { id: 'appearance', label: 'Appearance & Theme', icon: Palette },
               { id: 'settings', label: 'Site Settings', icon: Settings },
             ].map((item) => {
               const Icon = item.icon;
@@ -3203,8 +3359,8 @@ export const AdminDashboardPage: React.FC = () => {
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-[#2563EB] text-white shadow-md shadow-[#2563EB]/25'
-                      : 'text-slate-600 hover:text-[#08152F] hover:bg-slate-100/80'
+                      ? 'bg-[#246BFD] text-white shadow-md shadow-[#246BFD]/25'
+                      : 'text-slate-600 hover:text-[#101828] hover:bg-slate-100/80'
                   }`}
                 >
                   <div className="flex items-center space-x-2.5">
@@ -3213,7 +3369,7 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
                   {item.badge && (
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      isActive ? 'bg-white text-[#2563EB]' : 'bg-amber-100 text-amber-700'
+                      isActive ? 'bg-white text-[#246BFD]' : 'bg-amber-100 text-amber-700'
                     }`}>
                       {item.badge}
                     </span>
@@ -3229,7 +3385,7 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Logged in Admin Profile Card */}
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
             <div className="flex items-center space-x-2.5">
-              <UserAvatar user={currentUser} size="sm" rounded="lg" showBorder fallbackBg="bg-[#2563EB] text-white" />
+              <UserAvatar user={currentUser} size="sm" rounded="lg" showBorder fallbackBg="bg-[#246BFD] text-white" />
               <div className="min-w-0 flex-1">
                 <span className="font-bold text-xs text-slate-800 block truncate">
                   {currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Admin'}
@@ -3252,9 +3408,9 @@ export const AdminDashboardPage: React.FC = () => {
                 setPassRequestMsg(null);
                 setNewRequestedPassInput('');
               }}
-              className="w-full mt-2 py-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg text-[10px] font-bold text-slate-700 hover:text-[#2563EB] flex items-center justify-center space-x-1.5 transition-all shadow-xs"
+              className="w-full mt-2 py-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-lg text-[10px] font-bold text-slate-700 hover:text-[#246BFD] flex items-center justify-center space-x-1.5 transition-all shadow-xs"
             >
-              <Key className="w-3 h-3 text-[#2563EB]" />
+              <Key className="w-3 h-3 text-[#246BFD]" />
               <span>
                 {currentAdminProfile?.pendingPasswordRequest?.status === 'pending'
                   ? 'Password Pending ⏳'
@@ -3266,7 +3422,7 @@ export const AdminDashboardPage: React.FC = () => {
           <Link
             to="/"
             target="_blank"
-            className="flex items-center space-x-2 px-3 py-2 text-slate-600 hover:text-[#2563EB] hover:bg-slate-50 rounded-lg transition-colors font-medium"
+            className="flex items-center space-x-2 px-3 py-2 text-slate-600 hover:text-[#246BFD] hover:bg-slate-50 rounded-lg transition-colors font-medium"
           >
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
             <span>Customer Storefront</span>
@@ -3299,10 +3455,10 @@ export const AdminDashboardPage: React.FC = () => {
             </button>
             <div className="flex items-center space-x-2">
               <img src="/logo.jpg" alt="Logo" className="h-7 w-auto object-contain rounded border border-slate-200" />
-              <span className="font-black text-sm text-[#08152F]">Eagle Eye Admin</span>
+              <span className="font-black text-sm text-[#101828]">Eagle Eye Admin</span>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200 uppercase tracking-wider">
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#246BFD] border border-blue-200 uppercase tracking-wider">
             {activeMenu}
           </span>
         </div>
@@ -4720,7 +4876,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div>
                 <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                   <span>Agency Services Management</span>
-                  <span className="text-xs bg-blue-100 text-[#2563EB] font-bold px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-blue-100 text-[#246BFD] font-bold px-2 py-0.5 rounded-full">
                     {services.length} Total
                   </span>
                 </h2>
@@ -4764,7 +4920,7 @@ export const AdminDashboardPage: React.FC = () => {
                     });
                     setIsServiceModalOpen(true);
                   }}
-                  className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
+                  className="px-4 py-2 bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add New Service</span>
@@ -8232,6 +8388,553 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
+      {/* ================= APPEARANCE & THEME SETTINGS TAB ================= */}
+      {activeMenu === 'appearance' && (
+        <div className="space-y-8 animate-fadeIn">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
+            <div>
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#246BFD] text-xs font-bold tracking-wide uppercase shadow-xs mb-1.5">
+                <Palette className="w-3.5 h-3.5 text-[#36D6E7]" />
+                <span>Website Styling & Brand Identity</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-[#101828] tracking-tight flex items-center gap-2">
+                Appearance & Brand Theme
+              </h1>
+              <p className="text-xs sm:text-sm text-[#667085] mt-1 max-w-2xl">
+                Customize and fine-tune your website color tokens in real time. Changes persist in cloud database and cascade directly across all public pages, hero banners, buttons, cards, and footer.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleResetThemeToDefaults}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 text-[#101828] font-bold text-xs transition-colors flex items-center space-x-1.5 shadow-sm cursor-pointer"
+                title="Reset draft to Modern Tech palette (#246BFD, #101828, #36D6E7)"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                <span>Reset to Defaults</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCancelThemeChanges}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-[#667085] hover:text-[#101828] font-bold text-xs transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveTheme}
+                disabled={themeSaving}
+                className="px-6 py-2.5 rounded-xl bg-[#246BFD] hover:bg-[#1A56DB] disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-[#246BFD]/25 transition-all flex items-center space-x-2 cursor-pointer"
+              >
+                {themeSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving Theme...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Theme Changes</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Status notification banner */}
+          {themeFeedback && (
+            <div
+              className={`p-4 rounded-xl text-xs font-semibold flex items-center space-x-2.5 shadow-sm border ${
+                themeFeedback.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-red-50 border-red-200 text-red-800'
+              }`}
+            >
+              {themeFeedback.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              )}
+              <span>{themeFeedback.message}</span>
+            </div>
+          )}
+
+          {/* Main 2-Column Content */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+            
+            {/* Left Column (7 cols): Color Controls */}
+            <div className="xl:col-span-7 space-y-6">
+
+              {/* Card 1: Core Modern Tech Brand Tokens */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 shadow-sm space-y-6">
+                <div className="border-b border-slate-100 pb-3">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#246BFD] block">
+                    Core Brand Identity
+                  </span>
+                  <h3 className="text-base font-bold text-[#101828]">Three-Color Modern Tech Palette</h3>
+                  <p className="text-xs text-[#667085] mt-0.5">
+                    The core tri-color system engineered for technical authority, high conversion, and crisp contrast.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* 1. Primary Color */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          Primary / Cobalt Blue (`primaryColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Action buttons, active nav links, primary highlights, clickable icons.
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.primaryColor) ? draftTheme.primaryColor : '#246BFD'}
+                          onChange={(e) => handleUpdateDraftColor('primaryColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={draftTheme.primaryColor}
+                            onChange={(e) => handleUpdateDraftColor('primaryColor', e.target.value)}
+                            placeholder="#246BFD"
+                            className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                          />
+                          {isValidHex(draftTheme.primaryColor) && (
+                            <Check className="w-3.5 h-3.5 text-emerald-600 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Secondary Color */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          Secondary / Charcoal Dark (`secondaryColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Dark surface backgrounds, hero section cards, header, and footer.
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.secondaryColor) ? draftTheme.secondaryColor : '#101828'}
+                          onChange={(e) => handleUpdateDraftColor('secondaryColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={draftTheme.secondaryColor}
+                            onChange={(e) => handleUpdateDraftColor('secondaryColor', e.target.value)}
+                            placeholder="#101828"
+                            className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                          />
+                          {isValidHex(draftTheme.secondaryColor) && (
+                            <Check className="w-3.5 h-3.5 text-emerald-600 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Accent Color */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          Accent / Cyan Glow (`accentColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Pills, subtle highlights, glowing borders, gradients, and secondary accents.
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.accentColor) ? draftTheme.accentColor : '#36D6E7'}
+                          onChange={(e) => handleUpdateDraftColor('accentColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={draftTheme.accentColor}
+                            onChange={(e) => handleUpdateDraftColor('accentColor', e.target.value)}
+                            placeholder="#36D6E7"
+                            className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                          />
+                          {isValidHex(draftTheme.accentColor) && (
+                            <Check className="w-3.5 h-3.5 text-emerald-600 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Surfaces & Neutral Typography Tokens */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 shadow-sm space-y-6">
+                <div className="border-b border-slate-100 pb-3">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                    Surfaces & Typography
+                  </span>
+                  <h3 className="text-base font-bold text-[#101828]">Page Surfaces, Cards, and Text</h3>
+                  <p className="text-xs text-[#667085] mt-0.5">
+                    Control the background colors, card surfaces, and reading contrast.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {/* 4. Page Background */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          Page Background (`pageBgColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Storefront body canvas background (default `#F8FAFC`).
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.pageBgColor) ? draftTheme.pageBgColor : '#F8FAFC'}
+                          onChange={(e) => handleUpdateDraftColor('pageBgColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <input
+                          type="text"
+                          value={draftTheme.pageBgColor}
+                          onChange={(e) => handleUpdateDraftColor('pageBgColor', e.target.value)}
+                          placeholder="#F8FAFC"
+                          className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 5. Card Background */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          Card & Surface Background (`cardBgColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Cards, content boxes, dialogs, and panels (default `#FFFFFF`).
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.cardBgColor) ? draftTheme.cardBgColor : '#FFFFFF'}
+                          onChange={(e) => handleUpdateDraftColor('cardBgColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <input
+                          type="text"
+                          value={draftTheme.cardBgColor}
+                          onChange={(e) => handleUpdateDraftColor('cardBgColor', e.target.value)}
+                          placeholder="#FFFFFF"
+                          className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 6. Primary Text */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          Primary Text (`textPrimaryColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Main headings, service titles, bold labels (default `#101828`).
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.textPrimaryColor) ? draftTheme.textPrimaryColor : '#101828'}
+                          onChange={(e) => handleUpdateDraftColor('textPrimaryColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <input
+                          type="text"
+                          value={draftTheme.textPrimaryColor}
+                          onChange={(e) => handleUpdateDraftColor('textPrimaryColor', e.target.value)}
+                          placeholder="#101828"
+                          className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 7. Muted Secondary Text */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          Muted Secondary Text (`textSecondaryColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Descriptions, dates, helper text, and subtitles (default `#667085`).
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.textSecondaryColor) ? draftTheme.textSecondaryColor : '#667085'}
+                          onChange={(e) => handleUpdateDraftColor('textSecondaryColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <input
+                          type="text"
+                          value={draftTheme.textSecondaryColor}
+                          onChange={(e) => handleUpdateDraftColor('textSecondaryColor', e.target.value)}
+                          placeholder="#667085"
+                          className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 8. Button Text */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-[#101828] block">
+                          CTA Button Text (`btnTextColor`)
+                        </label>
+                        <span className="text-[11px] text-[#667085]">
+                          Color for labels inside primary buttons (default `#FFFFFF`).
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 self-start sm:self-auto">
+                        <input
+                          type="color"
+                          value={isValidHex(draftTheme.btnTextColor) ? draftTheme.btnTextColor : '#FFFFFF'}
+                          onChange={(e) => handleUpdateDraftColor('btnTextColor', e.target.value.toUpperCase())}
+                          className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300 p-0.5 bg-white shadow-xs"
+                        />
+                        <input
+                          type="text"
+                          value={draftTheme.btnTextColor}
+                          onChange={(e) => handleUpdateDraftColor('btnTextColor', e.target.value)}
+                          placeholder="#FFFFFF"
+                          className="w-28 text-xs font-mono font-bold uppercase bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column (5 cols): Live Interactive Component Preview */}
+            <div className="xl:col-span-5 space-y-6 sticky top-24">
+              
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Eye className="w-4 h-4 text-[#246BFD]" />
+                    <h3 className="text-sm font-bold text-[#101828]">Interactive Theme Preview</h3>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Draft Live Rendering
+                  </span>
+                </div>
+
+                {/* 1. Header Bar Simulation */}
+                <div
+                  className="rounded-xl p-3 shadow-sm border border-slate-800 flex items-center justify-between"
+                  style={{ backgroundColor: draftTheme.secondaryColor }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className="w-6 h-6 rounded-lg flex items-center justify-center text-white text-[10px] font-black"
+                      style={{ backgroundColor: draftTheme.primaryColor }}
+                    >
+                      EE
+                    </div>
+                    <span className="text-white text-xs font-black tracking-tight">Eagle Eye</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-[10px]">
+                    <span
+                      className="font-bold pb-0.5 border-b"
+                      style={{
+                        color: draftTheme.primaryColor,
+                        borderColor: draftTheme.primaryColor
+                      }}
+                    >
+                      Services
+                    </span>
+                    <span className="text-slate-300">Shop</span>
+                    <span
+                      className="px-2 py-0.5 rounded-full font-bold"
+                      style={{
+                        backgroundColor: `${draftTheme.accentColor}25`,
+                        color: draftTheme.accentColor,
+                        border: `1px solid ${draftTheme.accentColor}50`
+                      }}
+                    >
+                      New
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Hero Card Simulation */}
+                <div
+                  className="rounded-2xl p-5 text-white shadow-lg space-y-3 relative overflow-hidden"
+                  style={{
+                    backgroundColor: draftTheme.secondaryColor,
+                    border: `1px solid ${draftTheme.primaryColor}40`
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md"
+                      style={{
+                        backgroundColor: `${draftTheme.accentColor}20`,
+                        color: draftTheme.accentColor,
+                        border: `1px solid ${draftTheme.accentColor}40`
+                      }}
+                    >
+                      High-Converting Digital Growth
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-black leading-snug">
+                    Precision Marketing & Web Engineering
+                  </h4>
+                  <p className="text-[11px] text-slate-300 line-clamp-2">
+                    Accelerate performance with verified data, custom web applications, and marketing automation.
+                  </p>
+                  <div className="pt-2 flex items-center space-x-2">
+                    <button
+                      type="button"
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-md transition-transform hover:scale-[1.02]"
+                      style={{
+                        backgroundColor: draftTheme.primaryColor,
+                        color: draftTheme.btnTextColor
+                      }}
+                    >
+                      Explore Services
+                    </button>
+                    <button
+                      type="button"
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white/90 bg-white/10 border border-white/20"
+                    >
+                      Get Free Audit
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Service Card Simulation */}
+                <div
+                  className="rounded-2xl p-5 shadow-sm border space-y-3 transition-all"
+                  style={{
+                    backgroundColor: draftTheme.cardBgColor,
+                    borderColor: `${draftTheme.primaryColor}30`
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
+                      style={{
+                        backgroundColor: `${draftTheme.primaryColor}15`,
+                        color: draftTheme.primaryColor
+                      }}
+                    >
+                      Performance Media
+                    </span>
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                      style={{ backgroundColor: draftTheme.primaryColor }}
+                    >
+                      <Layers className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <h4
+                    className="text-sm font-bold"
+                    style={{ color: draftTheme.textPrimaryColor }}
+                  >
+                    Meta Ads & Funnel Optimization
+                  </h4>
+                  <p
+                    className="text-xs line-clamp-2"
+                    style={{ color: draftTheme.textSecondaryColor }}
+                  >
+                    Targeted advertising engineered for verified lead generation and scalable return on ad spend.
+                  </p>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span
+                      className="text-xs font-black"
+                      style={{ color: draftTheme.textPrimaryColor }}
+                    >
+                      Investment: Custom Scoped
+                    </span>
+                    <span
+                      className="text-xs font-bold flex items-center space-x-1"
+                      style={{ color: draftTheme.primaryColor }}
+                    >
+                      <span>Learn More</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Active Color Tokens Summary */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-1.5">
+                  <span className="font-bold text-[#101828] block mb-1">Active Draft Palette Summary:</span>
+                  <div className="grid grid-cols-2 gap-2 font-mono text-[10px]">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="w-3 h-3 rounded-full border shrink-0" style={{ backgroundColor: draftTheme.primaryColor }} />
+                      <span className="truncate">Primary: {draftTheme.primaryColor}</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="w-3 h-3 rounded-full border shrink-0" style={{ backgroundColor: draftTheme.secondaryColor }} />
+                      <span className="truncate">Secondary: {draftTheme.secondaryColor}</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="w-3 h-3 rounded-full border shrink-0" style={{ backgroundColor: draftTheme.accentColor }} />
+                      <span className="truncate">Accent: {draftTheme.accentColor}</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="w-3 h-3 rounded-full border shrink-0" style={{ backgroundColor: draftTheme.pageBgColor }} />
+                      <span className="truncate">Page: {draftTheme.pageBgColor}</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
       </main>
 
       {/* COMPREHENSIVE SERVICE & SUBSERVICES MANAGEMENT MODAL */}
@@ -10089,6 +10792,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
 
     </div>
   );

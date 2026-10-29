@@ -29,14 +29,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         actionLink ? (
           <a
             href={actionLink}
-            className="px-4 py-2 bg-[#246BFD] text-white font-bold text-xs rounded-lg hover:bg-[#1D4ED8] transition-colors shadow-sm inline-block"
+            className="px-4 py-2 bg-[#246BFD] text-white font-bold text-xs rounded-lg hover:bg-[#1A56DB] transition-colors shadow-sm inline-block"
           >
             {actionText}
           </a>
         ) : (
           <button
             onClick={onAction}
-            className="px-4 py-2 bg-[#246BFD] text-white font-bold text-xs rounded-lg hover:bg-[#1D4ED8] transition-colors shadow-sm"
+            className="px-4 py-2 bg-[#246BFD] text-white font-bold text-xs rounded-lg hover:bg-[#1A56DB] transition-colors shadow-sm"
           >
             {actionText}
           </button>
