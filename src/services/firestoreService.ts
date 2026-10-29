@@ -36,8 +36,10 @@ import {
   SocialLink,
   HeaderConfig,
   FooterConfig,
-  SiteSettings
+  SiteSettings,
+  ThemeSettings
 } from '../types';
+import { defaultThemeSettings } from '../utils/theme';
 import {
   getSeedServicesList,
   getSeedSubservicesList,
@@ -141,11 +143,15 @@ export const getBentoConfig = async (): Promise<BentoConfig> => {
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const data = snap.data();
-      return {
+      const config = {
         ...defaultBentoConfig,
         ...data,
-        heroSlides: data.heroSlides && data.heroSlides.length > 0 ? data.heroSlides : defaultHeroSlides
+        heroSlides: Array.isArray(data.heroSlides) ? data.heroSlides : defaultHeroSlides
       } as BentoConfig;
+      try {
+        localStorage.setItem('eed_homepage_bento', JSON.stringify(config));
+      } catch {}
+      return config;
     }
   } catch (err) {
     console.error('Failed to load bento config:', err);
@@ -156,6 +162,9 @@ export const getBentoConfig = async (): Promise<BentoConfig> => {
 export const saveBentoConfig = async (config: BentoConfig) => {
   const docRef = doc(db, 'settings', 'homepage_bento');
   await setDoc(docRef, config, { merge: true });
+  try {
+    localStorage.setItem('eed_homepage_bento', JSON.stringify(config));
+  } catch {}
 };
 
 // ================= SITE SETTINGS, HEADER, FOOTER & SOCIAL =================
@@ -263,6 +272,7 @@ export const defaultSiteSettings: SiteSettings = {
   businessEmail: 'Tamimnur908@gmail.com',
   whatsappNumber: '01836126791',
   currency: 'BDT',
+  theme: defaultThemeSettings,
   headerConfig: defaultHeaderConfig,
   footerConfig: defaultFooterConfig,
   socialLinks: defaultSocialLinks,
@@ -274,34 +284,39 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
     const snap = await getDoc(docRef);
     if (snap.exists()) {
       const data = snap.data();
-      return {
-        brandName: data.brandName || defaultSiteSettings.brandName,
-        tagline: data.tagline || defaultSiteSettings.tagline,
-        logoUrl: data.logoUrl || defaultSiteSettings.logoUrl,
-        businessEmail: data.businessEmail || defaultSiteSettings.businessEmail,
-        whatsappNumber: data.whatsappNumber || defaultSiteSettings.whatsappNumber,
-        currency: data.currency || defaultSiteSettings.currency,
+      const loaded: SiteSettings = {
+        brandName: data.brandName ?? defaultSiteSettings.brandName,
+        tagline: data.tagline ?? defaultSiteSettings.tagline,
+        logoUrl: data.logoUrl ?? defaultSiteSettings.logoUrl,
+        businessEmail: data.businessEmail ?? defaultSiteSettings.businessEmail,
+        whatsappNumber: data.whatsappNumber ?? defaultSiteSettings.whatsappNumber,
+        currency: data.currency ?? defaultSiteSettings.currency,
+        theme: data.theme ? { ...defaultThemeSettings, ...data.theme } : defaultThemeSettings,
         headerConfig: {
           ...defaultHeaderConfig,
           ...(data.headerConfig || {}),
-          navLinks: data.headerConfig?.navLinks && data.headerConfig.navLinks.length > 0
+          navLinks: Array.isArray(data.headerConfig?.navLinks)
             ? data.headerConfig.navLinks
             : defaultHeaderConfig.navLinks
         },
         footerConfig: {
           ...defaultFooterConfig,
           ...(data.footerConfig || {}),
-          servicesLinks: data.footerConfig?.servicesLinks && data.footerConfig.servicesLinks.length > 0
+          servicesLinks: Array.isArray(data.footerConfig?.servicesLinks)
             ? data.footerConfig.servicesLinks
             : defaultFooterConfig.servicesLinks,
-          resourcesLinks: data.footerConfig?.resourcesLinks && data.footerConfig.resourcesLinks.length > 0
+          resourcesLinks: Array.isArray(data.footerConfig?.resourcesLinks)
             ? data.footerConfig.resourcesLinks
             : defaultFooterConfig.resourcesLinks
         },
-        socialLinks: data.socialLinks && data.socialLinks.length > 0
+        socialLinks: Array.isArray(data.socialLinks)
           ? data.socialLinks
           : defaultSocialLinks,
       };
+      try {
+        localStorage.setItem('eed_site_settings', JSON.stringify(loaded));
+      } catch {}
+      return loaded;
     }
   } catch (err) {
     console.error('Failed to load site settings from Firestore:', err);
@@ -312,6 +327,11 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
 export const saveSiteSettings = async (settings: Partial<SiteSettings>) => {
   const docRef = doc(db, 'settings', 'site_settings');
   await setDoc(docRef, settings, { merge: true });
+  try {
+    const current = localStorage.getItem('eed_site_settings');
+    const merged = current ? { ...JSON.parse(current), ...settings } : settings;
+    localStorage.setItem('eed_site_settings', JSON.stringify(merged));
+  } catch {}
 };
 
 // Clean helper to prevent Firestore undefined errors

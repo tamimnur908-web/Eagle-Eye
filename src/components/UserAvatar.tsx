@@ -34,7 +34,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   user,
   size = 'sm',
   className = '',
-  fallbackBg = 'bg-[#FFC629] text-[#08152F]',
+  fallbackBg = 'bg-[#36D6E7] text-[#101828]',
   rounded = 'full',
   showBorder = false,
 }) => {

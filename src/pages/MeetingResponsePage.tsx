@@ -74,7 +74,7 @@ export const MeetingResponsePage: React.FC = () => {
   if (loading) {
     return (
       <div className="max-w-md mx-auto px-4 py-24 text-center">
-        <div className="w-10 h-10 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-10 h-10 border-4 border-[#246BFD] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-sm font-semibold text-[#667085]">Verifying consultation details...</p>
       </div>
     );
@@ -84,9 +84,9 @@ export const MeetingResponsePage: React.FC = () => {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-        <h2 className="text-xl font-bold text-[#08152F]">Meeting Not Found</h2>
+        <h2 className="text-xl font-bold text-[#101828]">Meeting Not Found</h2>
         <p className="text-xs text-[#667085]">{error || 'Unable to locate this consultation invitation.'}</p>
-        <Link to="/" className="inline-block px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
+        <Link to="/" className="inline-block px-5 py-2.5 bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
           Return to Home
         </Link>
       </div>
@@ -119,10 +119,10 @@ export const MeetingResponsePage: React.FC = () => {
         
         {/* Header */}
         <div className="text-center space-y-2 border-b border-slate-100 pb-5">
-          <div className="w-12 h-12 bg-blue-50 text-[#2563EB] rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+          <div className="w-12 h-12 bg-blue-50 text-[#246BFD] rounded-2xl flex items-center justify-center mx-auto shadow-sm">
             <Calendar className="w-6 h-6 stroke-[2.2]" />
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-[#08152F] tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-[#101828] tracking-tight">
             Consultation Session
           </h1>
           <p className="text-xs text-[#667085]">
@@ -131,7 +131,7 @@ export const MeetingResponsePage: React.FC = () => {
         </div>
 
         {/* Schedule Box */}
-        <div className="bg-[#F3F5F9] border border-slate-200 rounded-2xl p-5 space-y-3 text-xs">
+        <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-5 space-y-3 text-xs">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Proposed Time</span>
             <span
@@ -140,21 +140,21 @@ export const MeetingResponsePage: React.FC = () => {
                   ? 'bg-emerald-100 text-emerald-800'
                   : currentStatus === 'cancelled'
                   ? 'bg-red-100 text-red-800'
-                  : 'bg-[#FFC629]/25 text-[#08152F] border border-[#FFC629]/50'
+                  : 'bg-[#36D6E7]/25 text-[#101828] border border-[#36D6E7]/50'
               }`}
             >
               {currentStatus === 'confirmed' ? '✓ Confirmed' : currentStatus === 'cancelled' ? '✕ Cancelled' : '● Awaiting Response'}
             </span>
           </div>
 
-          <div className="text-base font-extrabold text-[#08152F] flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-[#2563EB] shrink-0" />
+          <div className="text-base font-extrabold text-[#101828] flex items-center space-x-2">
+            <Clock className="w-4 h-4 text-[#246BFD] shrink-0" />
             <span>{formattedDate}</span>
           </div>
 
-          <div className="text-[#172033] space-y-1 pt-1 border-t border-slate-200/80">
-            <div><strong className="text-[#08152F]">Service:</strong> {lead.serviceInterest}</div>
-            <div><strong className="text-[#08152F]">Host:</strong> {meeting.scheduledBy || 'Strategist'}</div>
+          <div className="text-[#101828] space-y-1 pt-1 border-t border-slate-200/80">
+            <div><strong className="text-[#101828]">Service:</strong> {lead.serviceInterest}</div>
+            <div><strong className="text-[#101828]">Host:</strong> {meeting.scheduledBy || 'Strategist'}</div>
             {meeting.notes && (
               <div className="text-[#667085] italic mt-1 bg-white p-2.5 rounded-lg border border-slate-200/60">
                 "{meeting.notes}"
@@ -179,7 +179,7 @@ export const MeetingResponsePage: React.FC = () => {
               href={meeting.meetingLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black text-xs rounded-xl shadow-lg shadow-[#2563EB]/25 flex items-center justify-center space-x-2 transition-all transform hover:-translate-y-0.5"
+              className="w-full py-3.5 bg-[#246BFD] hover:bg-[#1A56DB] text-white font-black text-xs rounded-xl shadow-lg shadow-[#246BFD]/25 flex items-center justify-center space-x-2 transition-all transform hover:-translate-y-0.5"
             >
               <Video className="w-4 h-4" />
               <span>Join Video Meeting Now</span>
@@ -191,15 +191,15 @@ export const MeetingResponsePage: React.FC = () => {
                 href={gcalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-2 bg-[#F3F5F9] hover:bg-slate-200 text-[#172033] font-bold rounded-lg flex items-center space-x-1.5 transition-colors"
+                className="px-4 py-2 bg-[#F8FAFC] hover:bg-slate-200 text-[#101828] font-bold rounded-lg flex items-center space-x-1.5 transition-colors"
               >
-                <Calendar className="w-3.5 h-3.5 text-[#2563EB]" />
+                <Calendar className="w-3.5 h-3.5 text-[#246BFD]" />
                 <span>Add to Google Calendar</span>
               </a>
 
               <Link
                 to="/account"
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[#172033] font-bold rounded-lg flex items-center space-x-1.5 transition-colors"
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[#101828] font-bold rounded-lg flex items-center space-x-1.5 transition-colors"
               >
                 <User className="w-3.5 h-3.5 text-[#667085]" />
                 <span>View in Account Portal</span>

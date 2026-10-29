@@ -295,6 +295,18 @@ export interface FooterConfig {
   }[];
 }
 
+export interface ThemeSettings {
+  primaryColor: string;       // Default #246BFD (Cobalt Blue)
+  secondaryColor: string;     // Default #101828 (Charcoal)
+  accentColor: string;        // Default #36D6E7 (Cyan)
+  pageBgColor: string;        // Default #F8FAFC (Page Background)
+  cardBgColor: string;        // Default #FFFFFF (Card / Surface)
+  textPrimaryColor: string;   // Default #101828 (Primary Text)
+  textSecondaryColor: string; // Default #667085 (Secondary / Muted Text)
+  btnTextColor: string;       // Default #FFFFFF (Button Text)
+  updatedAt?: number;
+}
+
 export interface SiteSettings {
   brandName: string;
   tagline: string;
@@ -302,6 +314,7 @@ export interface SiteSettings {
   businessEmail: string;
   whatsappNumber: string;
   currency: string;
+  theme?: ThemeSettings;
   headerConfig?: HeaderConfig;
   footerConfig?: FooterConfig;
   socialLinks?: SocialLink[];

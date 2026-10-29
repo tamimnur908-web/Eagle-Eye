@@ -110,12 +110,12 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200/80 shadow-sm w-full">
       {/* Dynamic Top Announcement Bar (Header Config) */}
       {headerConfig?.showAnnouncement && headerConfig?.announcementText && (
-        <div className="bg-gradient-to-r from-[#08152F] via-[#0D2044] to-[#08152F] text-white text-[11px] sm:text-xs py-2 px-4 text-center font-bold tracking-wide relative z-50 flex items-center justify-center space-x-2 shadow-sm border-b border-[#112855]">
+        <div className="bg-gradient-to-r from-[#101828] via-[#162033] to-[#101828] text-white text-[11px] sm:text-xs py-2 px-4 text-center font-bold tracking-wide relative z-50 flex items-center justify-center space-x-2 shadow-sm border-b border-[#1E293B]">
           <span>{headerConfig.announcementText}</span>
           {headerConfig.announcementLink && (
             <Link
               to={headerConfig.announcementLink}
-              className="underline text-[#FFC629] hover:text-[#FFD359] ml-1.5 transition-colors font-extrabold"
+              className="underline text-[#36D6E7] hover:text-[#7CE5F0] ml-1.5 transition-colors font-extrabold"
             >
               Explore Now →
             </Link>
@@ -135,13 +135,13 @@ export const Navbar: React.FC = () => {
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/logo.jpg';
               }}
-              className="h-8 sm:h-11 w-auto max-w-[105px] sm:max-w-[140px] object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-[#2563EB] transition-colors shadow-xs"
+              className="h-8 sm:h-11 w-auto max-w-[105px] sm:max-w-[140px] object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-[#246BFD] transition-colors shadow-xs"
             />
             <div className="flex flex-col">
-              <span className="text-base sm:text-2xl font-black tracking-tight text-[#08152F] group-hover:text-[#2563EB] transition-colors leading-none">
+              <span className="text-base sm:text-2xl font-black tracking-tight text-[#101828] group-hover:text-[#246BFD] transition-colors leading-none">
                 {settings.brandName || 'EAGLE EYE'}
               </span>
-              <span className="text-[8px] sm:text-[10px] tracking-wider sm:tracking-widest text-[#2563EB] font-extrabold uppercase mt-0.5">
+              <span className="text-[8px] sm:text-[10px] tracking-wider sm:tracking-widest text-[#246BFD] font-extrabold uppercase mt-0.5">
                 {settings.tagline || 'YOUR DIGITAL WORLD'}
               </span>
             </div>
@@ -157,11 +157,11 @@ export const Navbar: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for products..."
-              className="w-full h-11 pl-5 pr-12 rounded-full border border-slate-200 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none text-xs sm:text-sm text-[#172033] bg-white transition-all shadow-xs"
+              className="w-full h-11 pl-5 pr-12 rounded-full border border-slate-200 focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:outline-none text-xs sm:text-sm text-[#172033] bg-white transition-all shadow-xs"
             />
             <button
               type="submit"
-              className="absolute right-1.5 w-8 h-8 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center transition-colors shadow-xs"
+              className="absolute right-1.5 w-8 h-8 rounded-full bg-[#246BFD] hover:bg-[#1A56DB] text-white flex items-center justify-center transition-colors shadow-xs"
               title="Search"
             >
               <Search className="w-4 h-4" />
@@ -179,7 +179,7 @@ export const Navbar: React.FC = () => {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-8 h-8 rounded-full border border-slate-200 hover:border-[#2563EB] text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors"
+                    className="w-8 h-8 rounded-full border border-slate-200 hover:border-[#246BFD] text-[#667085] hover:text-[#246BFD] flex items-center justify-center transition-colors"
                     title={item.platform}
                   >
                     <SocialIcon link={item} size={15} />
@@ -250,11 +250,11 @@ export const Navbar: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products..."
-            className="w-full h-10 pl-4 pr-12 rounded-full border border-slate-300 text-xs text-[#172033] bg-[#F3F5F9] focus:outline-none focus:border-[#2563EB]"
+            className="w-full h-10 pl-4 pr-12 rounded-full border border-slate-300 text-xs text-[#172033] bg-[#F3F5F9] focus:outline-none focus:border-[#246BFD]"
           />
           <button
             type="submit"
-            className="absolute right-1 top-1 w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center"
+            className="absolute right-1 top-1 w-8 h-8 rounded-full bg-[#246BFD] text-white flex items-center justify-center"
           >
             <Search className="w-3.5 h-3.5" />
           </button>
@@ -306,8 +306,8 @@ export const Navbar: React.FC = () => {
                         onClick={() => setServicesDropdownOpen(!servicesDropdownOpen)}
                         className={`flex items-center space-x-1 px-3.5 py-1.5 rounded-full transition-all text-xs font-bold cursor-pointer ${
                           isActive
-                            ? 'bg-blue-50 text-[#2563EB] shadow-2xs'
-                            : 'text-[#172033] hover:text-[#2563EB] hover:bg-slate-50'
+                            ? 'bg-blue-50 text-[#246BFD] shadow-2xs'
+                            : 'text-[#172033] hover:text-[#246BFD] hover:bg-slate-50'
                         }`}
                       >
                         <span>Services</span>
@@ -319,7 +319,7 @@ export const Navbar: React.FC = () => {
                           <Link
                             to="/services"
                             onClick={() => setServicesDropdownOpen(false)}
-                            className="block p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#2563EB] font-bold transition-colors"
+                            className="block p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#246BFD] font-bold transition-colors"
                           >
                             <div className="flex items-center justify-between">
                               <span>All Agency Services (14)</span>
@@ -334,7 +334,7 @@ export const Navbar: React.FC = () => {
                               onClick={() => setServicesDropdownOpen(false)}
                               className="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors"
                             >
-                              <span className="font-bold text-[#08152F] block">{c.title}</span>
+                              <span className="font-bold text-[#101828] block">{c.title}</span>
                               <span className="text-[11px] text-[#667085] leading-tight block mt-0.5">{c.desc}</span>
                             </Link>
                           ))}
@@ -350,8 +350,8 @@ export const Navbar: React.FC = () => {
                     to={item.path}
                     className={`px-3.5 py-1.5 rounded-full transition-all text-xs font-bold ${
                       isActive
-                        ? 'bg-blue-50 text-[#2563EB] shadow-2xs'
-                        : 'text-[#172033] hover:text-[#2563EB] hover:bg-slate-50'
+                        ? 'bg-blue-50 text-[#246BFD] shadow-2xs'
+                        : 'text-[#172033] hover:text-[#246BFD] hover:bg-slate-50'
                     }`}
                   >
                     {item.label}
@@ -366,7 +366,7 @@ export const Navbar: React.FC = () => {
             {/* 1. Wishlist Heart Icon Button */}
             <button
               onClick={() => navigate('/products')}
-              className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#2563EB] text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors shadow-2xs hover:bg-slate-50 cursor-pointer"
+              className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#246BFD] text-[#667085] hover:text-[#246BFD] flex items-center justify-center transition-colors shadow-2xs hover:bg-slate-50 cursor-pointer"
               title="Favorites / Wishlist"
             >
               <Heart className="w-4 h-4" />
@@ -391,7 +391,7 @@ export const Navbar: React.FC = () => {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="flex items-center space-x-1.5 p-1 rounded-full border border-slate-200 hover:border-[#2563EB] transition-colors focus:outline-none cursor-pointer"
+                  className="flex items-center space-x-1.5 p-1 rounded-full border border-slate-200 hover:border-[#246BFD] transition-colors focus:outline-none cursor-pointer"
                   title="My Account"
                 >
                   <UserAvatar user={currentUser} size="sm" showBorder />
@@ -414,9 +414,9 @@ export const Navbar: React.FC = () => {
                       <Link
                         to="/admin"
                         onClick={() => setAccountDropdownOpen(false)}
-                        className="flex items-center space-x-2 px-4 py-2.5 text-[#2563EB] hover:bg-blue-50 font-bold transition-colors"
+                        className="flex items-center space-x-2 px-4 py-2.5 text-[#246BFD] hover:bg-blue-50 font-bold transition-colors"
                       >
-                        <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
+                        <ShieldCheck className="w-4 h-4 text-[#246BFD]" />
                         <span>Admin Dashboard</span>
                       </Link>
                     )}
@@ -445,7 +445,7 @@ export const Navbar: React.FC = () => {
             ) : (
               <Link
                 to="/account"
-                className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#2563EB] flex items-center justify-center text-[#667085] hover:text-[#2563EB] transition-colors shadow-2xs hover:bg-slate-50"
+                className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#246BFD] flex items-center justify-center text-[#667085] hover:text-[#246BFD] transition-colors shadow-2xs hover:bg-slate-50"
                 title="Account"
               >
                 <UserIcon className="w-4 h-4" />
@@ -469,7 +469,7 @@ export const Navbar: React.FC = () => {
           <div className="relative z-10 bg-white border-b border-slate-200 shadow-2xl max-h-[85vh] overflow-y-auto px-5 pt-4 pb-8 space-y-4 animate-in slide-in-from-top duration-200">
             {/* Top Close Row */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="text-xs font-black uppercase tracking-wider text-[#2563EB]">Navigation Menu</span>
+              <span className="text-xs font-black uppercase tracking-wider text-[#246BFD]">Navigation Menu</span>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
@@ -512,7 +512,7 @@ export const Navbar: React.FC = () => {
                   key={idx}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-[#172033] hover:text-[#2563EB] font-bold text-sm transition-colors min-h-[44px]"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-[#172033] hover:text-[#246BFD] font-bold text-sm transition-colors min-h-[44px]"
                 >
                   <span>{item.label}</span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -532,7 +532,7 @@ export const Navbar: React.FC = () => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block p-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-100 transition-colors"
                 >
-                  <span className="font-bold text-xs text-[#08152F] block">{c.title}</span>
+                  <span className="font-bold text-xs text-[#101828] block">{c.title}</span>
                   <span className="text-[10px] text-[#667085] block mt-0.5">{c.desc}</span>
                 </Link>
               ))}
@@ -550,7 +550,7 @@ export const Navbar: React.FC = () => {
               <Link
                 to="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-[#08152F] hover:bg-[#0D2044] text-[#FFC629] text-center font-bold text-xs transition-colors flex items-center justify-center space-x-1"
+                className="flex-1 py-2.5 px-3 rounded-xl bg-[#101828] hover:bg-[#162033] text-[#36D6E7] text-center font-bold text-xs transition-colors flex items-center justify-center space-x-1"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Admin Panel</span>

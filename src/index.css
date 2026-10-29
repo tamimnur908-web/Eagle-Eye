@@ -3,39 +3,42 @@
 @tailwind utilities;
 
 :root {
-  /* Official Brand Color Palette (Digital Authority) */
-  --color-primary: #08152F;        /* Deep Navy: dark backgrounds, nav, footer, authority headings */
-  --color-secondary: #2563EB;      /* Electric Blue: links, interactive components, icons, highlights */
-  --color-accent: #FFC629;         /* Golden Yellow: key CTAs, growth indicators, selected badges */
-  --color-background: #FFFFFF;     /* White: main clean surface */
-  --color-surface-muted: #F3F5F9;  /* Light Gray: secondary backgrounds, neutral surfaces */
-  --color-text-primary: #172033;   /* Dark Text: primary text on light surfaces */
-  --color-text-muted: #667085;     /* Muted Text: supporting descriptions */
+  /* Modern Tech Brand Color Palette (Eagle Eye Digital) */
+  --color-primary: #246BFD;        /* Cobalt Blue: primary brand & interaction color */
+  --color-secondary: #101828;      /* Charcoal: dark surfaces, headers, footers, authority */
+  --color-accent: #36D6E7;         /* Cyan: accent gradients, glow, highlights, borders */
+  --color-page-bg: #F8FAFC;        /* Light clean neutral background */
+  --color-card-bg: #FFFFFF;        /* Surface / card background */
+  --color-text-primary: #101828;   /* High-contrast readable dark text */
+  --color-text-secondary: #667085; /* Readable muted text */
+  --color-btn-text: #FFFFFF;       /* Crisp white button text */
   --color-border: #E2E8F0;         /* Neutral border */
 
-  /* Semantic tints & shades */
-  --color-primary-dark: #050E20;
-  --color-primary-light: #0D2044;
-  --color-primary-surface: #112855;
-  --color-secondary-hover: #1D4ED8;
-  --color-secondary-light: #3B82F6;
-  --color-secondary-subtle: #EFF6FF;
-  --color-accent-hover: #E5B01F;
-  --color-accent-light: #FFD359;
-  --color-accent-subtle: #FFF8E6;
+  /* Computed Shades & Tints (Hover, Subtle, Highlights) */
+  --color-primary-hover: #1A56DB;
+  --color-primary-light: #528BFF;
+  --color-primary-subtle: #EFF6FF;
+  --color-secondary-dark: #0B101B;
+  --color-secondary-surface: #1E293B;
+  --color-accent-hover: #21C5D8;
+  --color-accent-light: #7CE5F0;
+  --color-accent-subtle: #E6FCFE;
 
-  /* Legacy variable mappings */
-  --color-gold: #FFC629;
-  --color-gold-light: #FFD359;
-  --color-gold-dark: #E5B01F;
-  --color-bg-light: #F3F5F9;
-  --color-bg-card: #FFFFFF;
+  /* Backward-compatible mapping */
+  --color-background: var(--color-page-bg);
+  --color-surface-muted: var(--color-page-bg);
+  --color-text-muted: var(--color-text-secondary);
+  --color-gold: var(--color-accent);
+  --color-gold-light: var(--color-accent-light);
+  --color-gold-dark: var(--color-accent-hover);
+  --color-bg-light: var(--color-page-bg);
+  --color-bg-card: var(--color-card-bg);
 }
 
 html,
 body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: var(--color-surface-muted);
+  background-color: var(--color-page-bg);
   color: var(--color-text-primary);
   overflow-x: hidden;
   max-width: 100vw;
@@ -68,7 +71,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2563EB;
+  background: var(--color-primary, #246BFD);
 }
 
 /* Animations: Ken Burns, Float, Glow, Sweep */
