@@ -75,7 +75,7 @@ export const ProductsPage: React.FC = () => {
         </div>
 
         {/* Pricing filter & Categories */}
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
           <select
             value={filterPricing}
             onChange={(e) => setFilterPricing(e.target.value as any)}
@@ -86,12 +86,12 @@ export const ProductsPage: React.FC = () => {
             <option value="paid">Premium (Paid)</option>
           </select>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full sm:flex-wrap">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`text-xs px-3.5 py-1.5 rounded-lg border font-semibold transition-colors ${
+                className={`text-xs px-3.5 py-1.5 rounded-lg border font-semibold transition-colors shrink-0 ${
                   selectedCategory === cat
                     ? 'bg-[#2563EB] text-white border-[#2563EB]'
                     : 'bg-[#F3F5F9] text-[#667085] border-slate-200 hover:text-[#172033] hover:bg-slate-100'

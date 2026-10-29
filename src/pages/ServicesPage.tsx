@@ -129,7 +129,7 @@ export const ServicesPage: React.FC = () => {
           </div>
 
           {/* Category Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 w-full lg:w-auto -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex-wrap">
             {categoryNames.map((cat) => {
               const count = getCategoryCount(cat);
               const isSelected = selectedCategory === cat;

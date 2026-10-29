@@ -118,29 +118,32 @@ export const CartPage: React.FC = () => {
         <div className="lg:col-span-7 space-y-4">
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 shadow-sm">
             {cart.map(({ product }) => (
-              <div key={product.id} className="p-4 sm:p-6 flex items-center justify-between gap-4">
-                <div className="flex items-center space-x-4">
+              <div key={product.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
                   <img
                     src={product.thumbnailUrl || '/logo.jpg'}
                     alt={product.name}
-                    className="w-16 h-16 rounded object-cover border border-slate-200"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-slate-200 shrink-0"
                   />
-                  <div>
-                    <h4 className="text-sm font-bold text-[#08152F]">{product.name}</h4>
-                    <span className="text-[11px] text-[#667085] capitalize">{product.productType.replace('_', ' ')}</span>
-                    <div className="text-xs font-semibold text-[#2563EB] mt-1">
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold text-[#08152F] truncate">{product.name}</h4>
+                    <span className="text-[11px] text-[#667085] capitalize block">{product.productType.replace('_', ' ')}</span>
+                    <div className="text-xs font-bold text-[#2563EB] mt-0.5">
                       {product.price === 0 ? 'FREE' : `৳${product.salePrice ?? product.price}`}
                     </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => removeFromCart(product.id)}
-                  className="text-slate-400 hover:text-red-500 p-2 transition-colors"
-                  title="Remove item"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center justify-end border-t border-slate-50 pt-2 sm:border-0 sm:pt-0">
+                  <button
+                    onClick={() => removeFromCart(product.id)}
+                    className="text-xs text-slate-400 hover:text-red-500 p-1.5 transition-colors flex items-center space-x-1"
+                    title="Remove item"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="sm:hidden text-[11px] font-medium text-red-500">Remove</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -206,13 +209,13 @@ export const CartPage: React.FC = () => {
               <>
                 <div className="pt-2">
                   <label className="block text-xs font-semibold text-[#172033] mb-1">Payment Method</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {(['bKash', 'Nagad', 'Bank Transfer'] as const).map((method) => (
                       <button
                         type="button"
                         key={method}
                         onClick={() => setPaymentMethod(method)}
-                        className={`text-xs py-2 px-1 rounded-lg border text-center font-semibold transition-colors ${
+                        className={`text-[11px] sm:text-xs py-2 px-1 rounded-lg border text-center font-semibold transition-colors truncate ${
                           paymentMethod === method
                             ? 'bg-[#2563EB] text-white border-[#2563EB]'
                             : 'bg-[#F3F5F9] text-[#667085] border-slate-200 hover:bg-slate-100'

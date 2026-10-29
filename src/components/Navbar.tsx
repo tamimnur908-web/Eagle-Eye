@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
+import { UserAvatar } from './UserAvatar';
 import {
   Search,
   ShoppingBag,
@@ -10,6 +11,7 @@ import {
   User as UserIcon,
   LogOut,
   ChevronDown,
+  ChevronRight,
   LayoutGrid,
   Heart,
   Menu,
@@ -121,24 +123,24 @@ export const Navbar: React.FC = () => {
       )}
 
       {/* Top Main Bar (Vyrqonix Style) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-3.5">
-        <div className="flex items-center justify-between gap-4">
+      <div className="w-full px-3.5 sm:px-8 lg:px-12 xl:px-16 py-2.5 sm:py-3.5">
+        <div className="flex items-center justify-between gap-2.5 sm:gap-4">
           
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 flex-shrink-0 group">
+          <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 group">
             <img
               src={settings.logoUrl || '/logo.jpg'}
               alt={settings.brandName || 'Eagle Eye Digital'}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/logo.jpg';
               }}
-              className="h-10 sm:h-12 w-auto max-w-[140px] object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-[#2563EB] transition-colors shadow-sm"
+              className="h-8 sm:h-11 w-auto max-w-[105px] sm:max-w-[140px] object-contain rounded-lg border border-slate-200 p-0.5 group-hover:border-[#2563EB] transition-colors shadow-xs"
             />
             <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-[#08152F] group-hover:text-[#2563EB] transition-colors leading-none">
+              <span className="text-base sm:text-2xl font-black tracking-tight text-[#08152F] group-hover:text-[#2563EB] transition-colors leading-none">
                 {settings.brandName || 'EAGLE EYE'}
               </span>
-              <span className="text-[10px] tracking-widest text-[#2563EB] font-extrabold uppercase mt-0.5">
+              <span className="text-[8px] sm:text-[10px] tracking-wider sm:tracking-widest text-[#2563EB] font-extrabold uppercase mt-0.5">
                 {settings.tagline || 'YOUR DIGITAL WORLD'}
               </span>
             </div>
@@ -219,12 +221,12 @@ export const Navbar: React.FC = () => {
             {/* Cart Capsule Button */}
             <Link
               to="/cart"
-              className="flex items-center space-x-2 px-3.5 py-2 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs shadow-md shadow-[#2563EB]/20 transition-all"
+              className="flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs shadow-md shadow-[#2563EB]/20 transition-all shrink-0"
               title="Cart"
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>{cart.length}</span>
-              <span className="border-l border-white/30 pl-1.5">৳0</span>
+              <span className="hidden sm:inline border-l border-white/30 pl-1.5">৳0</span>
             </Link>
 
             {/* Profile Avatar / Dropdown */}
@@ -232,20 +234,23 @@ export const Navbar: React.FC = () => {
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
-                  className="flex items-center space-x-1 p-1 rounded-full border border-slate-200 hover:bg-slate-100 transition-colors focus:outline-none"
+                  className="flex items-center space-x-1.5 p-1 rounded-full border border-slate-200 hover:bg-slate-100 transition-colors focus:outline-none"
                   title="My Account"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#FFC629] text-[#08152F] flex items-center justify-center font-bold text-xs shadow-sm">
-                    {currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : currentUser.email ? currentUser.email.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
-                  </div>
+                  <UserAvatar user={currentUser} size="sm" showBorder />
                   <ChevronDown className="w-3.5 h-3.5 text-[#667085] mr-1" />
                 </button>
 
                 {accountDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 text-xs">
-                    <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-[11px] text-[#667085]">Signed in as</p>
-                      <p className="font-bold text-[#172033] truncate">{currentUser.email}</p>
+                  <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 text-xs">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center space-x-3">
+                      <UserAvatar user={currentUser} size="md" showBorder />
+                      <div className="overflow-hidden">
+                        <p className="font-bold text-[#172033] truncate leading-tight">
+                          {currentUser.displayName || 'Signed In'}
+                        </p>
+                        <p className="text-[11px] text-[#667085] truncate mt-0.5">{currentUser.email}</p>
+                      </div>
                     </div>
 
                     {isAdmin && (
@@ -318,8 +323,8 @@ export const Navbar: React.FC = () => {
         </form>
       </div>
 
-      {/* Sub Header Navigation Bar (Vyrqonix Style: All Categories Pill + Navigation Links) */}
-      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-slate-100 bg-white">
+      {/* Sub Header Navigation Bar (Desktop Only: All Categories Pill + Navigation Links) */}
+      <div className="hidden lg:block w-full px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-slate-100 bg-white">
         <div className="flex items-center space-x-6 h-12">
           
           {/* "All Categories" Pill Button with Dropdown (Deep Navy Pill) */}
@@ -407,33 +412,106 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Drawer with Backdrop */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-t border-slate-200 px-5 pt-3 pb-6 space-y-2.5 shadow-lg">
-          {navItems.map((item, idx) => (
-            <Link
-              key={idx}
-              to={item.path}
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-[#172033] hover:text-[#2563EB] font-semibold py-1.5 text-sm"
-            >
-              {item.label}
-            </Link>
-          ))}
-          <div className="pt-2 border-t border-slate-100 space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block px-1">
-              Agency Categories
-            </span>
-            {agencyServiceCategories.map((c, cIdx) => (
-              <Link
-                key={cIdx}
-                to={c.path}
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Drawer Content */}
+          <div className="relative z-10 bg-white border-b border-slate-200 shadow-2xl max-h-[85vh] overflow-y-auto px-5 pt-4 pb-8 space-y-4 animate-in slide-in-from-top duration-200">
+            {/* Top Close Row */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <span className="text-xs font-black uppercase tracking-wider text-[#2563EB]">Navigation Menu</span>
+              <button
+                type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block text-xs text-[#667085] hover:text-[#2563EB] py-1 px-1 font-medium"
+                className="p-1.5 rounded-lg bg-slate-100 text-slate-500 hover:text-slate-900"
               >
-                • {c.title}
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Direct WhatsApp Callout Pill inside Mobile Menu */}
+            {headerConfig?.showChatSupport !== false && (
+              <a
+                href={`https://wa.me/88${(headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-xs"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-xs">
+                    <MessageCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold block">{headerConfig?.chatSupportText || 'Chat on WhatsApp'}</span>
+                    <span className="text-[11px] font-mono text-emerald-600 block">
+                      {headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791'}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-1 rounded-full">
+                  Connect →
+                </span>
+              </a>
+            )}
+
+            {/* Nav links */}
+            <div className="space-y-1">
+              {navItems.map((item, idx) => (
+                <Link
+                  key={idx}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-[#172033] hover:text-[#2563EB] font-bold text-sm transition-colors min-h-[44px]"
+                >
+                  <span>{item.label}</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </Link>
+              ))}
+            </div>
+
+            {/* Agency Categories */}
+            <div className="pt-3 border-t border-slate-100 space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block px-3">
+                Agency Disciplines
+              </span>
+              {agencyServiceCategories.map((c, cIdx) => (
+                <Link
+                  key={cIdx}
+                  to={c.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block p-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-100 transition-colors"
+                >
+                  <span className="font-bold text-xs text-[#08152F] block">{c.title}</span>
+                  <span className="text-[10px] text-[#667085] block mt-0.5">{c.desc}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Quick Links to Admin and Account */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <Link
+                to="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-center font-bold text-xs transition-colors"
+              >
+                My Account
               </Link>
-            ))}
+              <Link
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-[#08152F] hover:bg-[#0D2044] text-[#FFC629] text-center font-bold text-xs transition-colors flex items-center justify-center space-x-1"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Panel</span>
+              </Link>
+            </div>
           </div>
         </div>
       )}

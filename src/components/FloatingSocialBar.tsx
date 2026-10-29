@@ -5,7 +5,9 @@ import { ChevronRight, ChevronLeft, Share2 } from 'lucide-react';
 
 export const FloatingSocialBar: React.FC = () => {
   const { socialLinks } = useSettings();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return typeof window !== 'undefined' && window.innerWidth < 768;
+  });
 
   // Filter only active social links selected for Floating Sidebar with valid URLs
   const activeFloatingLinks = socialLinks.filter(

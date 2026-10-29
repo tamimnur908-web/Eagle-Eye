@@ -144,11 +144,11 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar & Legal */}
-        <div className="mt-12 pt-8 border-t border-[#112855] flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 space-y-4 md:space-y-0">
+        <div className="mt-12 pt-8 border-t border-[#112855] flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 space-y-4 md:space-y-0 text-center md:text-left">
           <div>
             © {new Date().getFullYear()} {footerConfig?.copyrightText || `${settings.brandName || 'Eagle Eye Digital'}. All rights reserved.`}
           </div>
-          <div className="flex space-x-6 font-medium">
+          <div className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 font-medium">
             <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>

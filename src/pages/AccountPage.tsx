@@ -30,6 +30,7 @@ import {
 import { WHATSAPP_NUMBER } from '../lib/firebase';
 import { Link, useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../components/EmptyState';
+import { UserAvatar } from '../components/UserAvatar';
 
 export const AccountPage: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -153,6 +154,8 @@ export const AccountPage: React.FC = () => {
         uid: result.user.uid,
         fullName: result.user.displayName || 'Google User',
         email: result.user.email,
+        photoURL: result.user.photoURL || null,
+        avatarUrl: result.user.photoURL || null,
         updatedAt: Date.now()
       }, { merge: true });
     } catch (err: any) {
@@ -384,9 +387,7 @@ export const AccountPage: React.FC = () => {
       {/* User Header */}
       <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-4">
-          <div className="w-14 h-14 rounded-full bg-[#FFC629] flex items-center justify-center text-[#08152F] font-black text-xl shadow-sm">
-            {currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : currentUser.email ? currentUser.email.charAt(0).toUpperCase() : <UserIcon className="w-7 h-7" />}
-          </div>
+          <UserAvatar user={currentUser} size="lg" showBorder />
           <div>
             <h2 className="text-xl font-bold text-[#08152F]">
               {currentUser.displayName || 'Customer Portal'}

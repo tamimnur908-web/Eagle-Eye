@@ -120,6 +120,7 @@ import {
   defaultSiteSettings
 } from '../services/firestoreService';
 import { getSeedServicesList } from '../data/agencyServicesSeed';
+import { UserAvatar } from '../components/UserAvatar';
 import {
   Service,
   SubService,
@@ -3227,10 +3228,8 @@ export const AdminDashboardPage: React.FC = () => {
         <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
           {/* Logged in Admin Profile Card */}
           <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 rounded-lg bg-[#2563EB] text-white font-bold flex items-center justify-center text-xs shadow-sm">
-                {(currentUser?.displayName || currentUser?.email || 'A').charAt(0).toUpperCase()}
-              </div>
+            <div className="flex items-center space-x-2.5">
+              <UserAvatar user={currentUser} size="sm" rounded="lg" showBorder fallbackBg="bg-[#2563EB] text-white" />
               <div className="min-w-0 flex-1">
                 <span className="font-bold text-xs text-slate-800 block truncate">
                   {currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Admin'}
@@ -6352,9 +6351,13 @@ export const AdminDashboardPage: React.FC = () => {
                             {/* Member */}
                             <td className="py-4 px-5">
                               <div className="flex items-center space-x-3">
-                                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-sm flex-shrink-0">
-                                  {admin.name.charAt(0).toUpperCase()}
-                                </div>
+                                <UserAvatar
+                                  user={{ email: admin.email, displayName: admin.name }}
+                                  size="md"
+                                  rounded="lg"
+                                  showBorder
+                                  fallbackBg="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white"
+                                />
                                 <div className="min-w-0">
                                   <div className="flex items-center space-x-1.5">
                                     <span className="font-bold text-slate-900 block truncate">

@@ -234,21 +234,21 @@ export const HomePage: React.FC = () => {
 
             {/* Content Area */}
             {!isPureBanner ? (
-              <div className="p-8 sm:p-12 flex flex-col justify-between h-full relative z-20">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                  <div className="md:col-span-8 space-y-4 max-w-xl">
+              <div className="p-5 sm:p-8 md:p-12 flex flex-col justify-between h-full relative z-20">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 items-center">
+                  <div className="md:col-span-8 space-y-3 sm:space-y-4 max-w-xl">
                     
                     <div
                       key={`tag-${currentSlide}`}
-                      className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-sky-200 animate-pop-in shadow-lg"
+                      className="inline-flex items-center space-x-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] sm:text-xs font-bold text-sky-200 animate-pop-in shadow-lg"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-[#FFC629] animate-spin-slow" />
-                      <span className="bg-gradient-to-r from-[#FFC629] via-sky-200 to-white bg-clip-text text-transparent">
+                      <Sparkles className="w-3.5 h-3.5 text-[#FFC629] animate-spin-slow shrink-0" />
+                      <span className="bg-gradient-to-r from-[#FFC629] via-sky-200 to-white bg-clip-text text-transparent truncate">
                         {activeSlide.tag || bento.heroTag || 'Eagle Eye Digital • Growth Engine'}
                       </span>
                     </div>
 
-                    <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight min-h-[72px] sm:min-h-[116px]">
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight min-h-0 sm:min-h-[84px] md:min-h-[116px]">
                       <span
                         key={`title-${currentSlide}-${textAnimation}`}
                         className={`bg-clip-text text-transparent drop-shadow-sm transition-all ${
@@ -268,13 +268,13 @@ export const HomePage: React.FC = () => {
                           : activeSlide.title || bento.heroTitle}
                       </span>
                       {textAnimation === 'typewriter' && (
-                        <span className="inline-block w-1 h-7 sm:h-10 ml-1.5 bg-[#FFC629] animate-pulse align-middle" />
+                        <span className="inline-block w-1 h-6 sm:h-9 ml-1.5 bg-[#FFC629] animate-pulse align-middle" />
                       )}
                     </h1>
 
                     <p
                       key={`desc-${currentSlide}`}
-                      className="text-sm sm:text-base text-slate-200 leading-relaxed max-w-lg animate-pop-in"
+                      className="text-xs sm:text-base text-slate-200 leading-relaxed max-w-lg animate-pop-in line-clamp-3 sm:line-clamp-none"
                     >
                       {activeSlide.description || bento.heroDescription}
                     </p>
@@ -388,25 +388,25 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Bottom Navigation & Indicator Dots */}
-                <div className="pt-6 flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex flex-wrap items-center gap-3">
+                <div className="pt-5 sm:pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
                     <Link
                       to="/services"
-                      className="px-6 py-3 rounded-full bg-gradient-to-r from-[#FFC629] to-[#E5B01F] hover:from-[#FFD359] hover:to-[#FFC629] text-[#08152F] font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-[#FFC629]/25 flex items-center space-x-2 transform hover:-translate-y-0.5 active:translate-y-0"
+                      className="w-full sm:w-auto justify-center text-center px-5 sm:px-6 py-3 rounded-full bg-gradient-to-r from-[#FFC629] to-[#E5B01F] hover:from-[#FFD359] hover:to-[#FFC629] text-[#08152F] font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-[#FFC629]/25 flex items-center space-x-2 transform hover:-translate-y-0.5 active:translate-y-0"
                     >
                       <span>Explore Agency Services</span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                     <Link
                       to="/contact"
-                      className="px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm backdrop-blur-md transition-all transform hover:-translate-y-0.5"
+                      className="w-full sm:w-auto justify-center text-center px-5 sm:px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm backdrop-blur-md transition-all transform hover:-translate-y-0.5"
                     >
                       Book Strategy Call
                     </Link>
                   </div>
 
                   {slides.length > 1 && (
-                    <div className="flex items-center space-x-2 bg-[#08152F]/70 backdrop-blur-md px-3.5 py-2 rounded-full border border-white/15 shadow-inner">
+                    <div className="flex items-center justify-center space-x-2 bg-[#08152F]/70 backdrop-blur-md px-3.5 py-2 rounded-full border border-white/15 shadow-inner self-center sm:self-auto">
                       {slides.map((_, idx) => (
                         <button
                           key={idx}
@@ -457,14 +457,14 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* Right Bento Column: 3 Side Cards */}
-          <div className="lg:col-span-4 flex flex-col gap-5 sm:gap-6">
+          <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-6">
             
-            <div className="h-48 sm:h-52 rounded-3xl bg-[#08152F] border border-[#112855] p-6 flex items-center justify-between overflow-hidden relative shadow-md group hover:border-[#2563EB]/60 transition-all">
+            <div className="h-auto min-h-[140px] sm:h-52 rounded-3xl bg-[#08152F] border border-[#112855] p-5 sm:p-6 flex items-center justify-between overflow-hidden relative shadow-md group hover:border-[#2563EB]/60 transition-all">
               <div className="z-10 space-y-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#2563EB]">
                   {bento.card1Tag || 'Performance Media'}
                 </span>
-                <h3 className="text-xl font-black text-white">{bento.card1Title || 'Meta & Google Ads'}</h3>
+                <h3 className="text-lg sm:text-xl font-black text-white">{bento.card1Title || 'Meta & Google Ads'}</h3>
                 <p className="text-xs text-slate-300 max-w-[160px]">{bento.card1Description || 'Precision audience targeting scaling direct returns.'}</p>
                 <Link
                   to={bento.card1LinkUrl || '/services'}
@@ -476,17 +476,17 @@ export const HomePage: React.FC = () => {
               </div>
 
               {bento.card1Image ? (
-                <div className="w-24 h-24 rounded-2xl overflow-hidden border border-slate-700/80 shadow-2xl group-hover:scale-105 transition-transform flex-shrink-0 bg-slate-800">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-slate-700/80 shadow-2xl group-hover:scale-105 transition-transform flex-shrink-0 bg-slate-800">
                   <img src={bento.card1Image} alt="Card Visual" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-[#2563EB] to-sky-400 flex items-center justify-center text-white font-black text-3xl shadow-2xl group-hover:scale-105 transition-transform flex-shrink-0">
-                  <Target className="w-12 h-12" />
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-[#2563EB] to-sky-400 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-2xl group-hover:scale-105 transition-transform flex-shrink-0">
+                  <Target className="w-10 h-10 sm:w-12 sm:h-12" />
                 </div>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 flex-1">
               <Link
                 to={bento.card2LinkUrl || '/services'}
                 className="rounded-3xl bg-[#050E20] border border-[#112855] p-5 flex flex-col justify-between group hover:border-[#2563EB]/40 transition-all shadow-md min-h-[140px] overflow-hidden relative"
@@ -530,7 +530,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ================= 2. SHORT AGENCY INTRODUCTION ================= */}
-      <section className="w-full bg-white rounded-3xl border border-slate-200/90 p-8 sm:p-12 shadow-sm">
+      <section className="w-full bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-8 md:p-12 shadow-sm">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 space-y-4">
             <span className="text-xs font-extrabold uppercase tracking-widest text-[#2563EB]">
