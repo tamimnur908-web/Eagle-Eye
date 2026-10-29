@@ -2599,7 +2599,7 @@ export const AdminDashboardPage: React.FC = () => {
                                 {currentPreview?.title || 'Empower Your Growth With Intelligent Strategy'}
                               </h3>
                               <p className="text-[10px] text-slate-300 line-clamp-2 leading-relaxed">
-                                {currentPreview?.desc || 'From performance marketing to ready-to-deploy UI assets, Eagle Eye Digital fuels modern brands.'}
+                                {currentPreview?.description || 'From performance marketing to ready-to-deploy UI assets, Eagle Eye Digital fuels modern brands.'}
                               </p>
                             </div>
 
@@ -4335,8 +4335,8 @@ export const AdminDashboardPage: React.FC = () => {
                 </form>
               </div>
 
-              {/* Right Column: EXISTING CATEGORIES TABLE */}
-              <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-4 shadow-sm">
+              {/* Card 2: EXISTING CATEGORIES TABLE */}
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-4 shadow-sm">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
                     EXISTING CATEGORIES ({categories.length})
@@ -4402,6 +4402,12 @@ export const AdminDashboardPage: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+              </div>
+              </div>
+
+              {/* Right Column: Interactive Live Website Preview Pane (Sticky & Pinned) */}
+              <div className="xl:col-span-5 sticky top-2 sm:top-4 self-start z-20">
+                {renderInteractiveWebsitePreviewPane()}
               </div>
 
             </div>
@@ -5108,8 +5114,10 @@ export const AdminDashboardPage: React.FC = () => {
             {bentoActiveTab === 'slider' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                {/* Left Column: + ADD / EDIT HERO SLIDE */}
-                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
+                {/* Left Column: Form & Active Banners List */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* + ADD / EDIT HERO SLIDE */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-blue-600">
@@ -5460,542 +5468,7 @@ export const AdminDashboardPage: React.FC = () => {
                   </form>
                 </div>
 
-                {/* Right Column: LIVE HOMEPAGE PREVIEW & ACTIVE BANNERS (Pinned) */}
-                <div className="lg:col-span-6 space-y-6 sticky top-2 sm:top-4 self-start z-20">
-                  
-                  {/* REAL-TIME WEBSITE LIVE PREVIEW CARD (Interactive, Full Layout Toggle & Animated, Pinned) */}
-                  <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-md space-y-4 max-h-[calc(100vh-5.5rem)] overflow-y-auto">
-                    
-                    {/* Preview Top Header & Controls */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                      <div>
-                        <h3 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-[#2563EB]">
-                          <Sparkles className="w-4 h-4 text-[#2563EB] animate-spin-slow" />
-                          <span>LIVE HOMEPAGE PREVIEW (ওয়েবসাইটে যেমন দেখাবে)</span>
-                        </h3>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          স্লাইড করে দেখুন, লেখা ও ছবির অ্যানিমেশন দেখুন এবং ফুল ওয়েব লেআউট প্রিভিউ করুন:
-                        </p>
-                      </div>
-
-                      {/* View Mode Toggle: Slider vs Full Web Layout vs Full Website */}
-                      <div className="flex items-center space-x-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-[11px] font-bold">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewViewMode('slider')}
-                          className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
-                            previewViewMode === 'slider'
-                              ? 'bg-white text-[#2563EB] shadow-sm'
-                              : 'text-slate-500 hover:text-slate-900'
-                          }`}
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Slider Only</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewViewMode('full-layout')}
-                          className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
-                            previewViewMode === 'full-layout'
-                              ? 'bg-white text-[#2563EB] shadow-sm'
-                              : 'text-slate-500 hover:text-slate-900'
-                          }`}
-                        >
-                          <LayoutGrid className="w-3.5 h-3.5" />
-                          <span>Full Bento Layout</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewViewMode('full-website')}
-                          className={`px-2.5 py-1 rounded-lg transition-all flex items-center space-x-1 ${
-                            previewViewMode === 'full-website'
-                              ? 'bg-[#2563EB] text-white shadow-sm'
-                              : 'text-slate-500 hover:text-slate-900'
-                          }`}
-                        >
-                          <Globe className="w-3.5 h-3.5" />
-                          <span>Full Website</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Conditional: Full Website Live Preview in Side Panel OR Hero Bento Slider */}
-                    {previewViewMode === 'full-website' ? (
-                      <div className="pt-2">
-                        {renderInteractiveWebsitePreviewPane()}
-                      </div>
-                    ) : (() => {
-                      const previewSlides = bentoForm.heroSlides && bentoForm.heroSlides.length > 0
-                        ? bentoForm.heroSlides
-                        : defaultHeroSlides;
-                      const isUploadedFocused = previewFocusUploaded && Boolean(newSlideImg);
-                      const currentPreview = previewSlides[previewSlideIndex] || previewSlides[0];
-                      const activeBg = isUploadedFocused
-                        ? newSlideImg
-                        : (editingSlideIndex === previewSlideIndex && newSlideImg)
-                        ? newSlideImg
-                        : currentPreview?.bgImage;
-                      const previewIsPure = isUploadedFocused
-                        ? newSlideIsPureBanner
-                        : Boolean(currentPreview?.isPureBanner || (currentPreview?.bgImage && !currentPreview?.title));
-                      const active3D = currentPreview?.image3D;
-
-                      return (
-                        <div className="space-y-3">
-                          {/* Live Switcher between Uploaded Banner and Saved Slides */}
-                          {newSlideImg && (
-                            <div className="flex flex-wrap items-center gap-2 pb-1">
-                              <button
-                                type="button"
-                                onClick={() => setPreviewFocusUploaded(true)}
-                                className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition-all flex items-center space-x-1.5 ${
-                                  previewFocusUploaded
-                                    ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-sm'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                }`}
-                              >
-                                <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                                <span>Preview Uploaded Picture (লাইভ আপনার ছবি)</span>
-                                {previewFocusUploaded && <Check className="w-3.5 h-3.5" />}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setPreviewFocusUploaded(false)}
-                                className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition-all flex items-center space-x-1.5 ${
-                                  !previewFocusUploaded
-                                    ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                }`}
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>Cycle Saved Slides ({previewSlides.length})</span>
-                                {!previewFocusUploaded && <Check className="w-3.5 h-3.5" />}
-                              </button>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-bold text-slate-700 text-[11px] bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-                                {isUploadedFocused ? 'Uploaded Draft' : `Slide ${previewSlideIndex + 1} of ${previewSlides.length}`}
-                              </span>
-                              {editingSlideIndex === previewSlideIndex && (
-                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
-                                  Live Editing
-                                </span>
-                              )}
-                              {previewIsPure && (
-                                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-300">
-                                  Pure Graphic
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="flex items-center space-x-1.5">
-                              {/* Slide Prev Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPreviewFocusUploaded(false);
-                                  setPreviewSlideIndex(
-                                    (prev) => (prev - 1 + previewSlides.length) % previewSlides.length
-                                  );
-                                }}
-                                className="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
-                                title="Previous Slide"
-                              >
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-
-                              {/* Play / Pause Toggle Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPreviewFocusUploaded(false);
-                                  setPreviewAutoPlay(!previewAutoPlay);
-                                }}
-                                className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center space-x-1 transition-colors ${
-                                  previewAutoPlay && !isUploadedFocused
-                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                    : 'border-slate-200 bg-slate-50 text-slate-600'
-                                }`}
-                                title={previewAutoPlay ? 'Pause Auto Slide' : 'Play Auto Slide'}
-                              >
-                                {previewAutoPlay && !isUploadedFocused ? (
-                                  <>
-                                    <Pause className="w-3 h-3 text-emerald-600" />
-                                    <span>Auto-Slide ON</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="w-3 h-3 text-slate-500" />
-                                    <span>Paused</span>
-                                  </>
-                                )}
-                              </button>
-
-                              {/* Slide Next Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPreviewFocusUploaded(false);
-                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length);
-                                }}
-                                className="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
-                                title="Next Slide"
-                              >
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Full Bento Grid Preview Layout Container */}
-                          <div
-                            className={
-                              previewViewMode === 'full-layout'
-                                ? 'grid grid-cols-1 md:grid-cols-12 gap-3.5 items-stretch'
-                                : 'w-full'
-                            }
-                          >
-                            {/* The Interactive Hero Slider Mockup */}
-                            <div
-                              className={`${
-                                previewViewMode === 'full-layout' ? 'md:col-span-8' : 'w-full'
-                              } rounded-2xl overflow-hidden relative min-h-[250px] sm:min-h-[280px] bg-slate-950 p-6 flex flex-col justify-between text-white shadow-xl transition-all duration-700 group`}
-                            >
-                              {/* Ken Burns Animated Background Image */}
-                              <div
-                                key={`preview-bg-${previewSlideIndex}-${isUploadedFocused ? 'up' : 'saved'}`}
-                                className="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-out animate-ken-burns scale-100"
-                                style={
-                                  activeBg
-                                    ? { backgroundImage: `url(${activeBg})` }
-                                    : { backgroundImage: 'linear-gradient(135deg, #08152F 0%, #0D2044 50%, #2563EB 100%)' }
-                                }
-                              />
-
-                              {/* Light Sweep Beam across the banner image */}
-                              <div className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none animate-light-sweep z-10" />
-
-                              {!previewIsPure ? (
-                                <>
-                                  {/* Dark Gradient Overlay for text banner */}
-                                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-transparent pointer-events-none z-10" />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none z-10" />
-                                  <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-500/25 rounded-full blur-2xl pointer-events-none animate-pulse-glow z-10" />
-                                </>
-                              ) : (
-                                /* Clean bottom subtle vignette for pure graphic banners */
-                                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
-                              )}
-
-                              {/* Slide Prev/Next Overlay Buttons inside Mockup */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPreviewFocusUploaded(false);
-                                  setPreviewSlideIndex(
-                                    (prev) => (prev - 1 + previewSlides.length) % previewSlides.length
-                                  );
-                                }}
-                                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all z-30 shadow-md"
-                              >
-                                <ChevronLeft className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPreviewFocusUploaded(false);
-                                  setPreviewSlideIndex((prev) => (prev + 1) % previewSlides.length);
-                                }}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/60 hover:bg-slate-900 border border-white/20 text-white flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all z-30 shadow-md"
-                              >
-                                <ChevronRight className="w-4 h-4" />
-                              </button>
-
-                              {!previewIsPure ? (
-                                <>
-                                  {(() => {
-                                    const effectiveVisualType: SlideVisualType = isUploadedFocused
-                                      ? newSlideVisualType
-                                      : (editingSlideIndex === previewSlideIndex ? newSlideVisualType : (currentPreview?.visualType || (currentPreview?.image3D ? 'image' : '3d')));
-
-                                    const effectiveTextAnim: TextAnimationStyle = isUploadedFocused
-                                      ? newSlideTextAnimation
-                                      : (editingSlideIndex === previewSlideIndex ? newSlideTextAnimation : (currentPreview?.textAnimation || 'typewriter'));
-
-                                    const effectiveBadgeCenter = isUploadedFocused
-                                      ? newSlideBadgeCenter
-                                      : (editingSlideIndex === previewSlideIndex ? newSlideBadgeCenter : (currentPreview?.badgeCenterText || 'Verified 4K'));
-
-                                    const effectiveBadge1 = isUploadedFocused
-                                      ? newSlideBadge1
-                                      : (editingSlideIndex === previewSlideIndex ? newSlideBadge1 : (currentPreview?.badge1Text || 'Instant Deploy'));
-
-                                    const effectiveTerminal = isUploadedFocused
-                                      ? newSlideTerminalText
-                                      : (editingSlideIndex === previewSlideIndex ? newSlideTerminalText : (currentPreview?.terminalText || 'deploy --mode=scale'));
-
-                                    return (
-                                      <div className="relative z-20 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                                    <div className="sm:col-span-8 space-y-2 max-w-sm">
-                                      {/* Pop-in Animated Tag Badge */}
-                                      <div
-                                        key={`preview-tag-${previewSlideIndex}`}
-                                        className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold text-sky-200 animate-pop-in"
-                                      >
-                                        <Sparkles className="w-3 h-3 text-amber-300" />
-                                        <span>
-                                          {currentPreview?.tag || 'Eagle Eye Digital ΓÇó Featured'}
-                                        </span>
-                                      </div>
-
-                                      {/* Animated Color Gradient & Typewriter Title */}
-                                      <h4 className="text-base sm:text-xl font-black tracking-tight leading-tight min-h-[44px]">
-                                        <span className={`bg-clip-text text-transparent transition-all ${
-                                          effectiveTextAnim === 'gradient'
-                                            ? 'bg-gradient-to-r from-amber-200 via-rose-300 to-cyan-300 animate-gradient-text'
-                                            : effectiveTextAnim === 'fade'
-                                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-200 animate-pop-in'
-                                            : effectiveTextAnim === 'bounce'
-                                            ? 'bg-gradient-to-r from-white via-amber-200 to-cyan-300 animate-pop-in'
-                                            : effectiveTextAnim === 'none'
-                                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-100'
-                                            : 'bg-gradient-to-r from-white via-amber-200 to-cyan-300 animate-gradient-text'
-                                        }`}>
-                                          {effectiveTextAnim === 'typewriter'
-                                            ? previewTypedTitle
-                                            : (isUploadedFocused ? (newSlideTitle || 'Preview Headline') : (currentPreview?.title || 'Empower Your Growth With Intelligent Strategy'))}
-                                        </span>
-                                        {effectiveTextAnim === 'typewriter' && (
-                                          <span className="inline-block w-1 h-4 sm:h-5 ml-1 bg-amber-400 animate-pulse align-middle" />
-                                        )}
-                                      </h4>
-
-                                      <p
-                                        key={`preview-desc-${previewSlideIndex}`}
-                                        className="text-[11px] text-slate-200 line-clamp-2 leading-relaxed animate-pop-in"
-                                      >
-                                        {currentPreview?.description ||
-                                          'From performance marketing to ready-to-deploy UI assets and digital products.'}
-                                      </p>
-                                    </div>
-
-                                    {/* Floating Visual Based on Selected Visual Mode in Preview */}
-                                    <div className="sm:col-span-4 hidden sm:flex items-center justify-center">
-                                      {effectiveVisualType === 'image' ? (
-                                        <div
-                                          key={`preview-3d-${previewSlideIndex}`}
-                                          className="w-24 h-24 rounded-xl overflow-hidden p-1.5 bg-white/10 backdrop-blur-md border border-white/20 shadow-xl animate-pop-in animate-float"
-                                        >
-                                          <img
-                                            src={newSlideImage3D || active3D || activeBg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'}
-                                            alt="3D Preview"
-                                            className="w-full h-full object-cover rounded-lg"
-                                          />
-                                        </div>
-                                      ) : effectiveVisualType === 'text' ? (
-                                        <div className="w-28 h-24 rounded-xl bg-slate-950/95 border border-indigo-500/40 p-2 shadow-xl flex flex-col justify-between text-[8px] font-mono animate-pop-in animate-float">
-                                          <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-                                            <div className="flex gap-1">
-                                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
-                                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                                            </div>
-                                            <span className="text-[7px] text-slate-500">code</span>
-                                          </div>
-                                          <div className="text-emerald-400 font-bold truncate">
-                                            $ {effectiveTerminal}
-                                          </div>
-                                          <div className="text-amber-300 text-[7px] font-semibold">
-                                            ⚡ Strategy: +320%
-                                          </div>
-                                          <div className="text-emerald-400 text-[7px] border-t border-slate-800/80 pt-0.5">
-                                            ● ONLINE
-                                          </div>
-                                        </div>
-                                      ) : effectiveVisualType === 'hybrid' ? (
-                                        <div className="w-24 h-24 rounded-xl bg-blue-950/80 border border-blue-400/40 p-2 text-center flex flex-col items-center justify-center space-y-1 text-white shadow-xl animate-pop-in animate-float">
-                                          <span className="text-base">🔄</span>
-                                          <span className="text-[9px] font-extrabold text-sky-300">Hybrid Mode</span>
-                                          <span className="text-[7px] text-slate-300 leading-tight">Text ➔ 3D ➔ Pic</span>
-                                        </div>
-                                      ) : (
-                                        /* 3D Orb & Floating Badges */
-                                        <div
-                                          key={`preview-orb-${previewSlideIndex}`}
-                                          className="relative w-24 h-24 flex items-center justify-center animate-pop-in"
-                                        >
-                                          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-500/30 to-amber-400/20 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg animate-float">
-                                            <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
-                                          </div>
-                                          <div className="absolute -top-1 -left-1 px-2 py-0.5 rounded-lg bg-slate-900/80 border border-amber-400/40 text-[8px] font-black text-amber-300 animate-float flex items-center space-x-1">
-                                            <span>🚀</span>
-                                            <span>{effectiveBadge1 || 'Instant'}</span>
-                                          </div>
-                                          <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-lg bg-indigo-950/80 border border-sky-400/40 text-[7px] font-bold text-sky-300 animate-float-reverse">
-                                            {effectiveBadgeCenter || 'Verified 4K'}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-
-                                  {/* Buttons and Indicator Dots */}
-                                  <div className="relative z-20 pt-4 flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                      <span className="px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FFC629] to-[#E5B01F] text-[#08152F] font-black text-[10px] shadow-sm flex items-center space-x-1">
-                                        <span>Browse Products</span>
-                                        <ArrowRight className="w-3 h-3" />
-                                      </span>
-                                      <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white font-bold text-[10px] backdrop-blur-md">
-                                        Agency Services
-                                      </span>
-                                    </div>
-
-                                    {/* Clickable Slide Indicator Dots in Preview */}
-                                    <div className="flex items-center space-x-1.5 bg-slate-950/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15">
-                                      {previewSlides.map((_, idx) => (
-                                        <button
-                                          key={idx}
-                                          type="button"
-                                          onClick={() => {
-                                            setPreviewFocusUploaded(false);
-                                            setPreviewSlideIndex(idx);
-                                          }}
-                                          aria-label={`Slide ${idx + 1}`}
-                                          className={`transition-all duration-300 rounded-full ${
-                                            previewSlideIndex === idx && !isUploadedFocused
-                                              ? 'w-5 h-2 bg-[#FFC629] shadow-sm'
-                                              : 'w-2 h-2 bg-white/35 hover:bg-white'
-                                          }`}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                </>
-                              ) : (
-                                /* Pure Banner Display in Preview (Clean, unobstructed with animations) */
-                                <div className="relative z-20 h-full flex flex-col justify-between">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-amber-300 border border-white/20 flex items-center space-x-1.5 shadow-md">
-                                      <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin-slow" />
-                                      <span>
-                                        {isUploadedFocused
-                                          ? '✨ Live Uploaded Picture (আপনার ছবি অ্যানিমেশনসহ)'
-                                          : '✨ Clean Graphic Banner (ফুল ব্যানার মোড)'}
-                                      </span>
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center justify-between pt-16">
-                                    <span className="text-[10px] font-bold text-white/80 bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded-md border border-white/10">
-                                      Click opens: {newSlideLink || '/products'}
-                                    </span>
-
-                                    {/* Indicator Dots */}
-                                    <div className="flex items-center space-x-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20">
-                                      {previewSlides.map((_, idx) => (
-                                        <button
-                                          key={idx}
-                                          type="button"
-                                          onClick={() => {
-                                            setPreviewFocusUploaded(false);
-                                            setPreviewSlideIndex(idx);
-                                          }}
-                                          aria-label={`Slide ${idx + 1}`}
-                                          className={`transition-all duration-300 rounded-full ${
-                                            previewSlideIndex === idx && !isUploadedFocused
-                                              ? 'w-5 h-2 bg-gradient-to-r from-amber-400 to-amber-300 shadow-sm'
-                                              : 'w-2 h-2 bg-white/40 hover:bg-white'
-                                          }`}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Side Promo Posters Column (Rendered when in 'full-layout' view) */}
-                            {previewViewMode === 'full-layout' && (
-                              <div className="md:col-span-4 flex flex-col gap-2.5">
-                                {/* Card 1 */}
-                                <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 flex items-center justify-between overflow-hidden shadow-sm">
-                                  <div className="space-y-0.5">
-                                    <span className="text-[9px] uppercase font-bold text-sky-400">
-                                      {bentoForm.card1Tag || 'Growth Partner'}
-                                    </span>
-                                    <h5 className="text-xs font-black text-white line-clamp-1">
-                                      {bentoForm.card1Title || 'Social Growth & Media'}
-                                    </h5>
-                                    <span className="text-[9px] text-sky-400 font-bold block">
-                                      {bentoForm.card1LinkText || 'Explore Retainers ΓåÆ'}
-                                    </span>
-                                  </div>
-                                  <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
-                                    {bentoForm.card1Image ? (
-                                      <img src={bentoForm.card1Image} alt="Card 1" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="text-base font-black text-white">in</span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Card 2 */}
-                                <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 flex items-center justify-between overflow-hidden shadow-sm">
-                                  <div className="space-y-0.5">
-                                    <span className="text-[9px] uppercase font-bold text-amber-400">
-                                      {bentoForm.card2Tag || 'Ready Code'}
-                                    </span>
-                                    <h5 className="text-xs font-black text-white line-clamp-1">
-                                      {bentoForm.card2Title || 'Deployable UI Assets'}
-                                    </h5>
-                                    <span className="text-[9px] text-amber-400 font-bold block">
-                                      Get Products ΓåÆ
-                                    </span>
-                                  </div>
-                                  <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
-                                    {bentoForm.card2Image ? (
-                                      <img src={bentoForm.card2Image} alt="Card 2" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="text-base font-black text-white">ui</span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Card 3 */}
-                                <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 flex items-center justify-between overflow-hidden shadow-sm">
-                                  <div className="space-y-0.5">
-                                    <span className="text-[9px] uppercase font-bold text-emerald-400">
-                                      {bentoForm.card3Tag || 'Store'}
-                                    </span>
-                                    <h5 className="text-xs font-black text-white line-clamp-1">
-                                      {bentoForm.card3Title || 'Official Digital Store'}
-                                    </h5>
-                                    <span className="text-[9px] text-emerald-400 font-bold block">
-                                      {bentoForm.card3LinkText || 'Shop Store ΓåÆ'}
-                                    </span>
-                                  </div>
-                                  <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0 flex items-center justify-center">
-                                    {bentoForm.card3Image ? (
-                                      <img src={bentoForm.card3Image} alt="Card 3" className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="text-base font-black text-white">shop</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* ACTIVE HERO SLIDER BANNERS LIST */}
+                                  {/* ACTIVE HERO SLIDER BANNERS LIST */}
                   <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
                     <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-3">
                       <div>
@@ -6127,9 +5600,12 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-
                 </div>
 
+                {/* Right Column: Interactive Live Website Preview Pane (Sticky & Pinned) */}
+                <div className="lg:col-span-6 sticky top-2 sm:top-4 self-start z-20">
+                  {renderInteractiveWebsitePreviewPane()}
+                </div>
               </div>
             )}
 
@@ -6137,8 +5613,10 @@ export const AdminDashboardPage: React.FC = () => {
             {bentoActiveTab === 'posters' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 
-                {/* Left Column: + UPLOAD SIDE PROMO POSTER */}
-                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
+                {/* Left Column: Form & Current Posters */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* + UPLOAD SIDE PROMO POSTER */}
+                  <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-5 shadow-sm">
                   <div>
                     <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider flex items-center space-x-1.5 text-blue-600">
                       <Plus className="w-4 h-4 text-blue-600" />
@@ -6340,8 +5818,8 @@ export const AdminDashboardPage: React.FC = () => {
                   </form>
                 </div>
 
-                {/* Right Column: CURRENT SIDE POSTERS LAYOUT (Pinned) */}
-                <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm sticky top-2 sm:top-4 self-start z-20 max-h-[calc(100vh-5.5rem)] overflow-y-auto">
+                                  {/* Right Column: CURRENT SIDE POSTERS LAYOUT (Pinned) */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
                   <div>
                     <h3 className="font-black text-slate-800 text-xs uppercase tracking-wider">
                       CURRENT SIDE POSTERS LAYOUT
@@ -6482,8 +5960,13 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
                     )}
                   </div>
+                  </div>
                 </div>
 
+                {/* Right Column: Interactive Live Website Preview Pane (Sticky & Pinned) */}
+                <div className="lg:col-span-6 sticky top-2 sm:top-4 self-start z-20">
+                  {renderInteractiveWebsitePreviewPane()}
+                </div>
               </div>
             )}
 
