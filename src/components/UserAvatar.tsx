@@ -4,8 +4,12 @@ import { User as UserIcon } from 'lucide-react';
 export interface UserAvatarProps {
   user?: {
     photoURL?: string | null;
+    avatarUrl?: string | null;
+    avatar?: string | null;
+    photo?: string | null;
     email?: string | null;
     displayName?: string | null;
+    providerData?: Array<{ photoURL?: string | null; providerId?: string }> | null;
   } | null;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
@@ -34,25 +38,65 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   user,
   size = 'sm',
   className = '',
-  fallbackBg = 'bg-[#36D6E7] text-[#101828]',
+  fallbackBg = 'bg-[#FFC629] text-[#08152F]',
   rounded = 'full',
   showBorder = false,
 }) => {
   const [imgError, setImgError] = useState(false);
 
-  // Compute primary image source
   const rawEmail = (user?.email || '').trim().toLowerCase();
-  
-  // 1. Direct photoURL from Firebase Auth (Google Sign-In or manual avatar)
-  // 2. Unavatar service for Gmail/Google/Gravatar profile picture by email
-  const directPhoto = user?.photoURL?.trim() || null;
-  const emailAvatar = rawEmail ? `https://unavatar.io/${encodeURIComponent(rawEmail)}` : null;
-  const avatarSrc = directPhoto || emailAvatar;
 
-  // Reset error state if user changes
+  // Resolve best candidate photo URL across all sources
+  const resolvePhotoUrl = (): string | null => {
+    // 1. Direct Firebase Auth photoURL
+    if (user?.photoURL && user.photoURL.trim().length > 0) {
+      return user.photoURL.trim();
+    }
+
+    // 2. avatarUrl / avatar field (from Firestore user doc or admin profile)
+    const anyUser = user as any;
+    if (anyUser?.avatarUrl && typeof anyUser.avatarUrl === 'string' && anyUser.avatarUrl.trim()) {
+      return anyUser.avatarUrl.trim();
+    }
+    if (anyUser?.avatar && typeof anyUser.avatar === 'string' && anyUser.avatar.trim()) {
+      return anyUser.avatar.trim();
+    }
+    if (anyUser?.photo && typeof anyUser.photo === 'string' && anyUser.photo.trim()) {
+      return anyUser.photo.trim();
+    }
+
+    // 3. Provider data (e.g. Google Sign-In provider photo)
+    if (user?.providerData && Array.isArray(user.providerData)) {
+      const providerWithPhoto = user.providerData.find((p) => p?.photoURL && p.photoURL.trim());
+      if (providerWithPhoto?.photoURL) {
+        return providerWithPhoto.photoURL.trim();
+      }
+    }
+
+    // 4. Local storage cached photo for this user/email
+    if (rawEmail) {
+      try {
+        const cached = localStorage.getItem(`eed_avatar_${rawEmail}`);
+        if (cached && cached.trim()) return cached.trim();
+      } catch {}
+    }
+
+    try {
+      const genericCached = localStorage.getItem('eed_user_avatar');
+      if (genericCached && genericCached.trim() && user?.email) {
+        return genericCached.trim();
+      }
+    } catch {}
+
+    return null;
+  };
+
+  const avatarSrc = resolvePhotoUrl();
+
+  // Reset error state if photo source or email changes
   useEffect(() => {
     setImgError(false);
-  }, [user?.photoURL, user?.email]);
+  }, [avatarSrc, rawEmail]);
 
   const sizeClass = SIZE_MAP[size] || SIZE_MAP.sm;
   const iconSizeClass = ICON_SIZE_MAP[size] || ICON_SIZE_MAP.sm;
@@ -64,7 +108,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     .charAt(0)
     .toUpperCase();
 
-  // If avatar URL exists and hasn't failed to load
+  // If a valid avatar URL exists and hasn't failed to load
   if (avatarSrc && !imgError) {
     return (
       <div

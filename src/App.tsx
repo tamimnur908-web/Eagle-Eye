@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { AuthProvider } from './context/AuthContext';
 import { AuthModalProvider } from './context/AuthModalContext';
 import { CartProvider } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -70,10 +71,10 @@ function AppLayout() {
             path="*"
             element={
               <div className="py-24 text-center space-y-4">
-                <h1 className="text-5xl font-black text-[#246BFD]">404</h1>
-                <h2 className="text-xl font-bold text-[#101828]">Page Not Found</h2>
+                <h1 className="text-5xl font-black text-[#2563EB]">404</h1>
+                <h2 className="text-xl font-bold text-[#08152F]">Page Not Found</h2>
                 <p className="text-xs text-[#667085]">The requested resource could not be found.</p>
-                <a href="/" className="inline-block px-5 py-2.5 bg-[#101828] hover:bg-[#1E293B] text-white text-xs font-semibold rounded-xl shadow-sm transition-colors">
+                <a href="/" className="inline-block px-5 py-2.5 bg-[#08152F] hover:bg-[#1E293B] text-white text-xs font-semibold rounded-xl shadow-sm transition-colors">
                   Return Home
                 </a>
               </div>
@@ -100,7 +101,9 @@ export function App() {
           <Router>
             <AuthModalProvider>
               <CartProvider>
-                <AppLayout />
+                <WishlistProvider>
+                  <AppLayout />
+                </WishlistProvider>
               </CartProvider>
             </AuthModalProvider>
           </Router>

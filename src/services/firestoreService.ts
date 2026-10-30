@@ -1334,3 +1334,34 @@ export const getAdminByUidOrEmail = async (
   return null;
 };
 
+// ================= USER WISHLIST =================
+export const getUserWishlist = async (userId: string): Promise<DigitalProduct[]> => {
+  if (!userId) return [];
+  try {
+    const snap = await getDoc(doc(db, 'wishlists', userId));
+    if (snap.exists()) {
+      const data = snap.data();
+      return (data.items || []) as DigitalProduct[];
+    }
+    return [];
+  } catch (err) {
+    console.error('Error fetching user wishlist:', err);
+    return [];
+  }
+};
+
+export const saveUserWishlist = async (userId: string, items: DigitalProduct[]): Promise<void> => {
+  if (!userId) return;
+  try {
+    await setDoc(doc(db, 'wishlists', userId), {
+      userId,
+      items,
+      updatedAt: Date.now()
+    }, { merge: true });
+  } catch (err) {
+    console.error('Error persisting user wishlist:', err);
+    throw err;
+  }
+};
+
+

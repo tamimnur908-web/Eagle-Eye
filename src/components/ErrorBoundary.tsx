@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h1 className="text-xl font-black text-[#101828] tracking-tight">
+            <h1 className="text-xl font-black text-[#08152F] tracking-tight">
               Something went wrong
             </h1>
             <p className="text-xs text-[#667085] leading-relaxed">
@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="px-4 py-2.5 bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
+                className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Reload Page</span>

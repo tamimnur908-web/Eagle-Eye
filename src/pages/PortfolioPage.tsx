@@ -30,10 +30,10 @@ export const PortfolioPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <span className="text-xs font-bold uppercase tracking-widest text-[#246BFD]">
+        <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
           Proven Impact
         </span>
-        <h1 className="text-4xl font-extrabold text-[#101828]">Client Portfolio</h1>
+        <h1 className="text-4xl font-extrabold text-[#08152F]">Client Portfolio</h1>
         <p className="text-sm text-[#667085] leading-relaxed">
           Explore genuine creative and engineering deliverables completed for growing brands. We uphold strict transparency—no fabricated case studies or dummy metrics.
         </p>
@@ -47,8 +47,8 @@ export const PortfolioPage: React.FC = () => {
               onClick={() => setFilter(cat)}
               className={`text-xs px-4 py-2 rounded-lg border font-semibold transition-colors ${
                 filter === cat
-                  ? 'bg-[#246BFD] text-white border-[#246BFD]'
-                  : 'bg-white text-[#667085] border-slate-200 hover:text-[#101828] shadow-sm'
+                  ? 'bg-[#2563EB] text-white border-[#2563EB]'
+                  : 'bg-white text-[#667085] border-slate-200 hover:text-[#08152F] shadow-sm'
               }`}
             >
               {cat}
@@ -68,7 +68,7 @@ export const PortfolioPage: React.FC = () => {
           {filtered.map((item) => (
             <div
               key={item.id}
-              className="bg-white border border-slate-200 rounded-xl overflow-hidden group hover:border-[#246BFD] transition-all shadow-sm hover:shadow-md"
+              className="bg-white border border-slate-200 rounded-xl overflow-hidden group hover:border-[#2563EB] transition-all shadow-sm hover:shadow-md"
             >
               <div className="h-48 overflow-hidden bg-slate-100">
                 <img
@@ -78,17 +78,17 @@ export const PortfolioPage: React.FC = () => {
                 />
               </div>
               <div className="p-6 space-y-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#246BFD]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">
                   {item.category}
                 </span>
-                <h3 className="text-lg font-bold text-[#101828]">{item.title}</h3>
+                <h3 className="text-lg font-bold text-[#08152F]">{item.title}</h3>
                 <p className="text-xs text-[#667085] line-clamp-3 leading-relaxed">{item.description}</p>
                 {item.liveUrl && (
                   <a
                     href={item.liveUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1 text-xs font-bold text-[#246BFD] hover:text-[#1A56DB] hover:underline pt-2 transition-colors"
+                    className="inline-flex items-center space-x-1 text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8] hover:underline pt-2 transition-colors"
                   >
                     <span>View Project</span>
                     <ExternalLink className="w-3 h-3" />

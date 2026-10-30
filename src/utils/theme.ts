@@ -1,13 +1,13 @@
 import { ThemeSettings } from '../types';
 
 export const defaultThemeSettings: ThemeSettings = {
-  primaryColor: '#246BFD',       // Cobalt Blue
-  secondaryColor: '#101828',     // Charcoal
-  accentColor: '#36D6E7',        // Cyan
-  pageBgColor: '#F8FAFC',        // Clean Light Neutral
-  cardBgColor: '#FFFFFF',        // Pure White Surface
-  textPrimaryColor: '#101828',   // Strong Dark Charcoal
-  textSecondaryColor: '#667085', // Balanced Muted Neutral
+  primaryColor: '#2563EB',       // Electric Blue: buttons, active links, primary actions
+  secondaryColor: '#08152F',     // Deep Navy: corporate dark sections, footer, authority
+  accentColor: '#FFC629',        // Golden Yellow: subtle accent, badges, ratings
+  pageBgColor: '#F3F5F9',        // Light Gray: clean, professional page background
+  cardBgColor: '#FFFFFF',        // Pure White: crisp, readable surface
+  textPrimaryColor: '#08152F',   // Deep Navy: high-contrast, premium corporate text
+  textSecondaryColor: '#667085', // Muted Text: readable descriptions & metadata
   btnTextColor: '#FFFFFF',       // Crisp White Button Text
 };
 

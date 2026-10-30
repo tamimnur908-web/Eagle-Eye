@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { DigitalProduct, CartItem } from '../types';
 import { useAuth } from './AuthContext';
-import { useAuthModal } from './AuthModalContext';
+import { useAuthModal, savePendingAction, getPendingAction, clearPendingAction } from './AuthModalContext';
 
 interface CartContextType {
   cart: CartItem[];
@@ -40,7 +40,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       try {
         const saved = localStorage.getItem(`eed_cart_${currentUser.uid}`);
-        setCart(saved ? JSON.parse(saved) : []);
+        let currentCart: CartItem[] = saved ? JSON.parse(saved) : [];
+
+        // Check for pending cart action from guest session
+        const pending = getPendingAction();
+        if (pending && pending.type === 'cart' && pending.data) {
+          const pendingProduct = pending.data as DigitalProduct;
+          if (!currentCart.some((item) => item.product.id === pendingProduct.id)) {
+            currentCart = [...currentCart, { product: pendingProduct, quantity: 1 }];
+          }
+          clearPendingAction();
+        }
+
+        setCart(currentCart);
+        localStorage.setItem(`eed_cart_${currentUser.uid}`, JSON.stringify(currentCart));
       } catch {
         setCart([]);
       }
@@ -56,10 +69,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (product: DigitalProduct): boolean => {
     if (!currentUser) {
+      savePendingAction({
+        type: 'cart',
+        data: product,
+        redirectPath: `/products/${product.slug || product.id}`,
+      });
       openLoginModal({
-        title: 'Login Required',
-        message: 'Please log in to your account to add products to your cart and continue shopping.',
-        redirectPath: `/products/${product.slug}` || '/products',
+        actionType: 'cart',
+        redirectPath: `/products/${product.slug || product.id}`,
       });
       return false;
     }

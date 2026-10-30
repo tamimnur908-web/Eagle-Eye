@@ -3,26 +3,26 @@
 @tailwind utilities;
 
 :root {
-  /* Modern Tech Brand Color Palette (Eagle Eye Digital) */
-  --color-primary: #246BFD;        /* Cobalt Blue: primary brand & interaction color */
-  --color-secondary: #101828;      /* Charcoal: dark surfaces, headers, footers, authority */
-  --color-accent: #36D6E7;         /* Cyan: accent gradients, glow, highlights, borders */
-  --color-page-bg: #F8FAFC;        /* Light clean neutral background */
-  --color-card-bg: #FFFFFF;        /* Surface / card background */
-  --color-text-primary: #101828;   /* High-contrast readable dark text */
+  /* Eagle Eye Digital Official Brand Palette */
+  --color-primary: #2563EB;        /* Electric Blue: primary brand & interaction color */
+  --color-secondary: #08152F;      /* Deep Navy: dark surfaces, headers, footers, authority */
+  --color-accent: #FFC629;         /* Golden Yellow: subtle accent, badges, ratings */
+  --color-page-bg: #F3F5F9;        /* Light Gray: clean, professional page background */
+  --color-card-bg: #FFFFFF;        /* Pure White Surface */
+  --color-text-primary: #08152F;   /* High-contrast readable Deep Navy text */
   --color-text-secondary: #667085; /* Readable muted text */
   --color-btn-text: #FFFFFF;       /* Crisp white button text */
   --color-border: #E2E8F0;         /* Neutral border */
 
   /* Computed Shades & Tints (Hover, Subtle, Highlights) */
-  --color-primary-hover: #1A56DB;
-  --color-primary-light: #528BFF;
+  --color-primary-hover: #1D4ED8;
+  --color-primary-light: #60A5FA;
   --color-primary-subtle: #EFF6FF;
-  --color-secondary-dark: #0B101B;
-  --color-secondary-surface: #1E293B;
-  --color-accent-hover: #21C5D8;
-  --color-accent-light: #7CE5F0;
-  --color-accent-subtle: #E6FCFE;
+  --color-secondary-dark: #050E20;
+  --color-secondary-surface: #0D2044;
+  --color-accent-hover: #E5B01F;
+  --color-accent-light: #FFD359;
+  --color-accent-subtle: #FFFBEB;
 
   /* Backward-compatible mapping */
   --color-background: var(--color-page-bg);
@@ -71,7 +71,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary, #246BFD);
+  background: var(--color-primary, #2563EB);
 }
 
 /* Animations: Ken Burns, Float, Glow, Sweep */

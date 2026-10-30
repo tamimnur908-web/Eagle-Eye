@@ -100,11 +100,11 @@ export const ServicesPage: React.FC = () => {
       
       {/* 1. Header Section */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#246BFD] text-xs font-bold tracking-wide uppercase shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-[#36D6E7]" />
+        <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-bold tracking-wide uppercase shadow-xs">
+          <Sparkles className="w-3.5 h-3.5 text-[#FFC629]" />
           <span>Strategic Agency Capabilities</span>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-black text-[#101828] tracking-tight">
+        <h1 className="text-3xl sm:text-5xl font-black text-[#08152F] tracking-tight">
           Full-Spectrum Agency Services
         </h1>
         <p className="text-sm sm:text-base text-[#667085] leading-relaxed max-w-2xl mx-auto">
@@ -124,7 +124,7 @@ export const ServicesPage: React.FC = () => {
               placeholder="Search services or subservices..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#F8FAFC] border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-[#101828] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-all placeholder:text-slate-400"
+              className="w-full bg-[#F8FAFC] border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-all placeholder:text-slate-400"
             />
           </div>
 
@@ -139,15 +139,15 @@ export const ServicesPage: React.FC = () => {
                   onClick={() => setSelectedCategory(cat)}
                   className={`text-xs px-4 py-2 rounded-xl font-bold transition-all flex items-center space-x-2 ${
                     isSelected
-                      ? 'bg-[#101828] text-white shadow-sm ring-1 ring-[#101828]'
-                      : 'bg-[#F8FAFC] text-[#667085] border border-slate-200/80 hover:bg-slate-100 hover:text-[#101828]'
+                      ? 'bg-[#08152F] text-white shadow-sm ring-1 ring-[#08152F]'
+                      : 'bg-[#F8FAFC] text-[#667085] border border-slate-200/80 hover:bg-slate-100 hover:text-[#08152F]'
                   }`}
                 >
                   <span>{cat}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                       isSelected
-                        ? 'bg-[#246BFD] text-white'
+                        ? 'bg-[#2563EB] text-white'
                         : 'bg-slate-200 text-slate-600'
                     }`}
                   >
@@ -164,7 +164,7 @@ export const ServicesPage: React.FC = () => {
         {(search.trim() || selectedCategory !== 'All') && (
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-[#667085]">
             <div className="flex items-center space-x-2">
-              <Filter className="w-3.5 h-3.5 text-[#246BFD]" />
+              <Filter className="w-3.5 h-3.5 text-[#2563EB]" />
               <span>
                 Showing <strong>{filteredServices.length}</strong> of <strong>{services.length}</strong> services
                 {selectedCategory !== 'All' && ` in "${selectedCategory}"`}
@@ -176,7 +176,7 @@ export const ServicesPage: React.FC = () => {
                 setSearch('');
                 setSelectedCategory('All');
               }}
-              className="text-[#246BFD] font-bold hover:underline"
+              className="text-[#2563EB] font-bold hover:underline"
             >
               Reset Filters
             </button>
@@ -201,7 +201,7 @@ export const ServicesPage: React.FC = () => {
             return (
               <div
                 key={service.id}
-                className="bg-white border border-slate-200 hover:border-[#246BFD] rounded-2xl p-6 transition-all group flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-1"
+                className="bg-white border border-slate-200 hover:border-[#2563EB] rounded-2xl p-6 transition-all group flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-1"
               >
                 <div className="space-y-4">
                   
@@ -215,21 +215,21 @@ export const ServicesPage: React.FC = () => {
                         loading="lazy"
                       />
                       <div className="absolute top-2.5 left-2.5">
-                        <span className="text-[10px] font-bold tracking-wider uppercase text-[#101828] bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-sm border border-slate-200/60">
+                        <span className="text-[10px] font-bold tracking-wider uppercase text-[#08152F] bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-sm border border-slate-200/60">
                           {service.category}
                         </span>
                       </div>
-                      <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-lg bg-white/95 backdrop-blur-sm border border-slate-200/60 text-[#246BFD] flex items-center justify-center shadow-sm">
+                      <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-lg bg-white/95 backdrop-blur-sm border border-slate-200/60 text-[#2563EB] flex items-center justify-center shadow-sm">
                         <IconComponent className="w-4 h-4" />
                       </div>
                     </div>
                   ) : (
                     /* Category Pill & Icon (Default Clean Layout) */
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold tracking-wider uppercase text-[#246BFD] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
+                      <span className="text-[10px] font-bold tracking-wider uppercase text-[#2563EB] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
                         {service.category}
                       </span>
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 group-hover:bg-[#246BFD] group-hover:border-[#246BFD] text-[#246BFD] group-hover:text-white flex items-center justify-center transition-all shadow-xs">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] text-[#2563EB] group-hover:text-white flex items-center justify-center transition-all shadow-xs">
                         <IconComponent className="w-5 h-5" />
                       </div>
                     </div>
@@ -237,7 +237,7 @@ export const ServicesPage: React.FC = () => {
 
                   {/* Title & Short Description */}
                   <div>
-                    <h3 className="text-xl font-bold text-[#101828] group-hover:text-[#246BFD] transition-colors leading-snug">
+                    <h3 className="text-xl font-bold text-[#08152F] group-hover:text-[#2563EB] transition-colors leading-snug">
                       <Link to={`/services/${service.slug}`}>{service.name}</Link>
                     </h3>
                     <p className="text-xs text-[#667085] mt-2 line-clamp-3 leading-relaxed">
@@ -249,10 +249,10 @@ export const ServicesPage: React.FC = () => {
                   {subservicesList.length > 0 && (
                     <div className="pt-3 border-t border-slate-100">
                       <div className="flex items-center justify-between text-[11px] mb-2">
-                        <span className="font-bold text-[#101828] uppercase tracking-wider text-[10px]">
+                        <span className="font-bold text-[#08152F] uppercase tracking-wider text-[10px]">
                           Included Subservices:
                         </span>
-                        <span className="text-[10px] font-bold text-[#246BFD] bg-blue-50 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full">
                           {subservicesList.length} Specialized Areas
                         </span>
                       </div>
@@ -267,7 +267,7 @@ export const ServicesPage: React.FC = () => {
                           </span>
                         ))}
                         {subservicesList.length > 3 && (
-                          <span className="text-[10px] text-[#246BFD] font-bold px-1 py-0.5">
+                          <span className="text-[10px] text-[#2563EB] font-bold px-1 py-0.5">
                             +{subservicesList.length - 3} more
                           </span>
                         )}
@@ -300,7 +300,7 @@ export const ServicesPage: React.FC = () => {
                       </span>
                       <span
                         className={`text-sm font-black ${
-                          pricing.hasExactPrice ? 'text-[#101828]' : 'text-[#246BFD]'
+                          pricing.hasExactPrice ? 'text-[#08152F]' : 'text-[#2563EB]'
                         }`}
                       >
                         {pricing.displayText}
@@ -315,7 +315,7 @@ export const ServicesPage: React.FC = () => {
                   <div className="flex items-center space-x-2 pt-1">
                     <Link
                       to={`/services/${service.slug}`}
-                      className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-[#246BFD] text-[#101828] hover:text-white font-bold text-xs transition-colors flex items-center justify-center space-x-1"
+                      className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-[#2563EB] text-[#08152F] hover:text-white font-bold text-xs transition-colors flex items-center justify-center space-x-1"
                     >
                       <span>Explore Scope</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -351,9 +351,9 @@ export const ServicesPage: React.FC = () => {
       )}
 
       {/* 4. Strategic Multi-Service Inquiry Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#101828] via-[#1E293B] to-[#0A0F1D] border border-slate-800 p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#08152F] via-[#1E293B] to-[#0A0F1D] border border-slate-800 p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
         <div className="max-w-2xl space-y-4 relative z-10">
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#36D6E7]">
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#FFC629]">
             Tailored Commercial Retainers
           </span>
           <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
@@ -365,7 +365,7 @@ export const ServicesPage: React.FC = () => {
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <Link
               to="/contact"
-              className="px-6 py-3 rounded-xl bg-[#246BFD] hover:bg-[#1A56DB] text-white font-bold text-xs sm:text-sm transition-all shadow-md shadow-[#246BFD]/25"
+              className="px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm transition-all shadow-md shadow-[#2563EB]/25"
             >
               Request Custom Quotation
             </Link>
@@ -379,7 +379,7 @@ export const ServicesPage: React.FC = () => {
         </div>
 
         {/* Decorative background glow */}
-        <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-[#246BFD]/20 rounded-full blur-3xl pointer-events-none" />
+        
       </div>
 
     </div>

@@ -28,7 +28,8 @@ import {
   HelpCircle,
   MessageCircle,
   Clock,
-  ArrowUpRight
+  ArrowUpRight,
+  Heart
 } from 'lucide-react';
 import {
   getFeaturedServices,
@@ -50,6 +51,7 @@ import {
   TextAnimationStyle
 } from '../types';
 import { LeadForm } from '../components/LeadForm';
+import { useWishlist } from '../context/WishlistContext';
 import { getServicePricingDisplay, getProductPricingDisplay } from '../utils/pricing';
 import { WHATSAPP_NUMBER, db } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -85,6 +87,7 @@ export const HomePage: React.FC = () => {
   const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   // Real-time listener for homepage bento & slides
   useEffect(() => {
@@ -202,14 +205,14 @@ export const HomePage: React.FC = () => {
   }, [currentSlide, activeSlide.title, bento.heroTitle, isPureBanner, textAnimation, animSpeed]);
 
   return (
-    <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 space-y-14 sm:space-y-20">
+    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-16 sm:space-y-20">
       
       {/* ================= 1. TOP HERO BENTO GRID ================= */}
       <section className="w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
           
           {/* Main Large Hero Banner with Smooth Sliding Carousel */}
-          <div className="lg:col-span-8 rounded-3xl overflow-hidden relative min-h-[380px] sm:min-h-[460px] bg-[#101828] flex flex-col justify-between text-white shadow-2xl group transition-all duration-700 border border-[#1E293B]">
+          <div className="lg:col-span-8 rounded-2xl overflow-hidden relative min-h-[380px] sm:min-h-[460px] bg-[#08152F] flex flex-col justify-between text-white shadow-xs group transition-all duration-500 border border-[#0D2044]">
             
             {/* Animated Background Image */}
             <div
@@ -220,22 +223,14 @@ export const HomePage: React.FC = () => {
                   ? { backgroundImage: `url(${activeSlide.bgImage})` }
                   : bento.heroBgImage
                   ? { backgroundImage: `url(${bento.heroBgImage})` }
-                  : { backgroundImage: 'linear-gradient(135deg, #101828 0%, #162033 50%, #0B101B 100%)' }
+                  : { backgroundColor: '#08152F' }
               }
             />
 
-            {/* Glossy Light Sweep Beam */}
-            <div className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none animate-light-sweep z-10" />
-
             {!isPureBanner ? (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#101828]/95 via-[#101828]/70 to-transparent pointer-events-none z-10" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#101828]/90 via-transparent to-black/30 pointer-events-none z-10" />
-                <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-[#246BFD]/25 rounded-full blur-3xl pointer-events-none animate-pulse-glow z-10" />
-                <div className="absolute -top-16 right-1/4 w-60 h-60 bg-[#162033]/40 rounded-full blur-2xl pointer-events-none animate-pulse-glow z-10" />
-              </>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#08152F] via-[#08152F]/90 to-[#08152F]/50 pointer-events-none z-10" />
             ) : (
-              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none z-10" />
+              <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#08152F]/80 to-transparent pointer-events-none z-10" />
             )}
 
             {isPureBanner && (
@@ -252,7 +247,7 @@ export const HomePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#101828]/70 hover:bg-[#101828] border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-30 backdrop-blur-md shadow-xl"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#08152F]/70 hover:bg-[#08152F] border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-30 backdrop-blur-md shadow-xl"
                   aria-label="Previous Slide"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -260,7 +255,7 @@ export const HomePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#101828]/70 hover:bg-[#101828] border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-30 backdrop-blur-md shadow-xl"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[#08152F]/70 hover:bg-[#08152F] border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-30 backdrop-blur-md shadow-xl"
                   aria-label="Next Slide"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -270,53 +265,38 @@ export const HomePage: React.FC = () => {
 
             {/* Content Area */}
             {!isPureBanner ? (
-              <div className="p-5 sm:p-8 md:p-12 flex flex-col justify-between h-full relative z-20">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 items-center">
-                  <div className="md:col-span-8 space-y-3 sm:space-y-4 max-w-xl">
+              <div className="p-6 sm:p-10 md:p-12 flex flex-col justify-between h-full relative z-20">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-center">
+                  <div className="md:col-span-8 space-y-4 max-w-xl">
                     
                     <div
                       key={`tag-${currentSlide}`}
-                      className="inline-flex items-center space-x-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[11px] sm:text-xs font-bold text-sky-200 animate-pop-in shadow-lg"
+                      className="inline-flex items-center space-x-2 px-3 py-1 sm:px-3.5 sm:py-1 rounded-full bg-white/10 border border-white/15 text-[11px] sm:text-xs font-semibold text-slate-200"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-[#36D6E7] animate-spin-slow shrink-0" />
-                      <span className="bg-gradient-to-r from-[#36D6E7] via-sky-200 to-white bg-clip-text text-transparent truncate">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FFC629]" />
+                      <span className="truncate">
                         {activeSlide.tag || bento.heroTag || 'Eagle Eye Digital • Growth Engine'}
                       </span>
                     </div>
 
-                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight min-h-0 sm:min-h-[84px] md:min-h-[116px]">
-                      <span
-                        key={`title-${currentSlide}-${textAnimation}`}
-                        className={`bg-clip-text text-transparent drop-shadow-sm transition-all ${
-                          textAnimation === 'gradient'
-                            ? 'bg-gradient-to-r from-[#36D6E7] via-sky-200 to-white animate-gradient-text'
-                            : textAnimation === 'fade'
-                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-200 animate-pop-in'
-                            : textAnimation === 'bounce'
-                            ? 'bg-gradient-to-r from-white via-[#36D6E7] to-sky-200 animate-pop-in'
-                            : textAnimation === 'none'
-                            ? 'bg-gradient-to-r from-white via-slate-100 to-sky-100'
-                            : 'bg-gradient-to-r from-white via-[#36D6E7] to-sky-200 animate-gradient-text'
-                        }`}
-                      >
-                        {textAnimation === 'typewriter'
-                          ? typedTitle
-                          : activeSlide.title || bento.heroTitle}
-                      </span>
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight min-h-0 sm:min-h-[84px] md:min-h-[110px]">
+                      {textAnimation === 'typewriter'
+                        ? typedTitle
+                        : activeSlide.title || bento.heroTitle}
                       {textAnimation === 'typewriter' && (
-                        <span className="inline-block w-1 h-6 sm:h-9 ml-1.5 bg-[#36D6E7] animate-pulse align-middle" />
+                        <span className="inline-block w-1 h-6 sm:h-9 ml-1.5 bg-[#FFC629] animate-pulse align-middle" />
                       )}
                     </h1>
 
                     <p
                       key={`desc-${currentSlide}`}
-                      className="text-xs sm:text-base text-slate-200 leading-relaxed max-w-lg animate-pop-in line-clamp-3 sm:line-clamp-none"
+                      className="text-xs sm:text-sm md:text-base text-slate-300 leading-relaxed max-w-lg line-clamp-3 sm:line-clamp-none font-normal"
                     >
                       {activeSlide.description || bento.heroDescription}
                     </p>
                   </div>
 
-                  {/* 3D Floating Picture / Interactive Graphic */}
+                  {/* Clean Executive Visual Desk / Preview */}
                   <div className="md:col-span-4 hidden md:flex items-center justify-center relative">
                     {(() => {
                       const explicitType = activeSlide.visualType;
@@ -333,7 +313,7 @@ export const HomePage: React.FC = () => {
                         return (
                           <div
                             key={`visual-img-${currentSlide}-${hybridModeIndex}`}
-                            className="relative w-48 h-48 lg:w-56 lg:h-56 rounded-2xl overflow-hidden p-2.5 bg-white/10 backdrop-blur-md border border-white/25 shadow-2xl animate-pop-in animate-float group"
+                            className="relative w-48 h-48 lg:w-56 lg:h-56 rounded-2xl overflow-hidden p-2 bg-[#050E20]/90 border border-slate-800 shadow-xl"
                           >
                             <img
                               src={
@@ -342,9 +322,8 @@ export const HomePage: React.FC = () => {
                                 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'
                               }
                               alt="Feature Graphic"
-                              className="w-full h-full object-cover rounded-xl shadow-inner group-hover:scale-105 transition-transform duration-500"
+                              className="w-full h-full object-cover rounded-xl"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-tr from-[#246BFD]/15 via-transparent to-white/20 pointer-events-none rounded-2xl" />
                           </div>
                         );
                       }
@@ -353,38 +332,38 @@ export const HomePage: React.FC = () => {
                         return (
                           <div
                             key={`visual-text-${currentSlide}-${hybridModeIndex}`}
-                            className="relative w-52 h-48 lg:w-60 lg:h-52 rounded-2xl bg-[#101828]/95 backdrop-blur-xl border border-[#246BFD]/40 shadow-2xl p-3.5 flex flex-col justify-between animate-pop-in animate-float"
+                            className="relative w-52 h-48 lg:w-60 lg:h-52 rounded-2xl bg-[#050E20]/95 border border-slate-800 shadow-xl p-4 flex flex-col justify-between"
                           >
                             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                               <div className="flex items-center space-x-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
-                                <span className="w-2.5 h-2.5 rounded-full bg-[#36D6E7] inline-block" />
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                                <span className="w-2 h-2 rounded-full bg-[#FFC629] inline-block" />
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                               </div>
-                              <span className="text-[9px] font-mono font-bold text-slate-400 flex items-center gap-1">
-                                <Terminal className="w-3 h-3 text-[#246BFD]" />
+                              <span className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1">
+                                <Terminal className="w-3 h-3 text-[#2563EB]" />
                                 eagle:agency
                               </span>
                             </div>
 
-                            <div className="font-mono text-[11px] space-y-1.5 text-left py-1">
+                            <div className="font-mono text-xs space-y-1.5 text-left py-1">
                               <div className="text-emerald-400 font-bold flex items-center space-x-1">
                                 <span className="text-slate-500">$</span>
-                                <span className="text-[#36D6E7]">
+                                <span className="text-white">
                                   {activeSlide.terminalText || 'deploy --agency=scale'}
                                 </span>
                               </div>
-                              <div className="text-[10px] text-slate-300">
-                                ⚡ <span className="text-[#60A5FA] font-semibold">Services:</span> 14 Active
+                              <div className="text-[11px] text-slate-300">
+                                • <span className="text-white font-semibold">Services:</span> 14 Active
                               </div>
-                              <div className="text-[10px] text-sky-300">
-                                🎯 <span className="text-slate-400">Subservices:</span> 144 Capabilities
+                              <div className="text-[11px] text-slate-300">
+                                • <span className="text-white font-semibold">Subservices:</span> 144 Scopes
                               </div>
                             </div>
 
-                            <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[9px]">
+                            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
                               <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                 VERIFIED
                               </span>
                               <span className="text-slate-400 font-mono">v4.0 • READY</span>
@@ -393,29 +372,36 @@ export const HomePage: React.FC = () => {
                         );
                       }
 
-                      // Default 3d
+                      // Default Minimal Executive Desk
                       return (
                         <div
-                          key={`visual-3d-${currentSlide}-${hybridModeIndex}`}
-                          className="relative w-48 h-48 lg:w-56 lg:h-56 flex items-center justify-center animate-pop-in"
+                          key={`visual-default-${currentSlide}-${hybridModeIndex}`}
+                          className="relative w-full max-w-[260px] rounded-2xl bg-[#050E20]/90 border border-slate-800 p-5 space-y-3.5 shadow-xl text-left"
                         >
-                          <div className="w-36 h-36 rounded-full bg-gradient-to-tr from-[#246BFD]/40 via-[#162033]/50 to-[#36D6E7]/20 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-2xl animate-float">
-                            <div className="text-center space-y-1">
-                              <Sparkles className="w-8 h-8 text-[#36D6E7] mx-auto animate-pulse" />
-                              <span className="text-[11px] font-black uppercase tracking-wider text-white block">
-                                {activeSlide.badgeCenterText || 'Growth Engine'}
-                              </span>
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                            <span className="text-xs font-bold text-white flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                              Agency Highlights
+                            </span>
+                            <span className="text-[10px] font-mono text-[#FFC629] font-bold">PRO</span>
+                          </div>
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between items-center text-slate-300">
+                              <span>Agency Services</span>
+                              <span className="font-bold text-white">14 Active</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-300">
+                              <span>Specialized Scopes</span>
+                              <span className="font-bold text-white">144 Included</span>
+                            </div>
+                            <div className="flex justify-between items-center text-slate-300">
+                              <span>Client Engagement</span>
+                              <span className="font-bold text-[#FFC629]">Bespoke Retainer</span>
                             </div>
                           </div>
-
-                          <div className="absolute -top-1 -left-2 px-3 py-1.5 rounded-xl bg-[#101828]/90 backdrop-blur-md border border-[#36D6E7]/40 text-[10px] font-extrabold text-[#36D6E7] shadow-xl animate-float flex items-center space-x-1.5">
-                            <span>🚀</span>
-                            <span>{activeSlide.badge1Text || '14 Full Services'}</span>
-                          </div>
-
-                          <div className="absolute -bottom-2 -right-2 px-3 py-1.5 rounded-xl bg-[#162033]/90 backdrop-blur-md border border-sky-400/40 text-[10px] font-extrabold text-sky-300 shadow-xl animate-float-reverse flex items-center space-x-1.5">
-                            <span>⭐</span>
-                            <span>{activeSlide.badge2Text || 'Strategic ROI'}</span>
+                          <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                            <span>Operational Model</span>
+                            <span className="text-emerald-400 font-bold">Open for Scopes</span>
                           </div>
                         </div>
                       );
@@ -424,25 +410,25 @@ export const HomePage: React.FC = () => {
                 </div>
 
                 {/* Bottom Navigation & Indicator Dots */}
-                <div className="pt-5 sm:pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+                <div className="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <Link
                       to="/services"
-                      className="w-full sm:w-auto justify-center text-center px-5 sm:px-6 py-3 rounded-full bg-gradient-to-r from-[#36D6E7] to-[#21C5D8] hover:from-[#7CE5F0] hover:to-[#36D6E7] text-[#101828] font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-[#36D6E7]/25 flex items-center space-x-2 transform hover:-translate-y-0.5 active:translate-y-0"
+                      className="px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center space-x-2"
                     >
                       <span>Explore Agency Services</span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                     <Link
                       to="/contact"
-                      className="w-full sm:w-auto justify-center text-center px-5 sm:px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white font-bold text-xs sm:text-sm backdrop-blur-md transition-all transform hover:-translate-y-0.5"
+                      className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center"
                     >
                       Book Strategy Call
                     </Link>
                   </div>
 
                   {slides.length > 1 && (
-                    <div className="flex items-center justify-center space-x-2 bg-[#101828]/70 backdrop-blur-md px-3.5 py-2 rounded-full border border-white/15 shadow-inner self-center sm:self-auto">
+                    <div className="flex items-center justify-center space-x-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/10 self-center sm:self-auto">
                       {slides.map((_, idx) => (
                         <button
                           key={idx}
@@ -451,8 +437,8 @@ export const HomePage: React.FC = () => {
                           aria-label={`Go to slide ${idx + 1}`}
                           className={`transition-all duration-300 rounded-full ${
                             currentSlide === idx
-                              ? 'w-7 h-2.5 bg-gradient-to-r from-[#36D6E7] to-[#21C5D8] shadow-md shadow-[#36D6E7]/50'
-                              : 'w-2.5 h-2.5 bg-white/35 hover:bg-white/70'
+                              ? 'w-6 h-2 bg-[#FFC629]'
+                              : 'w-2 h-2 bg-white/40 hover:bg-white'
                           }`}
                         />
                       ))}
@@ -462,13 +448,13 @@ export const HomePage: React.FC = () => {
               </div>
             ) : (
               <div className="p-6 sm:p-8 flex items-end justify-between w-full h-full relative z-20 pointer-events-none mt-auto">
-                <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md text-white/90 border border-white/15 flex items-center space-x-1.5 shadow-md pointer-events-auto">
-                  <Sparkles className="w-3.5 h-3.5 text-[#36D6E7] animate-pulse" />
+                <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm text-white/90 border border-white/15 flex items-center space-x-1.5 shadow-sm pointer-events-auto">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFC629]" />
                   <span>Click to explore</span>
                 </span>
 
                 {slides.length > 1 && (
-                  <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-md px-3.5 py-2 rounded-full border border-white/20 shadow-xl pointer-events-auto">
+                  <div className="flex items-center space-x-2 bg-black/50 backdrop-blur-sm px-3.5 py-1.5 rounded-full border border-white/15 shadow-sm pointer-events-auto">
                     {slides.map((_, idx) => (
                       <button
                         key={idx}
@@ -481,8 +467,8 @@ export const HomePage: React.FC = () => {
                         aria-label={`Go to slide ${idx + 1}`}
                         className={`transition-all duration-300 rounded-full ${
                           currentSlide === idx
-                            ? 'w-7 h-2.5 bg-gradient-to-r from-[#36D6E7] to-[#21C5D8]'
-                            : 'w-2.5 h-2.5 bg-white/40 hover:bg-white'
+                            ? 'w-6 h-2 bg-[#FFC629]'
+                            : 'w-2 h-2 bg-white/40 hover:bg-white'
                         }`}
                       />
                     ))}
@@ -495,16 +481,16 @@ export const HomePage: React.FC = () => {
           {/* Right Bento Column: 3 Side Cards */}
           <div className="lg:col-span-4 flex flex-col gap-4 sm:gap-6">
             
-            <div className="h-auto min-h-[140px] sm:h-52 rounded-3xl bg-[#101828] border border-[#1E293B] p-5 sm:p-6 flex items-center justify-between overflow-hidden relative shadow-md group hover:border-[#246BFD]/60 transition-all">
+            <div className="h-auto min-h-[140px] sm:h-52 rounded-2xl bg-[#08152F] border border-[#0D2044] p-5 sm:p-6 flex items-center justify-between overflow-hidden relative shadow-xs group hover:border-[#2563EB] transition-colors">
               <div className="z-10 space-y-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#246BFD]">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#FFC629]">
                   {bento.card1Tag || 'Performance Media'}
                 </span>
-                <h3 className="text-lg sm:text-xl font-black text-white">{bento.card1Title || 'Meta & Google Ads'}</h3>
-                <p className="text-xs text-slate-300 max-w-[160px]">{bento.card1Description || 'Precision audience targeting scaling direct returns.'}</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white">{bento.card1Title || 'Meta & Google Ads'}</h3>
+                <p className="text-xs text-slate-300 max-w-[160px] leading-relaxed">{bento.card1Description || 'Precision audience targeting scaling direct returns.'}</p>
                 <Link
                   to={bento.card1LinkUrl || '/services'}
-                  className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] hover:text-[#93C5FD] pt-1 transition-colors"
+                  className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] hover:text-white pt-1 transition-colors"
                 >
                   <span>{bento.card1LinkText || 'Explore Retainers'}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -512,12 +498,12 @@ export const HomePage: React.FC = () => {
               </div>
 
               {bento.card1Image ? (
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border border-slate-700/80 shadow-2xl group-hover:scale-105 transition-transform flex-shrink-0 bg-slate-800">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-slate-700/80 shadow-sm flex-shrink-0 bg-slate-800">
                   <img src={bento.card1Image} alt="Card Visual" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr from-[#246BFD] to-sky-400 flex items-center justify-center text-white font-black text-2xl sm:text-3xl shadow-2xl group-hover:scale-105 transition-transform flex-shrink-0">
-                  <Target className="w-10 h-10 sm:w-12 sm:h-12" />
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[#0D2044] border border-[#112855] text-[#2563EB] flex items-center justify-center flex-shrink-0 shadow-xs">
+                  <Target className="w-9 h-9 sm:w-10 sm:h-10" />
                 </div>
               )}
             </div>
@@ -525,37 +511,36 @@ export const HomePage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 flex-1">
               <Link
                 to={bento.card2LinkUrl || '/services'}
-                className="rounded-3xl bg-[#0B101B] border border-[#1E293B] p-5 flex flex-col justify-between group hover:border-[#246BFD]/40 transition-all shadow-md min-h-[140px] overflow-hidden relative"
+                className="rounded-2xl bg-white border border-slate-200 p-5 flex flex-col justify-between group hover:border-[#2563EB] transition-colors shadow-xs min-h-[140px]"
               >
-                <div className="flex items-center space-x-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
-                </div>
+                <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider">
+                  {bento.card2Tag || 'Custom Platforms'}
+                </span>
                 <div>
-                  <p className="font-mono text-emerald-400 text-xs font-bold truncate">
+                  <h4 className="text-sm font-bold text-[#08152F] leading-snug">
                     {bento.card2Title || 'Web Engineering'}
-                  </p>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    {bento.card2Tag || 'Custom Platforms'}
+                  </h4>
+                  <span className="text-xs font-semibold text-[#2563EB] flex items-center space-x-0.5 mt-2">
+                    <span>View Stack</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
               </Link>
 
               <Link
                 to={bento.card3LinkUrl || '/services'}
-                className="rounded-3xl bg-gradient-to-br from-[#162033] to-[#101828] border border-[#1E293B] p-5 flex flex-col justify-between group hover:border-[#246BFD] transition-all shadow-md min-h-[140px] overflow-hidden relative"
+                className="rounded-2xl bg-white border border-slate-200 p-5 flex flex-col justify-between group hover:border-[#2563EB] transition-colors shadow-xs min-h-[140px]"
               >
-                <span className="text-[10px] font-bold text-sky-300 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-[#FFC629] uppercase tracking-wider">
                   {bento.card3Tag || 'AI & Workflows'}
                 </span>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-extrabold text-white leading-snug">
+                  <h4 className="text-sm font-bold text-[#08152F] leading-snug">
                     {bento.card3Title || 'Chatbots & Automation'}
                   </h4>
-                  <span className="text-[10px] text-[#60A5FA] font-semibold flex items-center space-x-0.5 mt-1">
+                  <span className="text-xs font-semibold text-[#2563EB] flex items-center space-x-0.5 mt-2">
                     <span>{bento.card3LinkText || 'View Capabilities'}</span>
-                    <ArrowRight className="w-3 h-3" />
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
               </Link>
@@ -566,13 +551,13 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ================= 2. SHORT AGENCY INTRODUCTION ================= */}
-      <section className="w-full bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-8 md:p-12 shadow-sm">
+      <section className="w-full bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-8 md:p-12 shadow-sm">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 space-y-4">
-            <span className="text-xs font-extrabold uppercase tracking-widest text-[#246BFD]">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-[#2563EB]">
               Who We Are
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-[#101828] tracking-tight leading-tight">
+            <h2 className="text-2xl sm:text-4xl font-black text-[#08152F] tracking-tight leading-tight">
               A Modern Commercial Agency Built for Growth & Execution
             </h2>
             <p className="text-sm text-[#667085] leading-relaxed">
@@ -580,15 +565,15 @@ export const HomePage: React.FC = () => {
             </p>
             <div className="pt-2 flex flex-wrap gap-4">
               <div className="flex items-center space-x-2 text-xs font-bold text-[#172033]">
-                <CheckCircle2 className="w-4 h-4 text-[#246BFD]" />
+                <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
                 <span>14 Full Agency Services</span>
               </div>
               <div className="flex items-center space-x-2 text-xs font-bold text-[#172033]">
-                <CheckCircle2 className="w-4 h-4 text-[#246BFD]" />
+                <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
                 <span>144 Specialized Subservices</span>
               </div>
               <div className="flex items-center space-x-2 text-xs font-bold text-[#172033]">
-                <CheckCircle2 className="w-4 h-4 text-[#246BFD]" />
+                <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
                 <span>Zero Hardcoded Constraints</span>
               </div>
             </div>
@@ -596,23 +581,23 @@ export const HomePage: React.FC = () => {
 
           <div className="lg:col-span-5 grid grid-cols-2 gap-4">
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#101828]">3</span>
-              <span className="text-xs font-bold text-[#246BFD] block">Core Disciplines</span>
+              <span className="text-3xl font-black text-[#08152F]">3</span>
+              <span className="text-xs font-bold text-[#2563EB] block">Core Disciplines</span>
               <p className="text-[10px] text-[#667085]">Marketing • Tech • AI</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#101828]">100%</span>
-              <span className="text-xs font-bold text-[#246BFD] block">Dashboard Managed</span>
+              <span className="text-3xl font-black text-[#08152F]">100%</span>
+              <span className="text-xs font-bold text-[#2563EB] block">Dashboard Managed</span>
               <p className="text-[10px] text-[#667085]">Dynamic In Real Time</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#101828]">24/7</span>
-              <span className="text-xs font-bold text-[#246BFD] block">Inquiry Routing</span>
+              <span className="text-3xl font-black text-[#08152F]">24/7</span>
+              <span className="text-xs font-bold text-[#2563EB] block">Inquiry Routing</span>
               <p className="text-[10px] text-[#667085]">WhatsApp & CRM Sync</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#101828]">Clear</span>
-              <span className="text-xs font-bold text-[#246BFD] block">Transparent Scopes</span>
+              <span className="text-3xl font-black text-[#08152F]">Clear</span>
+              <span className="text-xs font-bold text-[#2563EB] block">Transparent Scopes</span>
               <p className="text-[10px] text-[#667085]">Price on Request & Fixed</p>
             </div>
           </div>
@@ -623,18 +608,18 @@ export const HomePage: React.FC = () => {
       <section className="w-full space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center space-x-1.5 text-[#246BFD] text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-[#36D6E7]" />
+            <div className="flex items-center space-x-1.5 text-[#2563EB] text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-[#FFC629]" />
               <span>Tailored Engagements</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#101828] mt-1">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#08152F] mt-1">
               Featured Agency Services
             </h2>
           </div>
 
           <Link
             to="/services"
-            className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-bold text-[#246BFD] hover:text-[#1A56DB] transition-colors"
+            className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-bold text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
           >
             <span>View All 14 Services</span>
             <ChevronRight className="w-4 h-4" />
@@ -651,7 +636,7 @@ export const HomePage: React.FC = () => {
               return (
                 <div
                   key={service.id}
-                  className="bg-white border border-slate-200 hover:border-[#246BFD] rounded-2xl p-6 transition-all group flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-1"
+                  className="bg-white border border-slate-200 hover:border-[#2563EB] rounded-2xl p-6 transition-all group flex flex-col justify-between shadow-sm hover:shadow-md hover:-translate-y-1"
                 >
                   <div className="space-y-4">
                     {/* Top Image if provided, with category pill and icon overlay */}
@@ -664,28 +649,28 @@ export const HomePage: React.FC = () => {
                           loading="lazy"
                         />
                         <div className="absolute top-2.5 left-2.5">
-                          <span className="text-[10px] font-bold tracking-wider uppercase text-[#101828] bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-sm border border-slate-200/60">
+                          <span className="text-[10px] font-bold tracking-wider uppercase text-[#08152F] bg-white/95 backdrop-blur-sm px-2.5 py-1 rounded-md shadow-sm border border-slate-200/60">
                             {service.category}
                           </span>
                         </div>
-                        <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-lg bg-white/95 backdrop-blur-sm border border-slate-200/60 text-[#246BFD] flex items-center justify-center shadow-sm">
+                        <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-lg bg-white/95 backdrop-blur-sm border border-slate-200/60 text-[#2563EB] flex items-center justify-center shadow-sm">
                           <IconComp className="w-4 h-4" />
                         </div>
                       </div>
                     ) : (
                       /* Category Pill & Icon (Default Clean Layout) */
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold tracking-wider uppercase text-[#246BFD] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
+                        <span className="text-[10px] font-bold tracking-wider uppercase text-[#2563EB] bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
                           {service.category}
                         </span>
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 group-hover:bg-[#246BFD] group-hover:border-[#246BFD] text-[#246BFD] group-hover:text-white flex items-center justify-center transition-all">
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 group-hover:bg-[#2563EB] group-hover:border-[#2563EB] text-[#2563EB] group-hover:text-white flex items-center justify-center transition-all">
                           <IconComp className="w-5 h-5" />
                         </div>
                       </div>
                     )}
 
                     <div>
-                      <h3 className="text-lg font-bold text-[#101828] group-hover:text-[#246BFD] transition-colors">
+                      <h3 className="text-lg font-bold text-[#08152F] group-hover:text-[#2563EB] transition-colors">
                         <Link to={`/services/${service.slug}`}>{service.name}</Link>
                       </h3>
                       <p className="text-xs text-[#667085] mt-2 line-clamp-2 leading-relaxed">
@@ -706,14 +691,14 @@ export const HomePage: React.FC = () => {
                       <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
                         Investment:
                       </span>
-                      <span className={`font-black ${pricing.hasExactPrice ? 'text-[#101828]' : 'text-[#246BFD]'}`}>
+                      <span className={`font-black ${pricing.hasExactPrice ? 'text-[#08152F]' : 'text-[#2563EB]'}`}>
                         {pricing.displayText}
                       </span>
                     </div>
 
                     <Link
                       to={`/services/${service.slug}`}
-                      className="inline-flex items-center space-x-1 font-bold text-[#246BFD] group-hover:translate-x-1 transition-transform"
+                      className="inline-flex items-center space-x-1 font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform"
                     >
                       <span>Explore Scope</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -733,10 +718,10 @@ export const HomePage: React.FC = () => {
       {/* ================= 4. SERVICE CATEGORIES OVERVIEW ================= */}
       <section className="w-full space-y-6">
         <div className="text-center max-w-xl mx-auto space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#246BFD]">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
             Organized Architecture
           </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#101828]">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
             Explore by Service Category
           </h2>
         </div>
@@ -745,23 +730,23 @@ export const HomePage: React.FC = () => {
           
           <Link
             to="/services"
-            className="rounded-3xl p-8 bg-gradient-to-br from-[#101828] via-[#162033] to-[#0B101B] border border-[#1E293B] text-white space-y-4 hover:border-[#246BFD] transition-all group shadow-lg flex flex-col justify-between"
+            className="rounded-2xl p-7 bg-[#08152F] border border-[#0D2044] text-white space-y-4 hover:border-[#2563EB] transition-colors group shadow-xs flex flex-col justify-between"
           >
             <div className="space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-400/30 text-sky-300 flex items-center justify-center">
-                <Target className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-[#0D2044] border border-[#112855] text-[#2563EB] flex items-center justify-center">
+                <Target className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#36D6E7]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFC629]">
                 Category A
               </span>
-              <h3 className="text-xl font-black group-hover:text-[#36D6E7] transition-colors">
+              <h3 className="text-xl font-bold group-hover:text-white transition-colors">
                 Digital Marketing
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Social media retainers, Meta & Google ad management, comprehensive SEO, email marketing, and content marketing.
               </p>
             </div>
-            <span className="inline-flex items-center space-x-1 text-xs font-bold text-sky-300 group-hover:translate-x-1 transition-transform pt-2">
+            <span className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] group-hover:text-white transition-colors pt-2">
               <span>View 6 Services (63 Subservices)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </span>
@@ -769,23 +754,23 @@ export const HomePage: React.FC = () => {
 
           <Link
             to="/services"
-            className="rounded-3xl p-8 bg-gradient-to-br from-[#162033] via-[#101828] to-[#0B101B] border border-[#1E293B] text-white space-y-4 hover:border-[#246BFD] transition-all group shadow-lg flex flex-col justify-between"
+            className="rounded-2xl p-7 bg-[#08152F] border border-[#0D2044] text-white space-y-4 hover:border-[#2563EB] transition-colors group shadow-xs flex flex-col justify-between"
           >
             <div className="space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 flex items-center justify-center">
-                <Laptop className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-[#0D2044] border border-[#112855] text-[#2563EB] flex items-center justify-center">
+                <Laptop className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#36D6E7]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFC629]">
                 Category B
               </span>
-              <h3 className="text-xl font-black group-hover:text-[#36D6E7] transition-colors">
+              <h3 className="text-xl font-bold group-hover:text-white transition-colors">
                 Web Development & Creative
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
                 Corporate web engineering, high-converting landing pages, UI/UX systems in Figma, e-commerce, and conversion tracking.
               </p>
             </div>
-            <span className="inline-flex items-center space-x-1 text-xs font-bold text-sky-300 group-hover:translate-x-1 transition-transform pt-2">
+            <span className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] group-hover:text-white transition-colors pt-2">
               <span>View 6 Services (66 Subservices)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </span>
@@ -793,23 +778,23 @@ export const HomePage: React.FC = () => {
 
           <Link
             to="/services"
-            className="rounded-3xl p-8 bg-gradient-to-br from-[#0B101B] via-[#101828] to-[#162033] border border-[#1E293B] text-white space-y-4 hover:border-[#246BFD] transition-all group shadow-lg flex flex-col justify-between"
+            className="rounded-2xl p-7 bg-[#08152F] border border-[#0D2044] text-white space-y-4 hover:border-[#2563EB] transition-colors group shadow-xs flex flex-col justify-between"
           >
             <div className="space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/30 text-[#36D6E7] flex items-center justify-center">
-                <Bot className="w-6 h-6" />
+              <div className="w-11 h-11 rounded-xl bg-[#0D2044] border border-[#112855] text-[#2563EB] flex items-center justify-center">
+                <Bot className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#36D6E7]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFC629]">
                 Category C
               </span>
-              <h3 className="text-xl font-black group-hover:text-[#36D6E7] transition-colors">
+              <h3 className="text-xl font-bold group-hover:text-white transition-colors">
                 AI and Business Automation
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
                 AI workflow automations, CRM synchronization, repetitive task elimination, and 24/7 customer support chatbots.
               </p>
             </div>
-            <span className="inline-flex items-center space-x-1 text-xs font-bold text-sky-300 group-hover:translate-x-1 transition-transform pt-2">
+            <span className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] group-hover:text-white transition-colors pt-2">
               <span>View 2 Services (20 Subservices)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </span>
@@ -821,10 +806,10 @@ export const HomePage: React.FC = () => {
       {/* ================= 5. HOW WE WORK (AGENCY PROCESS) ================= */}
       <section className="w-full space-y-8">
         <div className="text-center max-w-xl mx-auto space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#246BFD]">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
             Systematic Delivery
           </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#101828]">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
             How We Execute Projects
           </h2>
           <p className="text-xs text-[#667085]">
@@ -834,40 +819,40 @@ export const HomePage: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 relative">
-            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#246BFD] font-black text-xs flex items-center justify-center">
+            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               01
             </span>
-            <h4 className="text-base font-bold text-[#101828]">Discovery & Audit</h4>
+            <h4 className="text-base font-bold text-[#08152F]">Discovery & Audit</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
               We deconstruct your market positioning, commercial goals, competitor landscape, and existing technical assets.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 relative">
-            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#246BFD] font-black text-xs flex items-center justify-center">
+            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               02
             </span>
-            <h4 className="text-base font-bold text-[#101828]">Strategy & Design</h4>
+            <h4 className="text-base font-bold text-[#08152F]">Strategy & Design</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
               We architect the technical blueprint, audience funnels, Figma interfaces, and campaign creative directions.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 relative">
-            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#246BFD] font-black text-xs flex items-center justify-center">
+            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               03
             </span>
-            <h4 className="text-base font-bold text-[#101828]">Engineering & Launch</h4>
+            <h4 className="text-base font-bold text-[#08152F]">Engineering & Launch</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
               We deploy clean frontend code, configure tracking pixels, launch targeted ad sets, and initiate live monitoring.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 relative">
-            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#246BFD] font-black text-xs flex items-center justify-center">
+            <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               04
             </span>
-            <h4 className="text-base font-bold text-[#101828]">Optimization & Scale</h4>
+            <h4 className="text-base font-bold text-[#08152F]">Optimization & Scale</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
               We refine conversion rates, automate CRM handovers, optimize ad spend, and report verifiable commercial metrics.
             </p>
@@ -876,42 +861,42 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* ================= 6. KEY BENEFITS / WHY CHOOSE US ================= */}
-      <section className="w-full bg-[#F3F5F9] rounded-3xl p-8 sm:p-12 border border-slate-200/80 space-y-8">
+      <section className="w-full bg-[#F3F5F9] rounded-2xl p-8 sm:p-12 border border-slate-200/80 space-y-8">
         <div className="text-center max-w-xl mx-auto space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#246BFD]">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
             Proven Methodology
           </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#101828]">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
             Why Brands Choose Eagle Eye Digital
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#246BFD] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center">
               <Zap className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-[#101828]">Commercial Velocity</h4>
+            <h4 className="text-base font-bold text-[#08152F]">Commercial Velocity</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
               We eliminate unnecessary agency bloat and focus squarely on deliverables that acquire customers and scale revenue.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#246BFD] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-[#101828]">Strict Technical Rigor</h4>
+            <h4 className="text-base font-bold text-[#08152F]">Strict Technical Rigor</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
               Clean TypeScript architecture, resilient cloud databases, and proper API security ensure your brand is protected.
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#246BFD] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center">
               <BarChart className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-[#101828]">Radical Transparency</h4>
+            <h4 className="text-base font-bold text-[#08152F]">Radical Transparency</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
               No hidden fees, no ambiguous reports. Every campaign and project is backed by live data you can independently verify.
             </p>
@@ -924,16 +909,16 @@ export const HomePage: React.FC = () => {
         <section className="w-full space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-[#246BFD]">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
                 Verified Outcomes
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#101828] mt-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-[#08152F] mt-1">
                 Client Case Studies
               </h2>
             </div>
             <Link
               to="/case-studies"
-              className="text-xs sm:text-sm font-bold text-[#246BFD] flex items-center space-x-1"
+              className="text-xs sm:text-sm font-bold text-[#2563EB] flex items-center space-x-1"
             >
               <span>View All</span>
               <ChevronRight className="w-4 h-4" />
@@ -943,8 +928,8 @@ export const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {caseStudies.map((cs) => (
               <div key={cs.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-                <span className="text-[10px] font-bold uppercase text-[#246BFD]">{cs.clientIndustry}</span>
-                <h3 className="text-lg font-bold text-[#101828]">{cs.title}</h3>
+                <span className="text-[10px] font-bold uppercase text-[#2563EB]">{cs.clientIndustry}</span>
+                <h3 className="text-lg font-bold text-[#08152F]">{cs.title}</h3>
                 <p className="text-xs text-[#667085] line-clamp-2">{cs.challenge}</p>
                 <div className="pt-2 flex flex-wrap gap-2">
                   {(cs.results || []).map((r, rIdx) => (
@@ -967,13 +952,13 @@ export const HomePage: React.FC = () => {
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>Digital Store</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-[#101828] mt-1">
+            <h2 className="text-2xl sm:text-3xl font-black text-[#08152F] mt-1">
               Digital Products & UI Vault
             </h2>
           </div>
           <Link
             to="/products"
-            className="text-xs sm:text-sm font-bold text-[#246BFD] flex items-center space-x-1"
+            className="text-xs sm:text-sm font-bold text-[#2563EB] flex items-center space-x-1"
           >
             <span>Browse Vault</span>
             <ChevronRight className="w-4 h-4" />
@@ -987,7 +972,7 @@ export const HomePage: React.FC = () => {
               return (
                 <div
                   key={product.id}
-                  className="bg-white border border-slate-200 hover:border-[#246BFD] rounded-2xl overflow-hidden transition-all group flex flex-col justify-between shadow-sm"
+                  className="bg-white border border-slate-200 hover:border-[#2563EB] rounded-2xl overflow-hidden transition-all group flex flex-col justify-between shadow-sm"
                 >
                   <div className="h-44 bg-slate-100 overflow-hidden relative">
                     <img
@@ -995,17 +980,31 @@ export const HomePage: React.FC = () => {
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleWishlist(product);
+                      }}
+                      className={`absolute top-2.5 right-2.5 p-1.5 rounded-full backdrop-blur-md transition-all shadow-sm cursor-pointer ${
+                        isInWishlist(product.id)
+                          ? 'bg-rose-50 text-rose-500 border border-rose-200'
+                          : 'bg-white/90 text-slate-500 hover:text-rose-500 border border-slate-200'
+                      }`}
+                      title={isInWishlist(product.id) ? 'পছন্দের তালিকা থেকে সরান' : 'পছন্দের তালিকায় রাখুন'}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${isInWishlist(product.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    </button>
                   </div>
                   <div className="p-5 space-y-2">
-                    <span className="text-[10px] font-bold text-[#246BFD] uppercase">{product.category}</span>
-                    <h4 className="text-sm font-bold text-[#101828] line-clamp-1">{product.name}</h4>
+                    <span className="text-[10px] font-bold text-[#2563EB] uppercase">{product.category}</span>
+                    <h4 className="text-sm font-bold text-[#08152F] line-clamp-1">{product.name}</h4>
                     <p className="text-xs text-[#667085] line-clamp-2">{product.description}</p>
                   </div>
                   <div className="p-5 pt-0 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-sm font-black text-[#101828]">{pricing.displayText}</span>
+                    <span className="text-sm font-black text-[#08152F]">{pricing.displayText}</span>
                     <Link
                       to={`/products/${product.slug}`}
-                      className="px-3 py-1 rounded-full bg-blue-50 text-[#246BFD] text-xs font-bold hover:bg-[#246BFD] hover:text-white transition-colors"
+                      className="px-3 py-1 rounded-full bg-blue-50 text-[#2563EB] text-xs font-bold hover:bg-[#2563EB] hover:text-white transition-colors"
                     >
                       View
                     </Link>
@@ -1016,12 +1015,12 @@ export const HomePage: React.FC = () => {
           </div>
         ) : (
           /* Attractive agency-focused empty state (per Requirement 9) */
-          <div className="rounded-3xl bg-white border border-slate-200 p-8 sm:p-10 text-center space-y-4 shadow-xs">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#246BFD] mx-auto flex items-center justify-center">
+          <div className="rounded-2xl bg-white border border-slate-200 p-8 sm:p-10 text-center space-y-4 shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#2563EB] mx-auto flex items-center justify-center">
               <ShoppingBag className="w-7 h-7" />
             </div>
             <div className="max-w-md mx-auto space-y-1.5">
-              <h3 className="text-lg font-bold text-[#101828]">Digital Products Vault Upcoming</h3>
+              <h3 className="text-lg font-bold text-[#08152F]">Digital Products Vault Upcoming</h3>
               <p className="text-xs text-[#667085] leading-relaxed">
                 Our curated UI kits, graphic design templates, and software utilities are currently preparing for public release. Meanwhile, our full agency retainers are live and taking client inquiries.
               </p>
@@ -1029,13 +1028,13 @@ export const HomePage: React.FC = () => {
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
               <Link
                 to="/services"
-                className="px-5 py-2.5 rounded-xl bg-[#246BFD] hover:bg-[#1A56DB] text-white text-xs font-bold transition-colors shadow-sm"
+                className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors shadow-sm"
               >
                 Explore Agency Services
               </Link>
               <Link
                 to="/contact"
-                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#101828] text-xs font-bold transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#08152F] text-xs font-bold transition-colors"
               >
                 Inquire for Custom Work
               </Link>
@@ -1047,10 +1046,10 @@ export const HomePage: React.FC = () => {
       {/* ================= 9. FREQUENTLY ASKED QUESTIONS ================= */}
       <section className="w-full space-y-6">
         <div className="text-center max-w-xl mx-auto space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#246BFD]">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
             Clear Answers
           </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#101828]">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
             Frequently Asked Questions
           </h2>
         </div>
@@ -1083,8 +1082,8 @@ export const HomePage: React.FC = () => {
             }
           ]).slice(0, 6).map((faq, idx) => (
             <div key={faq.id || idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-2">
-              <h4 className="text-sm font-bold text-[#101828] flex items-center space-x-2">
-                <HelpCircle className="w-4 h-4 text-[#246BFD] flex-shrink-0" />
+              <h4 className="text-sm font-bold text-[#08152F] flex items-center space-x-2">
+                <HelpCircle className="w-4 h-4 text-[#2563EB] flex-shrink-0" />
                 <span>{faq.question}</span>
               </h4>
               <p className="text-xs sm:text-sm text-[#667085] leading-relaxed pl-6">
@@ -1098,10 +1097,10 @@ export const HomePage: React.FC = () => {
       {/* ================= 10. PROJECT INQUIRY & LEAD CRM SECTION ================= */}
       <section id="consultation" className="max-w-4xl mx-auto w-full scroll-mt-24 pt-4">
         <div className="text-center max-w-xl mx-auto mb-8 space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#246BFD]">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
             Initiate Engagement
           </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-[#101828]">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
             Request a Consultation & Strategy Brief
           </h2>
           <p className="text-xs sm:text-sm text-[#667085]">

@@ -54,7 +54,7 @@ export const sendLeadNotificationEmails = async (
         .label { font-weight: 700; color: #475569; width: 35%; background: #f8fafc; }
         .value { color: #0f172a; font-weight: 500; }
         .desc-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 16px 0 24px 0; font-size: 13px; line-height: 1.6; white-space: pre-line; }
-        .btn-schedule { display: inline-block; background: #246BFD; color: #ffffff !important; text-decoration: none; font-weight: 700; font-size: 14px; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(36, 107, 253, 0.25); text-align: center; }
+        .btn-schedule { display: inline-block; background: #2563EB; color: #ffffff !important; text-decoration: none; font-weight: 700; font-size: 14px; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25); text-align: center; }
         .btn-admin { display: inline-block; background: #f1f5f9; color: #334155 !important; text-decoration: none; font-weight: 600; font-size: 13px; padding: 12px 20px; border-radius: 10px; margin-left: 8px; text-align: center; }
         .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #f1f5f9; font-size: 11px; color: #94a3b8; text-align: center; }
       </style>
@@ -227,7 +227,7 @@ export const sendMeetingScheduledEmail = async (
         </div>
 
         <div style="text-align: center; margin-top: 16px;">
-          <a href="${accountUrl}" style="font-size: 12px; color: #246BFD; text-decoration: underline; font-weight: 600;">
+          <a href="${accountUrl}" style="font-size: 12px; color: #2563EB; text-decoration: underline; font-weight: 600;">
             View inside your Eagle Eye Digital Account Dashboard
           </a>
         </div>
@@ -303,7 +303,7 @@ export const sendMeetingStatusAlert = async (
       </p>
       ${reason ? `<p style="background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px;">Reason: ${reason}</p>` : ''}
       <div style="margin-top: 24px;">
-        <a href="${adminUrl}" style="background: #246BFD; color: #fff; text-decoration: none; font-weight: 700; padding: 10px 20px; border-radius: 8px; font-size: 13px;">
+        <a href="${adminUrl}" style="background: #2563EB; color: #fff; text-decoration: none; font-weight: 700; padding: 10px 20px; border-radius: 8px; font-size: 13px;">
           View in Admin Console
         </a>
       </div>

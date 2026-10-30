@@ -33,6 +33,7 @@ export interface SeedServiceDefinition {
   shortDescription: string;
   longDescription: string;
   iconName: string;
+  imageUrl?: string;
   benefits: string[];
   deliverables: string[];
   scopeOfWork: string[];
@@ -59,6 +60,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   // ==========================================
   {
     id: 'srv-social-media-management',
+    imageUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=1200&q=80',
     name: 'Social Media Management',
     slug: 'social-media-management',
     category: 'Digital Marketing',
@@ -170,6 +172,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-meta-ads-management',
+    imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200&q=80',
     name: 'Meta Ads Management',
     slug: 'meta-ads-management',
     category: 'Digital Marketing',
@@ -287,6 +290,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-google-ads-management',
+    imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
     name: 'Google Ads Management',
     slug: 'google-ads-management',
     category: 'Digital Marketing',
@@ -398,6 +402,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-search-engine-optimization',
+    imageUrl: 'https://images.unsplash.com/photo-1571786256017-aee7a0c009b6?auto=format&fit=crop&w=1200&q=80',
     name: 'Search Engine Optimization (SEO)',
     slug: 'search-engine-optimization',
     category: 'Digital Marketing',
@@ -521,6 +526,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-content-marketing',
+    imageUrl: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1200&q=80',
     name: 'Content Marketing',
     slug: 'content-marketing',
     category: 'Digital Marketing',
@@ -632,6 +638,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-email-marketing',
+    imageUrl: 'https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?auto=format&fit=crop&w=1200&q=80',
     name: 'Email Marketing',
     slug: 'email-marketing',
     category: 'Digital Marketing',
@@ -747,6 +754,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   // ==========================================
   {
     id: 'srv-website-design-development',
+    imageUrl: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=1200&q=80',
     name: 'Website Design and Development',
     slug: 'website-design-development',
     category: 'Web Development and Creative Services',
@@ -870,6 +878,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-landing-page-design',
+    imageUrl: 'https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?auto=format&fit=crop&w=1200&q=80',
     name: 'Landing Page Design',
     slug: 'landing-page-design',
     category: 'Web Development and Creative Services',
@@ -980,6 +989,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-ui-ux-design-figma',
+    imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?auto=format&fit=crop&w=1200&q=80',
     name: 'UI/UX Design and Figma',
     slug: 'ui-ux-design-figma',
     category: 'Web Development and Creative Services',
@@ -1096,6 +1106,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-branding-graphic-design',
+    imageUrl: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=1200&q=80',
     name: 'Branding and Graphic Design',
     slug: 'branding-graphic-design',
     category: 'Web Development and Creative Services',
@@ -1206,6 +1217,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-ecommerce-website-development',
+    imageUrl: 'https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=1200&q=80',
     name: 'E-commerce Website Development',
     slug: 'ecommerce-website-development',
     category: 'Web Development and Creative Services',
@@ -1329,6 +1341,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-analytics-conversion-tracking',
+    imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
     name: 'Analytics and Conversion Tracking',
     slug: 'analytics-conversion-tracking',
     category: 'Web Development and Creative Services',
@@ -1449,6 +1462,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   // ==========================================
   {
     id: 'srv-ai-workflow-automation',
+    imageUrl: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=1200&q=80',
     name: 'AI Workflow Automation',
     slug: 'ai-workflow-automation',
     category: 'AI and Business Automation',
@@ -1559,6 +1573,7 @@ export const SEED_SERVICES_CATALOG: SeedServiceDefinition[] = [
   },
   {
     id: 'srv-chatbot-customer-support-automation',
+    imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80',
     name: 'Chatbot and Customer Support Automation',
     slug: 'chatbot-customer-support-automation',
     category: 'AI and Business Automation',
@@ -1722,6 +1737,7 @@ export function getSeedServicesList(): Service[] {
       shortDescription: item.shortDescription,
       longDescription: item.longDescription,
       iconName: item.iconName,
+      imageUrl: item.imageUrl || '',
       benefits: item.benefits,
       deliverables: item.deliverables,
       scopeOfWork: item.scopeOfWork,

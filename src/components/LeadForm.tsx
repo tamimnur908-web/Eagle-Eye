@@ -4,6 +4,7 @@ import { Service } from '../types';
 import { Send, CheckCircle2, AlertCircle, Calendar, ArrowRight } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal, savePendingAction, getPendingAction, clearPendingAction } from '../context/AuthModalContext';
 import { Link } from 'react-router-dom';
 
 interface LeadFormProps {
@@ -12,6 +13,7 @@ interface LeadFormProps {
 
 export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
   const { currentUser } = useAuth();
+  const { openLoginModal } = useAuthModal();
   const [availableServices, setAvailableServices] = useState<Service[]>([]);
 
   const [formData, setFormData] = useState({
@@ -21,11 +23,28 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
     phoneOrWhatsApp: '',
     serviceInterest: initialService || 'Social Media Management',
     websiteOrSocial: '',
-    budgetRange: '৳20,000 - ৳50,000 / month',
+    budgetRange: '২০,০০০ - ৫০,০০০ টাকা / মাস',
     deadline: '',
     projectDescription: '',
     preferredContactMethod: 'WhatsApp' as 'WhatsApp' | 'Email' | 'Phone',
   });
+
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Restore draft if saved previously
+  useEffect(() => {
+    try {
+      const savedDraft = sessionStorage.getItem('eed_pending_inquiry');
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        setFormData((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch (e) {
+      console.warn('Could not restore draft:', e);
+    }
+  }, []);
 
   useEffect(() => {
     const loadServices = async () => {
@@ -44,6 +63,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
     loadServices();
   }, [initialService]);
 
+  // Sync user details and pending inquiry on login
   useEffect(() => {
     if (currentUser) {
       setFormData((prev) => ({
@@ -51,21 +71,44 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
         email: prev.email || currentUser.email || '',
         name: prev.name || currentUser.displayName || ''
       }));
+
+      // Check if user was redirected back after login with pending inquiry
+      const pending = getPendingAction();
+      if (pending && pending.type === 'inquiry' && pending.data) {
+        setFormData((prev) => ({
+          ...prev,
+          ...(pending.data as any),
+          email: currentUser.email || prev.email,
+          name: currentUser.displayName || prev.name,
+        }));
+      }
     }
   }, [currentUser]);
 
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    // Guest protection: Require login to submit inquiry
+    if (!currentUser) {
+      sessionStorage.setItem('eed_pending_inquiry', JSON.stringify(formData));
+      savePendingAction({
+        type: 'inquiry',
+        data: formData,
+        redirectPath: window.location.pathname,
+      });
+      openLoginModal({
+        actionType: 'inquiry',
+        redirectPath: window.location.pathname,
+      });
+      return;
+    }
+
+    setLoading(true);
 
     try {
       if (!formData.name || !formData.email || !formData.phoneOrWhatsApp || !formData.projectDescription) {
-        throw new Error('Please fill out all required fields.');
+        throw new Error('অনুগ্রহ করে প্রয়োজনীয় সকল তথ্য পূরণ করুন।');
       }
 
       await createLead({
@@ -79,24 +122,28 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
         deadline: formData.deadline.trim(),
         projectDescription: formData.projectDescription.trim(),
         preferredContactMethod: formData.preferredContactMethod,
-        ...(currentUser?.uid ? { userId: currentUser.uid } : {})
+        userId: currentUser.uid,
       });
+
+      // Clear draft and pending action
+      sessionStorage.removeItem('eed_pending_inquiry');
+      clearPendingAction();
 
       setSuccess(true);
       setFormData({
-        name: currentUser?.displayName || '',
+        name: currentUser.displayName || '',
         businessName: '',
-        email: currentUser?.email || '',
+        email: currentUser.email || '',
         phoneOrWhatsApp: '',
-        serviceInterest: 'Digital Marketing & Paid Ads',
+        serviceInterest: availableServices[0]?.name || 'Digital Marketing',
         websiteOrSocial: '',
-        budgetRange: '৳20,000 - ৳50,000 / month',
+        budgetRange: '২০,০০০ - ৫০,০০০ টাকা / মাস',
         deadline: '',
         projectDescription: '',
         preferredContactMethod: 'WhatsApp',
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to submit inquiry. Please try again.');
+      setError(err.message || 'অনুসন্ধান পাঠাতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
     } finally {
       setLoading(false);
     }
@@ -107,23 +154,23 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
       {success ? (
         <div className="text-center py-10 space-y-4">
           <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
-          <h3 className="text-2xl font-bold text-[#101828]">Inquiry Received!</h3>
+          <h3 className="text-2xl font-bold text-[#08152F]">আপনার অনুসন্ধান সফলভাবে জমা হয়েছে!</h3>
           <p className="text-[#667085] max-w-md mx-auto text-sm">
-            Thank you for reaching out to Eagle Eye Digital. Our strategists will review your project details and contact you via your preferred method shortly.
+            Eagle Eye Digital-এ যোগাযোগ করার জন্য ধন্যবাদ। আমাদের টিম শীঘ্রই আপনার প্রজেক্টের বিস্তারিত পর্যালোচনা করে আপনার পছন্দের মাধ্যমে যোগাযোগ করবে।
           </p>
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => setSuccess(false)}
-              className="text-xs text-[#246BFD] font-semibold underline hover:text-[#1A56DB]"
+              className="text-xs text-[#2563EB] font-semibold underline hover:text-[#1D4ED8] cursor-pointer"
             >
-              Submit another inquiry
+              আরেকটি অনুসন্ধান পাঠান
             </button>
             <Link
-              to="/account"
-              className="px-4 py-2 bg-[#246BFD] hover:bg-[#1A56DB] text-white rounded-lg text-xs font-bold shadow-sm flex items-center space-x-1.5 transition-colors"
+              to="/account?tab=inquiries"
+              className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-xs font-bold shadow-sm flex items-center space-x-1.5 transition-colors"
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>Track in My Account</span>
+              <span>আমার অ্যাকাউন্টে দেখুন</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <a
@@ -132,16 +179,16 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
               rel="noopener noreferrer"
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
             >
-              Message on WhatsApp
+              হোয়াটসঅ্যাপে মেসেজ দিন
             </a>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="border-b border-slate-200 pb-4 mb-4">
-            <h3 className="text-xl font-bold text-[#101828]">Request a Consultation & Quote</h3>
+            <h3 className="text-xl font-bold text-[#08152F]">পরামর্শ ও কোটেশন অনুরোধ করুন</h3>
             <p className="text-xs text-[#667085] mt-1">
-              Share your business targets and challenges. We craft data-backed marketing strategies tailored for scale.
+              আপনার ব্যবসায়িক লক্ষ্য ও চ্যালেঞ্জ আমাদের জানান। আমরা আপনার ব্যবসার বৃদ্ধির জন্য উপযুক্ত স্ট্র্যাটেজি তৈরি করব।
             </p>
           </div>
 
@@ -155,28 +202,28 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Your Name <span className="text-[#246BFD]">*</span>
+                আপনার নাম <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. Tamim Nur"
-                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+                placeholder="যেমন: তামিম নূর"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Business / Brand Name
+                ব্যবসা বা ব্র্যান্ডের নাম
               </label>
               <input
                 type="text"
                 value={formData.businessName}
                 onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                placeholder="e.g. Apex Retail"
-                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+                placeholder="যেমন: অ্যাপেক্স রিটেইল"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
           </div>
@@ -184,7 +231,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Email Address <span className="text-[#246BFD]">*</span>
+                ইমেইল ঠিকানা <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="email"
@@ -192,21 +239,21 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="name@company.com"
-                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Phone / WhatsApp Number <span className="text-[#246BFD]">*</span>
+                মোবাইল বা হোয়াটসঅ্যাপ নম্বর <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="tel"
                 required
                 value={formData.phoneOrWhatsApp}
                 onChange={(e) => setFormData({ ...formData, phoneOrWhatsApp: e.target.value })}
-                placeholder="01XXXXXXXXX"
-                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+                placeholder="০১XXXXXXXXX"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
           </div>
@@ -214,12 +261,12 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Service Required
+                প্রয়োজনীয় সার্ভিস
               </label>
               <select
                 value={formData.serviceInterest}
                 onChange={(e) => setFormData({ ...formData, serviceInterest: e.target.value })}
-                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               >
                 {availableServices.length > 0 ? (
                   availableServices.map((srv) => (
@@ -229,34 +276,34 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
                   ))
                 ) : (
                   <>
-                    <option value="Social Media Management">Social Media Management</option>
-                    <option value="Meta Ads Management">Meta Ads Management</option>
-                    <option value="Google Ads Management">Google Ads Management</option>
-                    <option value="Search Engine Optimization (SEO)">Search Engine Optimization (SEO)</option>
-                    <option value="Website Design and Development">Website Design and Development</option>
-                    <option value="E-commerce Website Development">E-commerce Website Development</option>
-                    <option value="AI Workflow Automation">AI Workflow Automation</option>
+                    <option value="Social Media Management">সোশ্যাল মিডিয়া ম্যানেজমেন্ট</option>
+                    <option value="Meta Ads Management">মেটা বিজ্ঞাপন ম্যানেজমেন্ট</option>
+                    <option value="Google Ads Management">গুগল বিজ্ঞাপন ম্যানেজমেন্ট</option>
+                    <option value="Search Engine Optimization (SEO)">সার্চ ইঞ্জিন অপ্টিমাইজেশন (SEO)</option>
+                    <option value="Website Design and Development">ওয়েবসাইট ডিজাইন ও ডেভেলপমেন্ট</option>
+                    <option value="E-commerce Website Development">ই-কমার্স ওয়েবসাইট ডেভেলপমেন্ট</option>
+                    <option value="AI Workflow Automation">এআই অটোমেশন</option>
                   </>
                 )}
-                <option value="Comprehensive Growth Retainer">Comprehensive Growth Retainer (Multi-Service)</option>
-                <option value="Custom Consultation">Other / Custom Scope</option>
+                <option value="Comprehensive Growth Retainer">সম্পূর্ণ গ্রোথ প্যাকেজ (মাল্টি-সার্ভিস)</option>
+                <option value="Custom Consultation">অন্যান্য / কাস্টম পরামর্শ</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Estimated Budget Range
+                আনুমানিক বাজেট সীমা
               </label>
               <select
                 value={formData.budgetRange}
                 onChange={(e) => setFormData({ ...formData, budgetRange: e.target.value })}
-                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               >
-                <option value="Under ৳20,000">Under ৳20,000</option>
-                <option value="৳20,000 - ৳50,000 / month">৳20,000 - ৳50,000 / month</option>
-                <option value="৳50,000 - ৳150,000 / month">৳50,000 - ৳150,000 / month</option>
-                <option value="৳150,000+ Enterprise">৳150,000+ Enterprise</option>
-                <option value="Custom / Undetermined">Custom / Undetermined</option>
+                <option value="২০,০০০ টাকার নিচে">২০,০০০ টাকার নিচে</option>
+                <option value="২০,০০০ - ৫০,০০০ টাকা / মাস">২০,০০০ - ৫০,০০০ টাকা / মাস</option>
+                <option value="৫০,০০০ - ১৫০,০০০ টাকা / মাস">৫০,০০০ - ১৫০,০০০ টাকা / মাস</option>
+                <option value="১,৫০,০০০+ টাকা (এন্টারপ্রাইজ)">১,৫০,০০০+ টাকা (এন্টারপ্রাইজ)</option>
+                <option value="কাস্টম / নির্ধারিত নয়">কাস্টম / নির্ধারিত নয়</option>
               </select>
             </div>
           </div>
@@ -264,33 +311,37 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Current Website or Social Page URL
+                বর্তমান ওয়েবসাইট বা সোশ্যাল পেজের লিংক
               </label>
               <input
                 type="text"
                 value={formData.websiteOrSocial}
                 onChange={(e) => setFormData({ ...formData, websiteOrSocial: e.target.value })}
                 placeholder="https://facebook.com/yourpage"
-                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+                className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                Preferred Contact Method
+                যোগাযোগের মাধ্যম
               </label>
               <div className="flex space-x-4 pt-2">
-                {(['WhatsApp', 'Email', 'Phone'] as const).map((method) => (
-                  <label key={method} className="flex items-center space-x-1.5 text-xs text-[#172033] font-medium cursor-pointer">
+                {[
+                  { id: 'WhatsApp', label: 'হোয়াটসঅ্যাপ' },
+                  { id: 'Email', label: 'ইমেইল' },
+                  { id: 'Phone', label: 'ফোন' }
+                ].map((item) => (
+                  <label key={item.id} className="flex items-center space-x-1.5 text-xs text-[#172033] font-medium cursor-pointer">
                     <input
                       type="radio"
                       name="contactMethod"
-                      value={method}
-                      checked={formData.preferredContactMethod === method}
-                      onChange={() => setFormData({ ...formData, preferredContactMethod: method })}
-                      className="accent-[#246BFD]"
+                      value={item.id}
+                      checked={formData.preferredContactMethod === item.id}
+                      onChange={() => setFormData({ ...formData, preferredContactMethod: item.id as any })}
+                      className="accent-[#2563EB]"
                     />
-                    <span>{method}</span>
+                    <span>{item.label}</span>
                   </label>
                 ))}
               </div>
@@ -299,29 +350,29 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
 
           <div>
             <label className="block text-xs font-semibold text-[#172033] mb-1">
-              Project Description & Goals <span className="text-[#246BFD]">*</span>
+              প্রজেক্টের বিবরণ ও লক্ষ্য <span className="text-[#2563EB]">*</span>
             </label>
             <textarea
               required
               rows={4}
               value={formData.projectDescription}
               onChange={(e) => setFormData({ ...formData, projectDescription: e.target.value })}
-              placeholder="Tell us about your brand, what you want to achieve, timeline constraints, or existing bottlenecks..."
-              className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD] focus:bg-white transition-colors"
+              placeholder="আপনার ব্র্যান্ড, কী লক্ষ্য অর্জন করতে চান, সময়সীমা বা বিদ্যমান চ্যালেঞ্জ সম্পর্কে বিস্তারিত লিখুন..."
+              className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 px-6 rounded-xl bg-[#36D6E7] hover:bg-[#21C5D8] text-[#101828] font-black text-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-50 shadow-md shadow-[#36D6E7]/25 cursor-pointer active:scale-[0.99]"
+            className="w-full py-3.5 px-6 rounded-xl bg-[#FFC629] hover:bg-[#e6b122] text-[#08152F] font-black text-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-50 shadow-md shadow-[#FFC629]/25 cursor-pointer active:scale-[0.99]"
           >
             {loading ? (
-              <span>Submitting Inquiry...</span>
+              <span>পাঠানো হচ্ছে...</span>
             ) : (
               <>
-                <Send className="w-4 h-4 text-[#101828]" />
-                <span>Submit Strategic Brief</span>
+                <Send className="w-4 h-4 text-[#08152F]" />
+                <span>অনুসন্ধান পাঠান</span>
               </>
             )}
           </button>

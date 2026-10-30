@@ -210,6 +210,12 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface UserWishlist {
+  userId: string;
+  items: DigitalProduct[];
+  updatedAt: number;
+}
+
 export interface Order {
   id: string;
   userId: string;
@@ -296,12 +302,12 @@ export interface FooterConfig {
 }
 
 export interface ThemeSettings {
-  primaryColor: string;       // Default #246BFD (Cobalt Blue)
-  secondaryColor: string;     // Default #101828 (Charcoal)
-  accentColor: string;        // Default #36D6E7 (Cyan)
+  primaryColor: string;       // Default #2563EB (Cobalt Blue)
+  secondaryColor: string;     // Default #08152F (Charcoal)
+  accentColor: string;        // Default #FFC629 (Cyan)
   pageBgColor: string;        // Default #F8FAFC (Page Background)
   cardBgColor: string;        // Default #FFFFFF (Card / Surface)
-  textPrimaryColor: string;   // Default #101828 (Primary Text)
+  textPrimaryColor: string;   // Default #08152F (Primary Text)
   textSecondaryColor: string; // Default #667085 (Secondary / Muted Text)
   btnTextColor: string;       // Default #FFFFFF (Button Text)
   updatedAt?: number;
