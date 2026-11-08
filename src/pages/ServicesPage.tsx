@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import {
   Search,
   Layers,
@@ -48,6 +49,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 export const ServicesPage: React.FC = () => {
+  const { t } = useLanguage();
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,13 +104,13 @@ export const ServicesPage: React.FC = () => {
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-bold tracking-wide uppercase shadow-xs">
           <Sparkles className="w-3.5 h-3.5 text-[#FFC629]" />
-          <span>Strategic Agency Capabilities</span>
+          <span>{t('servicesPage.tag')}</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-black text-[#08152F] tracking-tight">
-          Full-Spectrum Agency Services
+          {t('servicesPage.title')}
         </h1>
         <p className="text-sm sm:text-base text-[#667085] leading-relaxed max-w-2xl mx-auto">
-          From performance media and high-converting web platforms to AI automation and visual brand identities, Eagle Eye Digital fuels modern businesses with commercial velocity.
+          {t('servicesPage.description')}
         </p>
       </div>
 
@@ -121,7 +123,7 @@ export const ServicesPage: React.FC = () => {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search services or subservices..."
+              placeholder={t('servicesPage.searchPlaceholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-[#F8FAFC] border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-all placeholder:text-slate-400"
@@ -143,7 +145,7 @@ export const ServicesPage: React.FC = () => {
                       : 'bg-[#F8FAFC] text-[#667085] border border-slate-200/80 hover:bg-slate-100 hover:text-[#08152F]'
                   }`}
                 >
-                  <span>{cat}</span>
+                  <span>{cat === 'All' ? t('servicesPage.allCategories') : cat}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                       isSelected
@@ -166,9 +168,9 @@ export const ServicesPage: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Filter className="w-3.5 h-3.5 text-[#2563EB]" />
               <span>
-                Showing <strong>{filteredServices.length}</strong> of <strong>{services.length}</strong> services
-                {selectedCategory !== 'All' && ` in "${selectedCategory}"`}
-                {search.trim() && ` matching "${search}"`}
+                {t('servicesPage.showing')} <strong>{filteredServices.length}</strong> {t('servicesPage.of')} <strong>{services.length}</strong> {t('servicesPage.services')}
+                {selectedCategory !== 'All' && ` ${t('servicesPage.in')} "${selectedCategory}"`}
+                {search.trim() && ` ${t('servicesPage.matching')} "${search}"`}
               </span>
             </div>
             <button
@@ -178,7 +180,7 @@ export const ServicesPage: React.FC = () => {
               }}
               className="text-[#2563EB] font-bold hover:underline"
             >
-              Reset Filters
+              {t('servicesPage.resetFilters')}
             </button>
           </div>
         )}
@@ -195,7 +197,14 @@ export const ServicesPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredServices.map((service) => {
             const IconComponent = (service.iconName && ICON_MAP[service.iconName]) || Layers;
-            const pricing = getServicePricingDisplay(service);
+            const pricing = getServicePricingDisplay(service, '৳', t('pricing.priceOnRequest'), {
+              priceOnRequest: t('pricing.priceOnRequest'),
+              discussRequirements: t('pricing.discussRequirements'),
+              perMonth: t('pricing.perMonth'),
+              starting: t('pricing.starting'),
+              billedMonthly: t('pricing.billedMonthly'),
+              fixedScope: t('pricing.fixedScope'),
+            });
             const subservicesList = service.subservices || [];
 
             return (
@@ -238,7 +247,7 @@ export const ServicesPage: React.FC = () => {
                   {/* Title & Short Description */}
                   <div>
                     <h3 className="text-xl font-bold text-[#08152F] group-hover:text-[#2563EB] transition-colors leading-snug">
-                      <Link to={`/services/${service.slug}`}>{service.name}</Link>
+                      <LocalizedLink to={`/services/${service.slug}`}>{service.name}</LocalizedLink>
                     </h3>
                     <p className="text-xs text-[#667085] mt-2 line-clamp-3 leading-relaxed">
                       {service.shortDescription}
@@ -250,10 +259,10 @@ export const ServicesPage: React.FC = () => {
                     <div className="pt-3 border-t border-slate-100">
                       <div className="flex items-center justify-between text-[11px] mb-2">
                         <span className="font-bold text-[#08152F] uppercase tracking-wider text-[10px]">
-                          Included Subservices:
+                          {t('servicesPage.includedSubservices')}
                         </span>
                         <span className="text-[10px] font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-full">
-                          {subservicesList.length} Specialized Areas
+                          {subservicesList.length} {t('servicesPage.specializedAreas')}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
@@ -268,7 +277,7 @@ export const ServicesPage: React.FC = () => {
                         ))}
                         {subservicesList.length > 3 && (
                           <span className="text-[10px] text-[#2563EB] font-bold px-1 py-0.5">
-                            +{subservicesList.length - 3} more
+                            +{subservicesList.length - 3} {t('servicesPage.more')}
                           </span>
                         )}
                       </div>
@@ -296,7 +305,7 @@ export const ServicesPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                        Investment:
+                        {t('servicesPage.investment')}
                       </span>
                       <span
                         className={`text-sm font-black ${
@@ -308,25 +317,25 @@ export const ServicesPage: React.FC = () => {
                     </div>
 
                     <span className="text-[11px] text-[#667085]">
-                      {service.timeline || 'Flexible Scope'}
+                      {service.timeline || t('servicesPage.flexibleScope')}
                     </span>
                   </div>
 
                   <div className="flex items-center space-x-2 pt-1">
-                    <Link
+                    <LocalizedLink
                       to={`/services/${service.slug}`}
                       className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-[#2563EB] text-[#08152F] hover:text-white font-bold text-xs transition-colors flex items-center justify-center space-x-1"
                     >
-                      <span>Explore Scope</span>
+                      <span>{t('servicesPage.exploreScope')}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    </LocalizedLink>
 
                     <a
                       href={`https://wa.me/88${WHATSAPP_NUMBER}?text=Hi%20Eagle%20Eye%20Digital,%20I'm%20interested%20in%20your%20service:%20${encodeURIComponent(service.name)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition-colors flex items-center justify-center"
-                      title="Direct WhatsApp Consultation"
+                      title={t('servicesPage.directWhatsApp')}
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
                     </a>
@@ -340,9 +349,9 @@ export const ServicesPage: React.FC = () => {
       ) : (
         <EmptyState
           icon={Layers}
-          title="No Services Match Your Search"
-          description="There are currently no published agency services matching your selected filters. Try broadening your keywords or reach out directly for custom scopes."
-          actionText="Clear All Filters"
+          title={t('servicesPage.noServicesTitle')}
+          description={t('servicesPage.noServicesDesc')}
+          actionText={t('servicesPage.clearAllFilters')}
           onAction={() => {
             setSearch('');
             setSelectedCategory('All');
@@ -354,34 +363,30 @@ export const ServicesPage: React.FC = () => {
       <div className="rounded-3xl bg-gradient-to-r from-[#08152F] via-[#1E293B] to-[#0A0F1D] border border-slate-800 p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
         <div className="max-w-2xl space-y-4 relative z-10">
           <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#FFC629]">
-            Tailored Commercial Retainers
+            {t('servicesPage.retainersTag')}
           </span>
           <h2 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
-            Need an Integrated Multi-Channel Growth Engine?
+            {t('servicesPage.retainersTitle')}
           </h2>
           <p className="text-sm text-slate-300 leading-relaxed">
-            We partner with enterprises to combine performance ads, custom web architecture, SEO authority, and automated CRM workflows into a cohesive commercial system.
+            {t('servicesPage.retainersDesc')}
           </p>
           <div className="pt-2 flex flex-wrap items-center gap-3">
-            <Link
+            <LocalizedLink
               to="/contact"
               className="px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm transition-all shadow-md shadow-[#2563EB]/25"
             >
-              Request Custom Quotation
-            </Link>
-            <Link
+              {t('servicesPage.requestQuotation')}
+            </LocalizedLink>
+            <LocalizedLink
               to="/about"
               className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs sm:text-sm transition-colors"
             >
-              How We Work
-            </Link>
+              {t('servicesPage.howWeWork')}
+            </LocalizedLink>
           </div>
         </div>
-
-        {/* Decorative background glow */}
-        
       </div>
-
     </div>
   );
 };

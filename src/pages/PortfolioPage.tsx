@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getPublishedPortfolio } from '../services/firestoreService';
 import { PortfolioItem } from '../types';
 import { EmptyState } from '../components/EmptyState';
 import { Briefcase, ExternalLink } from 'lucide-react';
+import { useLanguage } from '../i18n';
 
 export const PortfolioPage: React.FC = () => {
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const { t, localizedPath } = useLanguage();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -31,11 +35,11 @@ export const PortfolioPage: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-          Proven Impact
+          {t('portfolio.tag')}
         </span>
-        <h1 className="text-4xl font-extrabold text-[#08152F]">Client Portfolio</h1>
+        <h1 className="text-4xl font-extrabold text-[#08152F]">{t('portfolio.title')}</h1>
         <p className="text-sm text-[#667085] leading-relaxed">
-          Explore genuine creative and engineering deliverables completed for growing brands. We uphold strict transparency—no fabricated case studies or dummy metrics.
+          {t('portfolio.description')}
         </p>
       </div>
 
@@ -51,7 +55,7 @@ export const PortfolioPage: React.FC = () => {
                   : 'bg-white text-[#667085] border-slate-200 hover:text-[#08152F] shadow-sm'
               }`}
             >
-              {cat}
+              {cat === 'All' ? t('admin.common.all') : cat}
             </button>
           ))}
         </div>
@@ -90,7 +94,7 @@ export const PortfolioPage: React.FC = () => {
                     rel="noopener noreferrer"
                     className="inline-flex items-center space-x-1 text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8] hover:underline pt-2 transition-colors"
                   >
-                    <span>View Project</span>
+                    <span>{t('portfolio.viewProject')}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
@@ -101,11 +105,11 @@ export const PortfolioPage: React.FC = () => {
       ) : (
         <EmptyState
           icon={Briefcase}
-          title="No Portfolio Items Published Yet"
-          description="In compliance with our absolute no-demo-data policy, only genuine client projects approved for public showcase will appear here. Manage portfolio entries in the admin dashboard."
-          actionText="Start a Project With Us"
+          title={t('portfolio.emptyTitle')}
+          description={t('portfolio.emptyDesc')}
+          actionText={t('portfolio.startProject')}
           onAction={() => {
-            window.location.href = '/contact';
+            navigate(localizedPath('/contact'));
           }}
         />
       )}

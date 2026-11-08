@@ -4,8 +4,9 @@ import { Service } from '../types';
 import { Send, CheckCircle2, AlertCircle, Calendar, ArrowRight } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
-import { useAuthModal, savePendingAction, getPendingAction, clearPendingAction } from '../context/AuthModalContext';
-import { Link } from 'react-router-dom';
+import { useAuthModal, clearPendingAction } from '../context/AuthModalContext';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 
 interface LeadFormProps {
   initialService?: string;
@@ -14,6 +15,7 @@ interface LeadFormProps {
 export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
   const { currentUser } = useAuth();
   const { openLoginModal } = useAuthModal();
+  const { t, localizedPath } = useLanguage();
   const [availableServices, setAvailableServices] = useState<Service[]>([]);
 
   const [formData, setFormData] = useState({
@@ -23,7 +25,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
     phoneOrWhatsApp: '',
     serviceInterest: initialService || 'Social Media Management',
     websiteOrSocial: '',
-    budgetRange: '২০,০০০ - ৫০,০০০ টাকা / মাস',
+    budgetRange: '৳20,000 - ৳50,000 / month',
     deadline: '',
     projectDescription: '',
     preferredContactMethod: 'WhatsApp' as 'WhatsApp' | 'Email' | 'Phone',
@@ -63,25 +65,14 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
     loadServices();
   }, [initialService]);
 
-  // Sync user details and pending inquiry on login
+  // Sync logged-in user profile
   useEffect(() => {
     if (currentUser) {
       setFormData((prev) => ({
         ...prev,
+        name: prev.name || currentUser.displayName || '',
         email: prev.email || currentUser.email || '',
-        name: prev.name || currentUser.displayName || ''
       }));
-
-      // Check if user was redirected back after login with pending inquiry
-      const pending = getPendingAction();
-      if (pending && pending.type === 'inquiry' && pending.data) {
-        setFormData((prev) => ({
-          ...prev,
-          ...(pending.data as any),
-          email: currentUser.email || prev.email,
-          name: currentUser.displayName || prev.name,
-        }));
-      }
     }
   }, [currentUser]);
 
@@ -89,14 +80,10 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
     e.preventDefault();
     setError(null);
 
-    // Guest protection: Require login to submit inquiry
+    // Save draft in case login is required
+    sessionStorage.setItem('eed_pending_inquiry', JSON.stringify(formData));
+
     if (!currentUser) {
-      sessionStorage.setItem('eed_pending_inquiry', JSON.stringify(formData));
-      savePendingAction({
-        type: 'inquiry',
-        data: formData,
-        redirectPath: window.location.pathname,
-      });
       openLoginModal({
         actionType: 'inquiry',
         redirectPath: window.location.pathname,
@@ -108,7 +95,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
 
     try {
       if (!formData.name || !formData.email || !formData.phoneOrWhatsApp || !formData.projectDescription) {
-        throw new Error('অনুগ্রহ করে প্রয়োজনীয় সকল তথ্য পূরণ করুন।');
+        throw new Error(t('leadForm.validationError'));
       }
 
       await createLead({
@@ -137,13 +124,13 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
         phoneOrWhatsApp: '',
         serviceInterest: availableServices[0]?.name || 'Digital Marketing',
         websiteOrSocial: '',
-        budgetRange: '২০,০০০ - ৫০,০০০ টাকা / মাস',
+        budgetRange: '৳20,000 - ৳50,000 / month',
         deadline: '',
         projectDescription: '',
         preferredContactMethod: 'WhatsApp',
       });
     } catch (err: any) {
-      setError(err.message || 'অনুসন্ধান পাঠাতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      setError(err.message || t('leadForm.submitError'));
     } finally {
       setLoading(false);
     }
@@ -154,41 +141,41 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
       {success ? (
         <div className="text-center py-10 space-y-4">
           <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
-          <h3 className="text-2xl font-bold text-[#08152F]">আপনার অনুসন্ধান সফলভাবে জমা হয়েছে!</h3>
+          <h3 className="text-2xl font-bold text-[#08152F]">{t('leadForm.successTitle')}</h3>
           <p className="text-[#667085] max-w-md mx-auto text-sm">
-            Eagle Eye Digital-এ যোগাযোগ করার জন্য ধন্যবাদ। আমাদের টিম শীঘ্রই আপনার প্রজেক্টের বিস্তারিত পর্যালোচনা করে আপনার পছন্দের মাধ্যমে যোগাযোগ করবে।
+            {t('leadForm.successMessage')}
           </p>
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => setSuccess(false)}
               className="text-xs text-[#2563EB] font-semibold underline hover:text-[#1D4ED8] cursor-pointer"
             >
-              আরেকটি অনুসন্ধান পাঠান
+              {t('leadForm.sendAnother')}
             </button>
-            <Link
+            <LocalizedLink
               to="/account?tab=inquiries"
               className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-xs font-bold shadow-sm flex items-center space-x-1.5 transition-colors"
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>আমার অ্যাকাউন্টে দেখুন</span>
+              <span>{t('leadForm.viewInAccount')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            </LocalizedLink>
             <a
               href={`https://wa.me/88${WHATSAPP_NUMBER}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors"
             >
-              হোয়াটসঅ্যাপে মেসেজ দিন
+              {t('leadForm.messageOnWhatsApp')}
             </a>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="border-b border-slate-200 pb-4 mb-4">
-            <h3 className="text-xl font-bold text-[#08152F]">পরামর্শ ও কোটেশন অনুরোধ করুন</h3>
+            <h3 className="text-xl font-bold text-[#08152F]">{t('leadForm.heading')}</h3>
             <p className="text-xs text-[#667085] mt-1">
-              আপনার ব্যবসায়িক লক্ষ্য ও চ্যালেঞ্জ আমাদের জানান। আমরা আপনার ব্যবসার বৃদ্ধির জন্য উপযুক্ত স্ট্র্যাটেজি তৈরি করব।
+              {t('leadForm.description')}
             </p>
           </div>
 
@@ -202,27 +189,27 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                আপনার নাম <span className="text-[#2563EB]">*</span>
+                {t('leadForm.nameLabel')} <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="যেমন: তামিম নূর"
+                placeholder={t('leadForm.namePlaceholder')}
                 className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                ব্যবসা বা ব্র্যান্ডের নাম
+                {t('leadForm.businessLabel')}
               </label>
               <input
                 type="text"
                 value={formData.businessName}
                 onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                placeholder="যেমন: অ্যাপেক্স রিটেইল"
+                placeholder={t('leadForm.businessPlaceholder')}
                 className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
@@ -231,28 +218,28 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                ইমেইল ঠিকানা <span className="text-[#2563EB]">*</span>
+                {t('leadForm.emailLabel')} <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="email"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="name@company.com"
+                placeholder={t('leadForm.emailPlaceholder')}
                 className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                মোবাইল বা হোয়াটসঅ্যাপ নম্বর <span className="text-[#2563EB]">*</span>
+                {t('leadForm.phoneLabel')} <span className="text-[#2563EB]">*</span>
               </label>
               <input
                 type="tel"
                 required
                 value={formData.phoneOrWhatsApp}
                 onChange={(e) => setFormData({ ...formData, phoneOrWhatsApp: e.target.value })}
-                placeholder="০১XXXXXXXXX"
+                placeholder={t('leadForm.phonePlaceholder')}
                 className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
@@ -261,7 +248,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                প্রয়োজনীয় সার্ভিস
+                {t('leadForm.serviceLabel')}
               </label>
               <select
                 value={formData.serviceInterest}
@@ -276,34 +263,34 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
                   ))
                 ) : (
                   <>
-                    <option value="Social Media Management">সোশ্যাল মিডিয়া ম্যানেজমেন্ট</option>
-                    <option value="Meta Ads Management">মেটা বিজ্ঞাপন ম্যানেজমেন্ট</option>
-                    <option value="Google Ads Management">গুগল বিজ্ঞাপন ম্যানেজমেন্ট</option>
-                    <option value="Search Engine Optimization (SEO)">সার্চ ইঞ্জিন অপ্টিমাইজেশন (SEO)</option>
-                    <option value="Website Design and Development">ওয়েবসাইট ডিজাইন ও ডেভেলপমেন্ট</option>
-                    <option value="E-commerce Website Development">ই-কমার্স ওয়েবসাইট ডেভেলপমেন্ট</option>
-                    <option value="AI Workflow Automation">এআই অটোমেশন</option>
+                    <option value="Social Media Management">{t('leadForm.serviceOptions.socialMedia')}</option>
+                    <option value="Meta Ads Management">{t('leadForm.serviceOptions.metaAds')}</option>
+                    <option value="Google Ads Management">{t('leadForm.serviceOptions.googleAds')}</option>
+                    <option value="Search Engine Optimization (SEO)">{t('leadForm.serviceOptions.seo')}</option>
+                    <option value="Website Design and Development">{t('leadForm.serviceOptions.website')}</option>
+                    <option value="E-commerce Website Development">{t('leadForm.serviceOptions.ecommerce')}</option>
+                    <option value="AI Workflow Automation">{t('leadForm.serviceOptions.aiAutomation')}</option>
                   </>
                 )}
-                <option value="Comprehensive Growth Retainer">সম্পূর্ণ গ্রোথ প্যাকেজ (মাল্টি-সার্ভিস)</option>
-                <option value="Custom Consultation">অন্যান্য / কাস্টম পরামর্শ</option>
+                <option value="Comprehensive Growth Retainer">{t('leadForm.serviceOptions.growthPackage')}</option>
+                <option value="Custom Consultation">{t('leadForm.serviceOptions.custom')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                আনুমানিক বাজেট সীমা
+                {t('leadForm.budgetLabel')}
               </label>
               <select
                 value={formData.budgetRange}
                 onChange={(e) => setFormData({ ...formData, budgetRange: e.target.value })}
                 className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               >
-                <option value="২০,০০০ টাকার নিচে">২০,০০০ টাকার নিচে</option>
-                <option value="২০,০০০ - ৫০,০০০ টাকা / মাস">২০,০০০ - ৫০,০০০ টাকা / মাস</option>
-                <option value="৫০,০০০ - ১৫০,০০০ টাকা / মাস">৫০,০০০ - ১৫০,০০০ টাকা / মাস</option>
-                <option value="১,৫০,০০০+ টাকা (এন্টারপ্রাইজ)">১,৫০,০০০+ টাকা (এন্টারপ্রাইজ)</option>
-                <option value="কাস্টম / নির্ধারিত নয়">কাস্টম / নির্ধারিত নয়</option>
+                <option value="৳20,000 - ৳50,000 / month">{t('leadForm.budgetOptions.range1')}</option>
+                <option value="৳50,000 - ৳1,00,000 / month">{t('leadForm.budgetOptions.range2')}</option>
+                <option value="৳1,00,000 - ৳3,00,000 / month">{t('leadForm.budgetOptions.range3')}</option>
+                <option value="৳3,00,000+ / month">{t('leadForm.budgetOptions.range4')}</option>
+                <option value="Custom / Project-based">{t('leadForm.budgetOptions.custom')}</option>
               </select>
             </div>
           </div>
@@ -311,26 +298,26 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                বর্তমান ওয়েবসাইট বা সোশ্যাল পেজের লিংক
+                {t('leadForm.websiteLabel')}
               </label>
               <input
                 type="text"
                 value={formData.websiteOrSocial}
                 onChange={(e) => setFormData({ ...formData, websiteOrSocial: e.target.value })}
-                placeholder="https://facebook.com/yourpage"
+                placeholder={t('leadForm.websitePlaceholder')}
                 className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-[#172033] mb-1">
-                যোগাযোগের মাধ্যম
+                {t('leadForm.contactMethodLabel')}
               </label>
               <div className="flex space-x-4 pt-2">
                 {[
-                  { id: 'WhatsApp', label: 'হোয়াটসঅ্যাপ' },
-                  { id: 'Email', label: 'ইমেইল' },
-                  { id: 'Phone', label: 'ফোন' }
+                  { id: 'WhatsApp', label: t('common.whatsapp') },
+                  { id: 'Email', label: t('common.email') },
+                  { id: 'Phone', label: t('common.phone') }
                 ].map((item) => (
                   <label key={item.id} className="flex items-center space-x-1.5 text-xs text-[#172033] font-medium cursor-pointer">
                     <input
@@ -350,14 +337,14 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
 
           <div>
             <label className="block text-xs font-semibold text-[#172033] mb-1">
-              প্রজেক্টের বিবরণ ও লক্ষ্য <span className="text-[#2563EB]">*</span>
+              {t('leadForm.projectLabel')} <span className="text-[#2563EB]">*</span>
             </label>
             <textarea
               required
               rows={4}
               value={formData.projectDescription}
               onChange={(e) => setFormData({ ...formData, projectDescription: e.target.value })}
-              placeholder="আপনার ব্র্যান্ড, কী লক্ষ্য অর্জন করতে চান, সময়সীমা বা বিদ্যমান চ্যালেঞ্জ সম্পর্কে বিস্তারিত লিখুন..."
+              placeholder={t('leadForm.projectPlaceholder')}
               className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
             />
           </div>
@@ -368,11 +355,11 @@ export const LeadForm: React.FC<LeadFormProps> = ({ initialService = '' }) => {
             className="w-full py-3.5 px-6 rounded-xl bg-[#FFC629] hover:bg-[#e6b122] text-[#08152F] font-black text-sm transition-all flex items-center justify-center space-x-2 disabled:opacity-50 shadow-md shadow-[#FFC629]/25 cursor-pointer active:scale-[0.99]"
           >
             {loading ? (
-              <span>পাঠানো হচ্ছে...</span>
+              <span>{t('leadForm.sendingBtn')}</span>
             ) : (
               <>
                 <Send className="w-4 h-4 text-[#08152F]" />
-                <span>অনুসন্ধান পাঠান</span>
+                <span>{t('leadForm.submitBtn')}</span>
               </>
             )}
           </button>

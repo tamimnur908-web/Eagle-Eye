@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
+import { useLanguage } from '../i18n';
 import { SocialIcon, SOCIAL_ICON_OPTIONS } from './SocialIcon';
 import { ChevronRight, ChevronLeft, Share2 } from 'lucide-react';
 
 export const FloatingSocialBar: React.FC = () => {
   const { socialLinks } = useSettings();
+  const { t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return typeof window !== 'undefined' && window.innerWidth < 768;
   });
@@ -20,7 +22,7 @@ export const FloatingSocialBar: React.FC = () => {
 
   return (
     <aside
-      aria-label="Social media quick connect"
+      aria-label={t('floatingSocial.ariaLabel')}
       className="fixed right-3 sm:right-4 top-1/2 -translate-y-1/2 z-40 transition-transform duration-300"
       style={{ transform: isCollapsed ? 'translate(calc(100% - 14px), -50%)' : 'translate(0, -50%)' }}
     >
@@ -30,7 +32,7 @@ export const FloatingSocialBar: React.FC = () => {
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -left-6 top-1/2 -translate-y-1/2 w-6 h-10 rounded-l-xl bg-white border-l border-y border-slate-200 shadow-md text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors"
-          title={isCollapsed ? 'Expand social links' : 'Collapse social links'}
+          title={isCollapsed ? t('floatingSocial.expand') : t('floatingSocial.collapse')}
         >
           {isCollapsed ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </button>

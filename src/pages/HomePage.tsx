@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import {
   Layers,
   Sparkles,
@@ -88,6 +89,7 @@ export const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { t, localizedPath } = useLanguage();
 
   // Real-time listener for homepage bento & slides
   useEffect(() => {
@@ -234,7 +236,7 @@ export const HomePage: React.FC = () => {
             )}
 
             {isPureBanner && (
-              <Link
+              <LocalizedLink
                 to={activeSlide.btn1Link || '/services'}
                 className="absolute inset-0 z-10 cursor-pointer"
                 title="View Destination"
@@ -354,19 +356,19 @@ export const HomePage: React.FC = () => {
                                 </span>
                               </div>
                               <div className="text-[11px] text-slate-300">
-                                • <span className="text-white font-semibold">Services:</span> 14 Active
+                                • <span className="text-white font-semibold">{t('home.hero.servicesLabel')}</span> {t('home.hero.servicesCount')}
                               </div>
                               <div className="text-[11px] text-slate-300">
-                                • <span className="text-white font-semibold">Subservices:</span> 144 Scopes
+                                • <span className="text-white font-semibold">{t('home.hero.subsLabel')}</span> {t('home.hero.subsCount')}
                               </div>
                             </div>
 
                             <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px]">
                               <span className="text-emerald-400 font-bold flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                VERIFIED
+                                {t('home.hero.verified')}
                               </span>
-                              <span className="text-slate-400 font-mono">v4.0 • READY</span>
+                              <span className="text-slate-400 font-mono">{t('home.hero.version')}</span>
                             </div>
                           </div>
                         );
@@ -381,27 +383,27 @@ export const HomePage: React.FC = () => {
                           <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                             <span className="text-xs font-bold text-white flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                              Agency Highlights
+                              {t('home.highlights.title')}
                             </span>
-                            <span className="text-[10px] font-mono text-[#FFC629] font-bold">PRO</span>
+                            <span className="text-[10px] font-mono text-[#FFC629] font-bold">{t('home.highlights.pro')}</span>
                           </div>
                           <div className="space-y-2 text-xs">
                             <div className="flex justify-between items-center text-slate-300">
-                              <span>Agency Services</span>
-                              <span className="font-bold text-white">14 Active</span>
+                              <span>{t('home.highlights.agencyServices')}</span>
+                              <span className="font-bold text-white">{t('home.highlights.activeCount')}</span>
                             </div>
                             <div className="flex justify-between items-center text-slate-300">
-                              <span>Specialized Scopes</span>
-                              <span className="font-bold text-white">144 Included</span>
+                              <span>{t('home.highlights.specializedScopes')}</span>
+                              <span className="font-bold text-white">{t('home.highlights.scopesIncluded')}</span>
                             </div>
                             <div className="flex justify-between items-center text-slate-300">
-                              <span>Client Engagement</span>
-                              <span className="font-bold text-[#FFC629]">Bespoke Retainer</span>
+                              <span>{t('home.highlights.clientEngagement')}</span>
+                              <span className="font-bold text-[#FFC629]">{t('home.highlights.bespokeRetainer')}</span>
                             </div>
                           </div>
                           <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                            <span>Operational Model</span>
-                            <span className="text-emerald-400 font-bold">Open for Scopes</span>
+                            <span>{t('home.highlights.operationalModel')}</span>
+                            <span className="text-emerald-400 font-bold">{t('home.highlights.openForScopes')}</span>
                           </div>
                         </div>
                       );
@@ -412,19 +414,19 @@ export const HomePage: React.FC = () => {
                 {/* Bottom Navigation & Indicator Dots */}
                 <div className="pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-                    <Link
+                    <LocalizedLink
                       to="/services"
                       className="px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center space-x-2"
                     >
-                      <span>Explore Agency Services</span>
+                      <span>{t('home.highlights.exploreServices')}</span>
                       <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <Link
+                    </LocalizedLink>
+                    <LocalizedLink
                       to="/contact"
                       className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center"
                     >
-                      Book Strategy Call
-                    </Link>
+                      {t('home.highlights.bookStrategyCall')}
+                    </LocalizedLink>
                   </div>
 
                   {slides.length > 1 && (
@@ -450,7 +452,7 @@ export const HomePage: React.FC = () => {
               <div className="p-6 sm:p-8 flex items-end justify-between w-full h-full relative z-20 pointer-events-none mt-auto">
                 <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm text-white/90 border border-white/15 flex items-center space-x-1.5 shadow-sm pointer-events-auto">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#FFC629]" />
-                  <span>Click to explore</span>
+                  <span>{t('home.cards.clickToExplore')}</span>
                 </span>
 
                 {slides.length > 1 && (
@@ -464,7 +466,7 @@ export const HomePage: React.FC = () => {
                           e.stopPropagation();
                           setCurrentSlide(idx);
                         }}
-                        aria-label={`Go to slide ${idx + 1}`}
+                        aria-label={`${t('home.hero.goToSlide')} ${idx + 1}`}
                         className={`transition-all duration-300 rounded-full ${
                           currentSlide === idx
                             ? 'w-6 h-2 bg-[#FFC629]'
@@ -484,17 +486,17 @@ export const HomePage: React.FC = () => {
             <div className="h-auto min-h-[140px] sm:h-52 rounded-2xl bg-[#08152F] border border-[#0D2044] p-5 sm:p-6 flex items-center justify-between overflow-hidden relative shadow-xs group hover:border-[#2563EB] transition-colors">
               <div className="z-10 space-y-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#FFC629]">
-                  {bento.card1Tag || 'Performance Media'}
+                  {bento.card1Tag || t('home.cards.performanceMedia')}
                 </span>
-                <h3 className="text-lg sm:text-xl font-bold text-white">{bento.card1Title || 'Meta & Google Ads'}</h3>
-                <p className="text-xs text-slate-300 max-w-[160px] leading-relaxed">{bento.card1Description || 'Precision audience targeting scaling direct returns.'}</p>
-                <Link
+                <h3 className="text-lg sm:text-xl font-bold text-white">{bento.card1Title || t('home.cards.metaGoogleAds')}</h3>
+                <p className="text-xs text-slate-300 max-w-[160px] leading-relaxed">{bento.card1Description || t('home.cards.precisionTargeting')}</p>
+                <LocalizedLink
                   to={bento.card1LinkUrl || '/services'}
                   className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] hover:text-white pt-1 transition-colors"
                 >
-                  <span>{bento.card1LinkText || 'Explore Retainers'}</span>
+                  <span>{bento.card1LinkText || t('home.cards.exploreRetainers')}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                </LocalizedLink>
               </div>
 
               {bento.card1Image ? (
@@ -509,41 +511,41 @@ export const HomePage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 flex-1">
-              <Link
+              <LocalizedLink
                 to={bento.card2LinkUrl || '/services'}
                 className="rounded-2xl bg-white border border-slate-200 p-5 flex flex-col justify-between group hover:border-[#2563EB] transition-colors shadow-xs min-h-[140px]"
               >
                 <span className="text-[10px] font-bold text-[#2563EB] uppercase tracking-wider">
-                  {bento.card2Tag || 'Custom Platforms'}
+                  {bento.card2Tag || t('home.cards.customPlatforms')}
                 </span>
                 <div>
                   <h4 className="text-sm font-bold text-[#08152F] leading-snug">
-                    {bento.card2Title || 'Web Engineering'}
+                    {bento.card2Title || t('home.cards.webEngineering')}
                   </h4>
                   <span className="text-xs font-semibold text-[#2563EB] flex items-center space-x-0.5 mt-2">
-                    <span>View Stack</span>
+                    <span>{t('home.cards.viewStack')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
-              </Link>
+              </LocalizedLink>
 
-              <Link
+              <LocalizedLink
                 to={bento.card3LinkUrl || '/services'}
                 className="rounded-2xl bg-white border border-slate-200 p-5 flex flex-col justify-between group hover:border-[#2563EB] transition-colors shadow-xs min-h-[140px]"
               >
                 <span className="text-[10px] font-bold text-[#FFC629] uppercase tracking-wider">
-                  {bento.card3Tag || 'AI & Workflows'}
+                  {bento.card3Tag || t('home.cards.aiWorkflows')}
                 </span>
                 <div>
                   <h4 className="text-sm font-bold text-[#08152F] leading-snug">
-                    {bento.card3Title || 'Chatbots & Automation'}
+                    {bento.card3Title || t('home.cards.chatbotsAutomation')}
                   </h4>
                   <span className="text-xs font-semibold text-[#2563EB] flex items-center space-x-0.5 mt-2">
-                    <span>{bento.card3LinkText || 'View Capabilities'}</span>
+                    <span>{bento.card3LinkText || t('home.cards.viewCapabilities')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
-              </Link>
+              </LocalizedLink>
             </div>
 
           </div>
@@ -555,50 +557,50 @@ export const HomePage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 space-y-4">
             <span className="text-xs font-extrabold uppercase tracking-widest text-[#2563EB]">
-              Who We Are
+              {t('home.whoWeAre.tag')}
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-[#08152F] tracking-tight leading-tight">
-              A Modern Commercial Agency Built for Growth & Execution
+              {t('home.whoWeAre.title')}
             </h2>
             <p className="text-sm text-[#667085] leading-relaxed">
-              Eagle Eye Digital is a full-service digital agency bridging strategic marketing, bespoke web engineering, creative brand systems, and intelligent business automations. We focus on measurable business expansion, transparent operational standards, and resilient technical execution.
+              {t('home.whoWeAre.description')}
             </p>
             <div className="pt-2 flex flex-wrap gap-4">
               <div className="flex items-center space-x-2 text-xs font-bold text-[#172033]">
                 <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
-                <span>14 Full Agency Services</span>
+                <span>{t('home.whoWeAre.stat1')}</span>
               </div>
               <div className="flex items-center space-x-2 text-xs font-bold text-[#172033]">
                 <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
-                <span>144 Specialized Subservices</span>
+                <span>{t('home.whoWeAre.stat2')}</span>
               </div>
               <div className="flex items-center space-x-2 text-xs font-bold text-[#172033]">
                 <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />
-                <span>Zero Hardcoded Constraints</span>
+                <span>{t('home.whoWeAre.stat3')}</span>
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-5 grid grid-cols-2 gap-4">
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#08152F]">3</span>
-              <span className="text-xs font-bold text-[#2563EB] block">Core Disciplines</span>
-              <p className="text-[10px] text-[#667085]">Marketing • Tech • AI</p>
+              <span className="text-3xl font-black text-[#08152F]">{t('home.whoWeAre.card1Num')}</span>
+              <span className="text-xs font-bold text-[#2563EB] block">{t('home.whoWeAre.card1Title')}</span>
+              <p className="text-[10px] text-[#667085]">{t('home.whoWeAre.card1Sub')}</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#08152F]">100%</span>
-              <span className="text-xs font-bold text-[#2563EB] block">Dashboard Managed</span>
-              <p className="text-[10px] text-[#667085]">Dynamic In Real Time</p>
+              <span className="text-3xl font-black text-[#08152F]">{t('home.whoWeAre.card2Num')}</span>
+              <span className="text-xs font-bold text-[#2563EB] block">{t('home.whoWeAre.card2Title')}</span>
+              <p className="text-[10px] text-[#667085]">{t('home.whoWeAre.card2Sub')}</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#08152F]">24/7</span>
-              <span className="text-xs font-bold text-[#2563EB] block">Inquiry Routing</span>
-              <p className="text-[10px] text-[#667085]">WhatsApp & CRM Sync</p>
+              <span className="text-3xl font-black text-[#08152F]">{t('home.whoWeAre.card3Num')}</span>
+              <span className="text-xs font-bold text-[#2563EB] block">{t('home.whoWeAre.card3Title')}</span>
+              <p className="text-[10px] text-[#667085]">{t('home.whoWeAre.card3Sub')}</p>
             </div>
             <div className="p-5 rounded-2xl bg-[#F3F5F9] border border-slate-200 text-center space-y-1">
-              <span className="text-3xl font-black text-[#08152F]">Clear</span>
-              <span className="text-xs font-bold text-[#2563EB] block">Transparent Scopes</span>
-              <p className="text-[10px] text-[#667085]">Price on Request & Fixed</p>
+              <span className="text-3xl font-black text-[#08152F]">{t('home.whoWeAre.card4Num')}</span>
+              <span className="text-xs font-bold text-[#2563EB] block">{t('home.whoWeAre.card4Title')}</span>
+              <p className="text-[10px] text-[#667085]">{t('home.whoWeAre.card4Sub')}</p>
             </div>
           </div>
         </div>
@@ -610,20 +612,20 @@ export const HomePage: React.FC = () => {
           <div>
             <div className="flex items-center space-x-1.5 text-[#2563EB] text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-[#FFC629]" />
-              <span>Tailored Engagements</span>
+              <span>{t('home.featuredServices.tag')}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-[#08152F] mt-1">
-              Featured Agency Services
+              {t('home.featuredServices.title')}
             </h2>
           </div>
 
-          <Link
+          <LocalizedLink
             to="/services"
             className="inline-flex items-center space-x-1.5 text-xs sm:text-sm font-bold text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
           >
-            <span>View All 14 Services</span>
+            <span>{t('home.featuredServices.viewAll')}</span>
             <ChevronRight className="w-4 h-4" />
-          </Link>
+          </LocalizedLink>
         </div>
 
         {featuredServices.length > 0 ? (
@@ -671,7 +673,7 @@ export const HomePage: React.FC = () => {
 
                     <div>
                       <h3 className="text-lg font-bold text-[#08152F] group-hover:text-[#2563EB] transition-colors">
-                        <Link to={`/services/${service.slug}`}>{service.name}</Link>
+                        <LocalizedLink to={`/services/${service.slug}`}>{service.name}</LocalizedLink>
                       </h3>
                       <p className="text-xs text-[#667085] mt-2 line-clamp-2 leading-relaxed">
                         {service.shortDescription}
@@ -680,7 +682,7 @@ export const HomePage: React.FC = () => {
 
                     {subs.length > 0 && (
                       <div className="pt-2 text-[11px] text-slate-500">
-                        <span className="font-semibold text-slate-700">Capabilities: </span>
+                        <span className="font-semibold text-slate-700">{t('home.featuredServices.capabilities')} </span>
                         <span>{subs.slice(0, 3).map((s) => s.name).join(' • ')}</span>
                       </div>
                     )}
@@ -689,20 +691,20 @@ export const HomePage: React.FC = () => {
                   <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                        Investment:
+                        {t('home.featuredServices.investment')}
                       </span>
                       <span className={`font-black ${pricing.hasExactPrice ? 'text-[#08152F]' : 'text-[#2563EB]'}`}>
                         {pricing.displayText}
                       </span>
                     </div>
 
-                    <Link
+                    <LocalizedLink
                       to={`/services/${service.slug}`}
                       className="inline-flex items-center space-x-1 font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform"
                     >
-                      <span>Explore Scope</span>
+                      <span>{t('home.featuredServices.exploreScope')}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                    </LocalizedLink>
                   </div>
                 </div>
               );
@@ -710,7 +712,7 @@ export const HomePage: React.FC = () => {
           </div>
         ) : (
           <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-[#667085]">
-            Loading agency services catalog...
+            {t('home.featuredServices.loading')}
           </div>
         )}
       </section>
@@ -719,16 +721,16 @@ export const HomePage: React.FC = () => {
       <section className="w-full space-y-6">
         <div className="text-center max-w-xl mx-auto space-y-2">
           <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-            Organized Architecture
+            {t('home.serviceCategories.tag')}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
-            Explore by Service Category
+            {t('home.serviceCategories.title')}
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          <Link
+          <LocalizedLink
             to="/services"
             className="rounded-2xl p-7 bg-[#08152F] border border-[#0D2044] text-white space-y-4 hover:border-[#2563EB] transition-colors group shadow-xs flex flex-col justify-between"
           >
@@ -737,22 +739,22 @@ export const HomePage: React.FC = () => {
                 <Target className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFC629]">
-                Category A
+                {t('home.serviceCategories.catA')}
               </span>
               <h3 className="text-xl font-bold group-hover:text-white transition-colors">
-                Digital Marketing
+                {t('home.serviceCategories.catATitle')}
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Social media retainers, Meta & Google ad management, comprehensive SEO, email marketing, and content marketing.
+                {t('home.serviceCategories.catADesc')}
               </p>
             </div>
             <span className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] group-hover:text-white transition-colors pt-2">
-              <span>View 6 Services (63 Subservices)</span>
+              <span>{t('home.serviceCategories.catALink')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </span>
-          </Link>
+          </LocalizedLink>
 
-          <Link
+          <LocalizedLink
             to="/services"
             className="rounded-2xl p-7 bg-[#08152F] border border-[#0D2044] text-white space-y-4 hover:border-[#2563EB] transition-colors group shadow-xs flex flex-col justify-between"
           >
@@ -761,22 +763,22 @@ export const HomePage: React.FC = () => {
                 <Laptop className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFC629]">
-                Category B
+                {t('home.serviceCategories.catB')}
               </span>
               <h3 className="text-xl font-bold group-hover:text-white transition-colors">
-                Web Development & Creative
+                {t('home.serviceCategories.catBTitle')}
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Corporate web engineering, high-converting landing pages, UI/UX systems in Figma, e-commerce, and conversion tracking.
+                {t('home.serviceCategories.catBDesc')}
               </p>
             </div>
             <span className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] group-hover:text-white transition-colors pt-2">
-              <span>View 6 Services (66 Subservices)</span>
+              <span>{t('home.serviceCategories.catBLink')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </span>
-          </Link>
+          </LocalizedLink>
 
-          <Link
+          <LocalizedLink
             to="/services"
             className="rounded-2xl p-7 bg-[#08152F] border border-[#0D2044] text-white space-y-4 hover:border-[#2563EB] transition-colors group shadow-xs flex flex-col justify-between"
           >
@@ -785,20 +787,20 @@ export const HomePage: React.FC = () => {
                 <Bot className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#FFC629]">
-                Category C
+                {t('home.serviceCategories.catC')}
               </span>
               <h3 className="text-xl font-bold group-hover:text-white transition-colors">
-                AI and Business Automation
+                {t('home.serviceCategories.catCTitle')}
               </h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                AI workflow automations, CRM synchronization, repetitive task elimination, and 24/7 customer support chatbots.
+                {t('home.serviceCategories.catCDesc')}
               </p>
             </div>
             <span className="inline-flex items-center space-x-1 text-xs font-bold text-[#60A5FA] group-hover:text-white transition-colors pt-2">
-              <span>View 2 Services (20 Subservices)</span>
+              <span>{t('home.serviceCategories.catCLink')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </span>
-          </Link>
+          </LocalizedLink>
 
         </div>
       </section>
@@ -807,13 +809,13 @@ export const HomePage: React.FC = () => {
       <section className="w-full space-y-8">
         <div className="text-center max-w-xl mx-auto space-y-2">
           <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-            Systematic Delivery
+            {t('home.howWeWork.tag')}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
-            How We Execute Projects
+            {t('home.howWeWork.title')}
           </h2>
           <p className="text-xs text-[#667085]">
-            A predictable, milestone-driven framework delivering quality at every stage.
+            {t('home.howWeWork.description')}
           </p>
         </div>
 
@@ -822,9 +824,9 @@ export const HomePage: React.FC = () => {
             <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               01
             </span>
-            <h4 className="text-base font-bold text-[#08152F]">Discovery & Audit</h4>
+            <h4 className="text-base font-bold text-[#08152F]">{t('home.howWeWork.step1Title')}</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
-              We deconstruct your market positioning, commercial goals, competitor landscape, and existing technical assets.
+              {t('home.howWeWork.step1Desc')}
             </p>
           </div>
 
@@ -832,9 +834,9 @@ export const HomePage: React.FC = () => {
             <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               02
             </span>
-            <h4 className="text-base font-bold text-[#08152F]">Strategy & Design</h4>
+            <h4 className="text-base font-bold text-[#08152F]">{t('home.howWeWork.step2Title')}</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
-              We architect the technical blueprint, audience funnels, Figma interfaces, and campaign creative directions.
+              {t('home.howWeWork.step2Desc')}
             </p>
           </div>
 
@@ -842,9 +844,9 @@ export const HomePage: React.FC = () => {
             <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               03
             </span>
-            <h4 className="text-base font-bold text-[#08152F]">Engineering & Launch</h4>
+            <h4 className="text-base font-bold text-[#08152F]">{t('home.howWeWork.step3Title')}</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
-              We deploy clean frontend code, configure tracking pixels, launch targeted ad sets, and initiate live monitoring.
+              {t('home.howWeWork.step3Desc')}
             </p>
           </div>
 
@@ -852,9 +854,9 @@ export const HomePage: React.FC = () => {
             <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#2563EB] font-black text-xs flex items-center justify-center">
               04
             </span>
-            <h4 className="text-base font-bold text-[#08152F]">Optimization & Scale</h4>
+            <h4 className="text-base font-bold text-[#08152F]">{t('home.howWeWork.step4Title')}</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
-              We refine conversion rates, automate CRM handovers, optimize ad spend, and report verifiable commercial metrics.
+              {t('home.howWeWork.step4Desc')}
             </p>
           </div>
         </div>
@@ -864,10 +866,10 @@ export const HomePage: React.FC = () => {
       <section className="w-full bg-[#F3F5F9] rounded-2xl p-8 sm:p-12 border border-slate-200/80 space-y-8">
         <div className="text-center max-w-xl mx-auto space-y-2">
           <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-            Proven Methodology
+            {t('home.whyChooseUs.tag')}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
-            Why Brands Choose Eagle Eye Digital
+            {t('home.whyChooseUs.title')}
           </h2>
         </div>
 
@@ -876,9 +878,9 @@ export const HomePage: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center">
               <Zap className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-[#08152F]">Commercial Velocity</h4>
+            <h4 className="text-base font-bold text-[#08152F]">{t('home.whyChooseUs.reason1Title')}</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
-              We eliminate unnecessary agency bloat and focus squarely on deliverables that acquire customers and scale revenue.
+              {t('home.whyChooseUs.reason1Desc')}
             </p>
           </div>
 
@@ -886,9 +888,9 @@ export const HomePage: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-[#08152F]">Strict Technical Rigor</h4>
+            <h4 className="text-base font-bold text-[#08152F]">{t('home.whyChooseUs.reason2Title')}</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
-              Clean TypeScript architecture, resilient cloud databases, and proper API security ensure your brand is protected.
+              {t('home.whyChooseUs.reason2Desc')}
             </p>
           </div>
 
@@ -896,9 +898,9 @@ export const HomePage: React.FC = () => {
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center">
               <BarChart className="w-5 h-5" />
             </div>
-            <h4 className="text-base font-bold text-[#08152F]">Radical Transparency</h4>
+            <h4 className="text-base font-bold text-[#08152F]">{t('home.whyChooseUs.reason3Title')}</h4>
             <p className="text-xs text-[#667085] leading-relaxed">
-              No hidden fees, no ambiguous reports. Every campaign and project is backed by live data you can independently verify.
+              {t('home.whyChooseUs.reason3Desc')}
             </p>
           </div>
         </div>
@@ -910,19 +912,19 @@ export const HomePage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-                Verified Outcomes
+                {t('home.caseStudiesSection.tag')}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-[#08152F] mt-1">
-                Client Case Studies
+                {t('home.caseStudiesSection.title')}
               </h2>
             </div>
-            <Link
+            <LocalizedLink
               to="/case-studies"
               className="text-xs sm:text-sm font-bold text-[#2563EB] flex items-center space-x-1"
             >
-              <span>View All</span>
+              <span>{t('home.caseStudiesSection.viewAll')}</span>
               <ChevronRight className="w-4 h-4" />
-            </Link>
+            </LocalizedLink>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -950,19 +952,19 @@ export const HomePage: React.FC = () => {
           <div>
             <div className="flex items-center space-x-1.5 text-slate-500 text-xs font-bold uppercase tracking-wider">
               <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Digital Store</span>
+              <span>{t('home.digitalStore.tag')}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-[#08152F] mt-1">
-              Digital Products & UI Vault
+              {t('home.digitalStore.title')}
             </h2>
           </div>
-          <Link
+          <LocalizedLink
             to="/products"
             className="text-xs sm:text-sm font-bold text-[#2563EB] flex items-center space-x-1"
           >
-            <span>Browse Vault</span>
+            <span>{t('home.digitalStore.browseVault')}</span>
             <ChevronRight className="w-4 h-4" />
-          </Link>
+          </LocalizedLink>
         </div>
 
         {products.length > 0 ? (
@@ -990,7 +992,7 @@ export const HomePage: React.FC = () => {
                           ? 'bg-rose-50 text-rose-500 border border-rose-200'
                           : 'bg-white/90 text-slate-500 hover:text-rose-500 border border-slate-200'
                       }`}
-                      title={isInWishlist(product.id) ? 'পছন্দের তালিকা থেকে সরান' : 'পছন্দের তালিকায় রাখুন'}
+                      title={isInWishlist(product.id) ? t('home.wishlist.removeTitle') : t('home.wishlist.addTitle')}
                     >
                       <Heart className={`w-3.5 h-3.5 ${isInWishlist(product.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
                     </button>
@@ -1002,42 +1004,41 @@ export const HomePage: React.FC = () => {
                   </div>
                   <div className="p-5 pt-0 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-sm font-black text-[#08152F]">{pricing.displayText}</span>
-                    <Link
+                    <LocalizedLink
                       to={`/products/${product.slug}`}
                       className="px-3 py-1 rounded-full bg-blue-50 text-[#2563EB] text-xs font-bold hover:bg-[#2563EB] hover:text-white transition-colors"
                     >
-                      View
-                    </Link>
+                      {t('home.digitalStore.viewProduct')}
+                    </LocalizedLink>
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          /* Attractive agency-focused empty state (per Requirement 9) */
           <div className="rounded-2xl bg-white border border-slate-200 p-8 sm:p-10 text-center space-y-4 shadow-xs">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#2563EB] mx-auto flex items-center justify-center">
               <ShoppingBag className="w-7 h-7" />
             </div>
             <div className="max-w-md mx-auto space-y-1.5">
-              <h3 className="text-lg font-bold text-[#08152F]">Digital Products Vault Upcoming</h3>
+              <h3 className="text-lg font-bold text-[#08152F]">{t('home.digitalStore.upcoming')}</h3>
               <p className="text-xs text-[#667085] leading-relaxed">
-                Our curated UI kits, graphic design templates, and software utilities are currently preparing for public release. Meanwhile, our full agency retainers are live and taking client inquiries.
+                {t('home.digitalStore.upcomingDesc')}
               </p>
             </div>
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-              <Link
+              <LocalizedLink
                 to="/services"
                 className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors shadow-sm"
               >
-                Explore Agency Services
-              </Link>
-              <Link
+                {t('home.digitalStore.exploreServices')}
+              </LocalizedLink>
+              <LocalizedLink
                 to="/contact"
                 className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#08152F] text-xs font-bold transition-colors"
               >
-                Inquire for Custom Work
-              </Link>
+                {t('home.digitalStore.inquireCustom')}
+              </LocalizedLink>
             </div>
           </div>
         )}
@@ -1047,10 +1048,10 @@ export const HomePage: React.FC = () => {
       <section className="w-full space-y-6">
         <div className="text-center max-w-xl mx-auto space-y-2">
           <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-            Clear Answers
+            {t('home.faq.tag')}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
-            Frequently Asked Questions
+            {t('home.faq.title')}
           </h2>
         </div>
 
@@ -1098,13 +1099,13 @@ export const HomePage: React.FC = () => {
       <section id="consultation" className="max-w-4xl mx-auto w-full scroll-mt-24 pt-4">
         <div className="text-center max-w-xl mx-auto mb-8 space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-            Initiate Engagement
+            {t('home.consultation.tag')}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-[#08152F]">
-            Request a Consultation & Strategy Brief
+            {t('home.consultation.title')}
           </h2>
           <p className="text-xs sm:text-sm text-[#667085]">
-            Connect directly with our senior agency strategists. We reply within one business day.
+            {t('home.consultation.description')}
           </p>
         </div>
 
@@ -1113,7 +1114,7 @@ export const HomePage: React.FC = () => {
 
       {/* Direct WhatsApp Callout */}
       <div className="max-w-xl mx-auto text-center space-y-2 text-xs text-[#667085]">
-        <span>Prefer immediate communication? </span>
+        <span>{t('home.consultation.preferImmediate')} </span>
         <a
           href={`https://wa.me/88${WHATSAPP_NUMBER}`}
           target="_blank"
@@ -1121,7 +1122,7 @@ export const HomePage: React.FC = () => {
           className="text-emerald-600 font-bold hover:underline inline-flex items-center space-x-1"
         >
           <MessageCircle className="w-3.5 h-3.5 inline" />
-          <span>Chat directly on WhatsApp (01836126791)</span>
+          <span>{t('home.consultation.chatDirectly')} ({WHATSAPP_NUMBER})</span>
         </a>
       </div>
 

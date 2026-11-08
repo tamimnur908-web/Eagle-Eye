@@ -17,12 +17,14 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../i18n';
 
 export const ScheduleMeetingPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   const navigate = useNavigate();
   const { currentUser, isAdmin } = useAuth();
+  const { t } = useLanguage();
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,7 @@ export const ScheduleMeetingPage: React.FC = () => {
 
   useEffect(() => {
     if (!leadId) {
-      setError('No lead ID specified. Please use the scheduling link provided in your notification email.');
+      setError(t('scheduleMeeting.noLeadId'));
       setLoading(false);
       return;
     }
@@ -57,7 +59,7 @@ export const ScheduleMeetingPage: React.FC = () => {
     getLeadById(leadId)
       .then((data) => {
         if (!data) {
-          setError('Inquiry not found in database.');
+          setError(t('scheduleMeeting.notFoundDesc'));
         } else {
           setLead(data);
           if (data.meetingDetails?.scheduledTime) {
@@ -74,21 +76,21 @@ export const ScheduleMeetingPage: React.FC = () => {
         }
       })
       .catch((err) => {
-        setError(err.message || 'Failed to load inquiry details.');
+        setError(err.message || t('meeting.loadError'));
       })
       .finally(() => setLoading(false));
-  }, [leadId, currentUser]);
+  }, [leadId, currentUser, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leadId || !lead) return;
 
     if (!meetingDate || !meetingTime) {
-      alert('Please choose a valid meeting Date and Time.');
+      alert(t('scheduleMeeting.validateDateTime'));
       return;
     }
     if (!meetingLink.trim()) {
-      alert('Please provide a video meeting link (e.g. Google Meet, Zoom).');
+      alert(t('scheduleMeeting.validateLink'));
       return;
     }
 
@@ -105,7 +107,7 @@ export const ScheduleMeetingPage: React.FC = () => {
 
       setSuccess(true);
     } catch (err: any) {
-      alert('Failed to schedule meeting: ' + (err.message || 'Unknown error'));
+      alert(t('scheduleMeeting.failedSchedule') + (err.message || 'Unknown error'));
     } finally {
       setSubmitting(false);
     }
@@ -119,7 +121,7 @@ export const ScheduleMeetingPage: React.FC = () => {
     return (
       <div className="max-w-xl mx-auto px-4 py-24 text-center">
         <div className="w-10 h-10 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm font-semibold text-[#667085]">Loading inquiry details...</p>
+        <p className="text-sm font-semibold text-[#667085]">{t('scheduleMeeting.loadingInquiry')}</p>
       </div>
     );
   }
@@ -128,10 +130,10 @@ export const ScheduleMeetingPage: React.FC = () => {
     return (
       <div className="max-w-xl mx-auto px-4 py-20 text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-        <h2 className="text-xl font-bold text-[#08152F]">Inquiry Not Found</h2>
-        <p className="text-xs text-[#667085]">{error || 'Unable to locate this inquiry record.'}</p>
+        <h2 className="text-xl font-bold text-[#08152F]">{t('scheduleMeeting.notFoundTitle')}</h2>
+        <p className="text-xs text-[#667085]">{error || t('scheduleMeeting.notFoundDesc')}</p>
         <Link to="/admin" className="inline-block px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-          Return to Admin Console
+          {t('scheduleMeeting.returnAdmin')}
         </Link>
       </div>
     );
@@ -145,10 +147,10 @@ export const ScheduleMeetingPage: React.FC = () => {
           className="inline-flex items-center space-x-1.5 text-xs font-bold text-[#667085] hover:text-[#2563EB] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Admin Panel</span>
+          <span>{t('scheduleMeeting.backAdmin')}</span>
         </Link>
         <span className="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200">
-          Inquiry #{lead.id.substring(0, 8)}
+          {t('scheduleMeeting.inquiryTag', { id: lead.id.substring(0, 8) })}
         </span>
       </div>
 
@@ -157,28 +159,28 @@ export const ScheduleMeetingPage: React.FC = () => {
           <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600 mx-auto">
             <CheckCircle2 className="w-10 h-10" />
           </div>
-          <h2 className="text-2xl font-black text-[#08152F]">Meeting Successfully Scheduled!</h2>
+          <h2 className="text-2xl font-black text-[#08152F]">{t('scheduleMeeting.successTitle')}</h2>
           <p className="text-[#667085] text-sm max-w-md mx-auto leading-relaxed">
-            An automated notification email with the proposed time and <strong>Accept / Cancel</strong> options has been dispatched to <strong>{lead.email}</strong>.
+            {t('scheduleMeeting.successDesc')} <strong>{lead.email}</strong>.
           </p>
           <div className="p-4 bg-[#F8FAFC] border border-slate-200 rounded-2xl max-w-md mx-auto text-left text-xs space-y-1.5 font-sans">
-            <div><strong className="text-[#08152F]">Client:</strong> {lead.name}</div>
-            <div><strong className="text-[#08152F]">Scheduled Time:</strong> {meetingDate} at {meetingTime}</div>
-            <div><strong className="text-[#08152F]">Meeting Link:</strong> <a href={meetingLink} target="_blank" rel="noreferrer" className="text-[#2563EB] underline font-mono break-all">{meetingLink}</a></div>
-            <div><strong className="text-[#08152F]">Client Portal Status:</strong> Proposed (Client can confirm or cancel directly)</div>
+            <div><strong className="text-[#08152F]">{t('scheduleMeeting.clientLabel')}</strong> {lead.name}</div>
+            <div><strong className="text-[#08152F]">{t('scheduleMeeting.scheduledTimeLabel')}</strong> {meetingDate} {t('scheduleMeeting.at')} {meetingTime}</div>
+            <div><strong className="text-[#08152F]">{t('scheduleMeeting.meetingLinkLabel')}</strong> <a href={meetingLink} target="_blank" rel="noreferrer" className="text-[#2563EB] underline font-mono break-all">{meetingLink}</a></div>
+            <div><strong className="text-[#08152F]">{t('scheduleMeeting.clientPortalStatus')}</strong> {t('scheduleMeeting.portalStatusProposed')}</div>
           </div>
           <div className="pt-4 flex flex-wrap justify-center gap-3">
             <Link
               to="/admin"
               className="px-6 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-md shadow-[#2563EB]/20 transition-colors"
             >
-              Go to Leads & Inquiries
+              {t('scheduleMeeting.goToLeads')}
             </Link>
             <button
               onClick={() => setSuccess(false)}
               className="px-4 py-2.5 bg-[#F8FAFC] hover:bg-slate-200 text-[#08152F] font-semibold text-xs rounded-xl transition-colors"
             >
-              Edit Schedule
+              {t('scheduleMeeting.editSchedule')}
             </button>
           </div>
         </div>
@@ -190,10 +192,10 @@ export const ScheduleMeetingPage: React.FC = () => {
               <div>
                 <h1 className="text-xl font-black text-[#08152F] tracking-tight flex items-center space-x-2">
                   <Calendar className="w-5 h-5 text-[#2563EB]" />
-                  <span>Schedule Consultation Meeting</span>
+                  <span>{t('scheduleMeeting.pageTitle')}</span>
                 </h1>
                 <p className="text-xs text-[#667085] mt-0.5">
-                  Set meeting date, time, and Google Meet/Zoom link. The client will be notified immediately.
+                  {t('scheduleMeeting.pageDesc')}
                 </p>
               </div>
               <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-[#FFC629]/20 text-[#08152F] border border-[#FFC629]/40">
@@ -204,25 +206,25 @@ export const ScheduleMeetingPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="flex items-center space-x-2.5 text-[#08152F]">
                 <User className="w-4 h-4 text-slate-400 shrink-0" />
-                <span><strong>Client:</strong> {lead.name} {lead.businessName ? `(${lead.businessName})` : ''}</span>
+                <span><strong>{t('scheduleMeeting.clientLabel')}</strong> {lead.name} {lead.businessName ? `(${lead.businessName})` : ''}</span>
               </div>
               <div className="flex items-center space-x-2.5 text-[#08152F]">
                 <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                <span><strong>Email:</strong> <a href={`mailto:${lead.email}`} className="text-[#2563EB] underline">{lead.email}</a></span>
+                <span><strong>{t('scheduleMeeting.emailLabel')}</strong> <a href={`mailto:${lead.email}`} className="text-[#2563EB] underline">{lead.email}</a></span>
               </div>
               <div className="flex items-center space-x-2.5 text-[#08152F]">
                 <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                <span><strong>Phone/WhatsApp:</strong> <a href={`tel:${lead.phoneOrWhatsApp}`} className="text-[#2563EB] font-mono">{lead.phoneOrWhatsApp}</a></span>
+                <span><strong>{t('scheduleMeeting.phoneLabel')}</strong> <a href={`tel:${lead.phoneOrWhatsApp}`} className="text-[#2563EB] font-mono">{lead.phoneOrWhatsApp}</a></span>
               </div>
               <div className="flex items-center space-x-2.5 text-[#08152F]">
                 <Briefcase className="w-4 h-4 text-slate-400 shrink-0" />
-                <span><strong>Interest:</strong> {lead.serviceInterest}</span>
+                <span><strong>{t('scheduleMeeting.interestLabel')}</strong> {lead.serviceInterest}</span>
               </div>
             </div>
 
             {lead.projectDescription && (
               <div className="pt-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Project Requirements</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">{t('scheduleMeeting.projectRequirements')}</span>
                 <p className="text-xs text-[#667085] bg-[#F8FAFC] border border-slate-200/80 rounded-xl p-3 leading-relaxed whitespace-pre-line">
                   {lead.projectDescription}
                 </p>
@@ -234,13 +236,13 @@ export const ScheduleMeetingPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 sm:p-8 space-y-5 text-xs">
             <h2 className="text-sm font-black text-[#08152F] uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center space-x-2">
               <Clock className="w-4 h-4 text-[#2563EB]" />
-              <span>Meeting Schedule Details</span>
+              <span>{t('scheduleMeeting.scheduleDetailsTitle')}</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block font-bold text-[#08152F] mb-1.5">
-                  Meeting Date <span className="text-red-500">*</span>
+                  {t('scheduleMeeting.dateLabel')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -253,7 +255,7 @@ export const ScheduleMeetingPage: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-[#08152F] mb-1.5">
-                  Meeting Time <span className="text-red-500">*</span>
+                  {t('scheduleMeeting.timeLabel')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
@@ -269,7 +271,7 @@ export const ScheduleMeetingPage: React.FC = () => {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="font-bold text-[#08152F]">
-                  Meeting Link (Google Meet, Zoom, etc.) <span className="text-red-500">*</span>
+                  {t('scheduleMeeting.linkLabel')} <span className="text-red-500">*</span>
                 </label>
                 <button
                   type="button"
@@ -277,7 +279,7 @@ export const ScheduleMeetingPage: React.FC = () => {
                   className="text-[10px] text-[#2563EB] hover:underline font-bold flex items-center space-x-1"
                 >
                   <Sparkles className="w-3 h-3 text-[#FFC629]" />
-                  <span>Open Google Meet to Create Link</span>
+                  <span>{t('scheduleMeeting.openGoogleMeet')}</span>
                   <ExternalLink className="w-2.5 h-2.5" />
                 </button>
               </div>
@@ -293,20 +295,20 @@ export const ScheduleMeetingPage: React.FC = () => {
                 />
               </div>
               <p className="text-[10px] text-slate-400 mt-1">
-                This link will unlock on the client's dashboard once they click "Accept / Confirm".
+                {t('scheduleMeeting.linkNote')}
               </p>
             </div>
 
             {/* Scheduled By */}
             <div>
               <label className="block font-bold text-[#08152F] mb-1.5">
-                Scheduled By (Strategist / Host Name)
+                {t('scheduleMeeting.scheduledByLabel')}
               </label>
               <input
                 type="text"
                 value={scheduledBy}
                 onChange={(e) => setScheduledBy(e.target.value)}
-                placeholder="e.g. Tamim Nur / Lead Strategist"
+                placeholder={t('scheduleMeeting.scheduledByPlaceholder')}
                 className="w-full bg-[#F8FAFC] border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
@@ -314,13 +316,13 @@ export const ScheduleMeetingPage: React.FC = () => {
             {/* Agenda / Notes */}
             <div>
               <label className="block font-bold text-[#08152F] mb-1.5">
-                Session Agenda / Notes (Visible to Client)
+                {t('scheduleMeeting.agendaLabel')}
               </label>
               <textarea
                 rows={3}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. 30-min discovery call to discuss campaign targets, asset deliverables, and monthly retainer scope."
+                placeholder={t('scheduleMeeting.agendaPlaceholder')}
                 className="w-full bg-[#F8FAFC] border border-slate-300 rounded-xl p-3 text-xs text-[#08152F] placeholder:text-slate-400 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white resize-none transition-colors"
               />
             </div>
@@ -333,7 +335,7 @@ export const ScheduleMeetingPage: React.FC = () => {
                 className="w-full py-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-[#2563EB]/25 transition-all flex items-center justify-center space-x-2"
               >
                 <Calendar className="w-4 h-4" />
-                <span>{submitting ? 'Dispatching Meeting Schedule...' : 'Confirm Schedule & Send Client Invitation'}</span>
+                <span>{submitting ? t('scheduleMeeting.dispatching') : t('scheduleMeeting.confirmButton')}</span>
               </button>
             </div>
           </form>

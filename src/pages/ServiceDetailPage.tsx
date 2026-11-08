@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import {
   getServiceBySlug,
   getPublishedServices,
@@ -54,6 +56,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 };
 
 export const ServiceDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { slug } = useParams<{ slug: string }>();
   const [service, setService] = useState<Service | null>(null);
   const [subservices, setSubservices] = useState<SubService[]>([]);
@@ -120,23 +123,30 @@ export const ServiceDetailPage: React.FC = () => {
         <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-200 text-[#2563EB] mx-auto flex items-center justify-center">
           <Layers className="w-8 h-8" />
         </div>
-        <h2 className="text-3xl font-extrabold text-[#08152F]">Service Not Found</h2>
+        <h2 className="text-3xl font-extrabold text-[#08152F]">{t('serviceDetail.notFoundTitle')}</h2>
         <p className="text-sm text-[#667085] max-w-md mx-auto">
-          The requested agency service either does not exist or has been relocated. Explore our comprehensive services catalog below.
+          {t('serviceDetail.notFoundDesc')}
         </p>
-        <Link
+        <LocalizedLink
           to="/services"
           className="inline-flex items-center space-x-2 px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to All Services</span>
-        </Link>
+          <span>{t('serviceDetail.backToServices')}</span>
+        </LocalizedLink>
       </div>
     );
   }
 
   const IconComponent = (service.iconName && ICON_MAP[service.iconName]) || Layers;
-  const pricing = getServicePricingDisplay(service);
+  const pricing = getServicePricingDisplay(service, '৳', t('pricing.priceOnRequest'), {
+    priceOnRequest: t('pricing.priceOnRequest'),
+    discussRequirements: t('pricing.discussRequirements'),
+    perMonth: t('pricing.perMonth'),
+    starting: t('pricing.starting'),
+    billedMonthly: t('pricing.billedMonthly'),
+    fixedScope: t('pricing.fixedScope'),
+  });
   const activeSubservices = subservices.filter((s) => s.status !== 'inactive');
 
   return (
@@ -144,13 +154,13 @@ export const ServiceDetailPage: React.FC = () => {
       
       {/* 1. Breadcrumbs */}
       <nav className="flex items-center space-x-2 text-xs font-medium text-[#667085]">
-        <Link to="/" className="hover:text-[#2563EB] transition-colors">
-          Home
-        </Link>
+        <LocalizedLink to="/" className="hover:text-[#2563EB] transition-colors">
+          {t('serviceDetail.homeBreadcrumb')}
+        </LocalizedLink>
         <span>/</span>
-        <Link to="/services" className="hover:text-[#2563EB] transition-colors">
-          Services
-        </Link>
+        <LocalizedLink to="/services" className="hover:text-[#2563EB] transition-colors">
+          {t('serviceDetail.servicesBreadcrumb')}
+        </LocalizedLink>
         <span>/</span>
         <span className="text-[#08152F] font-bold truncate max-w-xs">{service.name}</span>
       </nav>
@@ -177,15 +187,15 @@ export const ServiceDetailPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/10 text-xs font-semibold text-slate-200">
                 <div className="flex items-center space-x-2">
                   <Clock className="w-4 h-4 text-[#FFC629]" />
-                  <span>Timeline: {service.timeline || 'Tailored to requirements'}</span>
+                  <span>{t('serviceDetail.timeline')} {service.timeline || t('serviceDetail.timelineFallback')}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Commercial NDA & Direct Strategy Lead</span>
+                  <span>{t('serviceDetail.ndaLead')}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <DollarSign className="w-4 h-4 text-sky-300" />
-                  <span>Investment: <strong className="text-white">{pricing.displayText}</strong></span>
+                  <span>{t('serviceDetail.investment')} <strong className="text-white">{pricing.displayText}</strong></span>
                 </div>
               </div>
             </div>
@@ -221,15 +231,15 @@ export const ServiceDetailPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-white/10 text-xs font-semibold text-slate-200">
                 <div className="flex items-center space-x-2">
                   <Clock className="w-4 h-4 text-[#FFC629]" />
-                  <span>Timeline: {service.timeline || 'Tailored to requirements'}</span>
+                  <span>{t('serviceDetail.timeline')} {service.timeline || t('serviceDetail.timelineFallback')}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Commercial NDA & Direct Strategy Lead</span>
+                  <span>{t('serviceDetail.ndaLead')}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <DollarSign className="w-4 h-4 text-sky-300" />
-                  <span>Investment: <strong className="text-white">{pricing.displayText}</strong></span>
+                  <span>{t('serviceDetail.investment')} <strong className="text-white">{pricing.displayText}</strong></span>
                 </div>
               </div>
             </div>
@@ -252,7 +262,7 @@ export const ServiceDetailPage: React.FC = () => {
           <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Standard Engagement Investment
+                {t('serviceDetail.standardEngagement')}
               </span>
               <div className="text-2xl font-black text-[#08152F] mt-0.5">
                 {pricing.displayText}
@@ -266,14 +276,14 @@ export const ServiceDetailPage: React.FC = () => {
               href={`#consultation-form`}
               className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors shadow-sm text-center flex-shrink-0"
             >
-              Request Scoped Proposal
+              {t('serviceDetail.requestProposal')}
             </a>
           </div>
 
           {/* Detailed Overview */}
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-[#08152F] flex items-center space-x-2">
-              <span>Service Architecture & Strategy</span>
+              <span>{t('serviceDetail.architectureTitle')}</span>
             </h2>
             <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-sm text-sm text-[#08152F] leading-relaxed whitespace-pre-line">
               {service.longDescription || service.shortDescription}
@@ -283,7 +293,7 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Key Business Benefits */}
           {service.benefits && service.benefits.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Key Business Benefits</h2>
+              <h2 className="text-xl font-bold text-[#08152F]">{t('serviceDetail.benefitsTitle')}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {service.benefits.map((benefit, idx) => (
                   <div
@@ -306,13 +316,13 @@ export const ServiceDetailPage: React.FC = () => {
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-[#08152F]">Included Specialized Subservices</h2>
+                <h2 className="text-xl font-bold text-[#08152F]">{t('serviceDetail.subservicesTitle')}</h2>
                 <p className="text-xs text-[#667085] mt-0.5">
-                  Every main service includes execution across these core technical capabilities.
+                  {t('serviceDetail.subservicesDesc')}
                 </p>
               </div>
               <span className="text-xs font-bold text-[#2563EB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-                {activeSubservices.length} Subservices
+                {activeSubservices.length} {t('serviceDetail.subservicesCount')}
               </span>
             </div>
 
@@ -324,7 +334,7 @@ export const ServiceDetailPage: React.FC = () => {
                 >
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-[#08152F]">{sub.name}</h4>
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" title="Active Capability" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" title={t('serviceDetail.activeCapability')} />
                   </div>
                   <p className="text-xs text-[#667085] leading-relaxed">
                     {sub.shortDescription}
@@ -337,13 +347,13 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Deliverables & Scope of Work */}
           {(service.deliverables?.length || service.scopeOfWork?.length) && (
             <section className="space-y-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Scope of Work & Deliverables</h2>
+              <h2 className="text-xl font-bold text-[#08152F]">{t('serviceDetail.scopeTitle')}</h2>
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/90 shadow-sm space-y-6">
                 
                 {service.deliverables && service.deliverables.length > 0 && (
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#2563EB] mb-3">
-                      Tangible Deliverables
+                      {t('serviceDetail.deliverablesTitle')}
                     </h3>
                     <ul className="space-y-2.5">
                       {service.deliverables.map((item, idx) => (
@@ -359,7 +369,7 @@ export const ServiceDetailPage: React.FC = () => {
                 {service.scopeOfWork && service.scopeOfWork.length > 0 && (
                   <div className="pt-4 border-t border-slate-100">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#2563EB] mb-3">
-                      Process & Execution Steps
+                      {t('serviceDetail.processTitle')}
                     </h3>
                     <ul className="space-y-2.5">
                       {service.scopeOfWork.map((step, idx) => (
@@ -381,7 +391,7 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Service FAQs */}
           {service.faqs && service.faqs.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Frequently Asked Questions</h2>
+              <h2 className="text-xl font-bold text-[#08152F]">{t('serviceDetail.faqTitle')}</h2>
               <div className="space-y-3">
                 {service.faqs.map((faq, idx) => (
                   <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
@@ -401,10 +411,10 @@ export const ServiceDetailPage: React.FC = () => {
           {/* Related Services in the Same Category */}
           {relatedServices.length > 0 && (
             <section className="space-y-4 pt-4">
-              <h2 className="text-xl font-bold text-[#08152F]">Related {service.category} Services</h2>
+              <h2 className="text-xl font-bold text-[#08152F]">{t('serviceDetail.relatedServices')} {service.category} {t('serviceDetail.relatedSuffix')}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {relatedServices.map((rel) => (
-                  <Link
+                  <LocalizedLink
                     key={rel.id}
                     to={`/services/${rel.slug}`}
                     className="bg-white border border-slate-200 hover:border-[#2563EB] p-4 rounded-xl shadow-xs transition-all hover:-translate-y-0.5 flex flex-col justify-between"
@@ -418,10 +428,10 @@ export const ServiceDetailPage: React.FC = () => {
                       </p>
                     </div>
                     <span className="text-[11px] font-bold text-[#2563EB] inline-flex items-center space-x-1 mt-3">
-                      <span>Learn More</span>
+                      <span>{t('serviceDetail.requestProposal')}</span>
                       <ArrowRight className="w-3 h-3" />
                     </span>
-                  </Link>
+                  </LocalizedLink>
                 ))}
               </div>
             </section>
@@ -436,9 +446,9 @@ export const ServiceDetailPage: React.FC = () => {
 
           {/* Direct WhatsApp Consultation Card */}
           <div className="bg-white border border-slate-200 shadow-sm p-5 rounded-2xl space-y-3 text-xs text-[#667085]">
-            <h4 className="font-bold text-sm text-[#08152F]">Have a Custom Scope Question?</h4>
+            <h4 className="font-bold text-sm text-[#08152F]">{t('serviceDetail.customScopeTitle')}</h4>
             <p className="leading-relaxed">
-              Connect directly with our senior agency strategists on WhatsApp for quick scoping and quote estimates.
+              {t('serviceDetail.customScopeDesc')}
             </p>
             <a
               href={`https://wa.me/88${WHATSAPP_NUMBER}?text=Hi%20Eagle%20Eye%20Digital,%20I'm%20interested%20in%20your%20service:%20${encodeURIComponent(service.name)}`}
@@ -446,7 +456,7 @@ export const ServiceDetailPage: React.FC = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center space-x-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition-colors text-xs"
             >
-              <span>Chat on WhatsApp</span>
+              <span>{t('serviceDetail.chatOnWhatsApp')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>

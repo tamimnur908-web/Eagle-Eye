@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { useAuthModal, DEFAULT_BENGALI_TITLE, DEFAULT_BENGALI_MESSAGE } from '../context/AuthModalContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../i18n';
 import { Lock, X, LogIn, Sparkles, Loader2 } from 'lucide-react';
 
 export const LoginRequiredModal: React.FC = () => {
   const { isLoginModalOpen, modalConfig, handleLoginRedirect, handleCancel, closeLoginModal } = useAuthModal();
   const { syncGoogleProfile } = useAuth();
+  const { t } = useLanguage();
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // Close on Escape key press
@@ -24,6 +26,25 @@ export const LoginRequiredModal: React.FC = () => {
 
   if (!isLoginModalOpen) return null;
 
+  // Resolve message based on actionType if custom message isn't provided
+  const resolveMessage = () => {
+    if (modalConfig.message) return modalConfig.message;
+    switch (modalConfig.actionType) {
+      case 'cart':
+        return t('authModal.cartMessage');
+      case 'wishlist':
+        return t('authModal.wishlistMessage');
+      case 'inquiry':
+        return t('authModal.inquiryMessage');
+      case 'checkout':
+        return t('authModal.checkoutMessage');
+      case 'review':
+        return t('authModal.reviewMessage');
+      default:
+        return t('authModal.generalMessage');
+    }
+  };
+
   return (
     <div
       role="dialog"
@@ -40,7 +61,7 @@ export const LoginRequiredModal: React.FC = () => {
         <button
           type="button"
           onClick={handleCancel}
-          aria-label="বাতিল করুন"
+          aria-label={t('common.cancel')}
           className="absolute top-4 right-4 p-1.5 text-[#667085] hover:text-[#08152F] hover:bg-[#F8FAFC] rounded-full transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
@@ -51,26 +72,26 @@ export const LoginRequiredModal: React.FC = () => {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#08152F] to-[#2563EB] text-white flex items-center justify-center shadow-md shadow-[#2563EB]/25">
             <Lock className="w-5 h-5" />
           </div>
-          {/* Cyan Glow Accent */}
+          {/* Accent Badge */}
           <span className="absolute -top-1.5 -right-1.5 p-1 rounded-full bg-[#FFC629] text-[#08152F] shadow-xs">
             <Sparkles className="w-3.5 h-3.5 fill-[#08152F]" />
           </span>
         </div>
 
-        {/* Text Content in Bengali */}
+        {/* Text Content */}
         <div className="space-y-2">
           <span className="text-[10px] font-black tracking-widest uppercase text-[#2563EB] block">
-            Eagle Eye Digital • সুরক্ষিত অ্যাকশন
+            {t('authModal.secureAction')}
           </span>
           <h3 id="login-modal-title" className="text-xl sm:text-2xl font-black text-[#08152F]">
-            {modalConfig.title || DEFAULT_BENGALI_TITLE}
+            {modalConfig.title || t('authModal.loginRequired')}
           </h3>
           <p className="text-xs sm:text-sm text-[#667085] leading-relaxed max-w-sm mx-auto font-medium">
-            {modalConfig.message || DEFAULT_BENGALI_MESSAGE}
+            {resolveMessage()}
           </p>
         </div>
 
-        {/* Action Buttons in Bengali */}
+        {/* Action Buttons */}
         <div className="pt-2 space-y-2.5">
           {/* Direct 1-Click Google Sign In */}
           <button
@@ -101,7 +122,7 @@ export const LoginRequiredModal: React.FC = () => {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
               </svg>
             )}
-            <span>{googleLoading ? 'সাইন-ইন হচ্ছে...' : 'গুগল দিয়ে সরাসরি সাইন-ইন'}</span>
+            <span>{googleLoading ? t('authModal.signingIn') : t('authModal.googleSignIn')}</span>
           </button>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
@@ -111,7 +132,7 @@ export const LoginRequiredModal: React.FC = () => {
               className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs shadow-md shadow-[#2563EB]/25 transition-all flex items-center justify-center space-x-2 active:scale-[0.99] cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
-              <span>ইমেইল দিয়ে লগইন</span>
+              <span>{t('authModal.emailLogin')}</span>
             </button>
 
             <button
@@ -119,15 +140,15 @@ export const LoginRequiredModal: React.FC = () => {
               onClick={handleCancel}
               className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-[#F8FAFC] hover:bg-slate-200 text-[#08152F] font-bold text-xs border border-slate-200 transition-all flex items-center justify-center active:scale-[0.99] cursor-pointer"
             >
-              বাতিল
+              {t('authModal.cancelBtn')}
             </button>
           </div>
         </div>
 
-        {/* Trust & Security Footer Tag in Bengali */}
+        {/* Trust & Security Footer Tag */}
         <div className="pt-3 border-t border-slate-100 flex items-center justify-center space-x-1.5 text-[11px] text-[#667085]">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>গেস্ট ব্রাউজিং সম্পূর্ণ ফ্রি • লগইন করলে তাৎক্ষণিক অ্যাক্সেস সুবিধা পাবেন</span>
+          <span>{t('authModal.guestNote')}</span>
         </div>
       </div>
     </div>

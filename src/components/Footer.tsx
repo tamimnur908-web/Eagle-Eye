@@ -1,15 +1,35 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { Mail, Phone, MessageSquare, Shield, Clock } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import { SocialIcon } from './SocialIcon';
 
 export const Footer: React.FC = () => {
   const { settings, footerConfig, socialLinks } = useSettings();
+  const { t } = useLanguage();
 
   const footerSocials = (socialLinks || []).filter(
     (s) => s.isActive && s.showInFooter && Boolean(s.url?.trim())
   );
+
+  const standardFooterTranslations: Record<string, string> = {
+    'digital marketing & ads': 'footer.defaultServiceLinks.digitalMarketingAds',
+    'social media management': 'footer.defaultServiceLinks.socialMediaManagement',
+    'web & e-commerce development': 'footer.defaultServiceLinks.webEcommerceDev',
+    'branding & visual design': 'footer.defaultServiceLinks.brandingVisualDesign',
+    'consultation & strategy': 'footer.defaultServiceLinks.consultationStrategy',
+    'digital products store': 'footer.defaultResourceLinks.digitalProductsStore',
+    'client portfolio': 'footer.defaultResourceLinks.clientPortfolio',
+    'case studies': 'footer.defaultResourceLinks.caseStudies',
+    'agency faq': 'footer.defaultResourceLinks.agencyFaq',
+    'client support desk': 'footer.defaultResourceLinks.clientSupportDesk',
+  };
+
+  const getFooterLabel = (label: string) => {
+    const key = standardFooterTranslations[label.trim().toLowerCase()];
+    return key ? t(key) : label;
+  };
 
   return (
     <footer className="bg-[#08152F] border-t border-[#0D2044] text-slate-300">
@@ -32,18 +52,17 @@ export const Footer: React.FC = () => {
               </span>
             </div>
             <p className="text-sm text-slate-300 leading-relaxed">
-              {footerConfig?.aboutText ||
-                'Your dedicated commercial partner. Specialized in digital marketing, full-funnel agency execution, performance ads, web development, and high-converting digital assets.'}
+              {footerConfig?.aboutText || t('footer.aboutDefault')}
             </p>
             <div className="text-xs text-[#FFC629] font-bold tracking-wide">
-              {footerConfig?.tagline || settings.tagline || 'Focus • Strategy • Growth'}
+              {footerConfig?.tagline || settings.tagline || t('footer.mottoDefault')}
             </div>
 
             {/* Social Icons in Footer */}
             {footerSocials.length > 0 && (
               <div className="pt-2">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  Follow Our Socials
+                  {t('footer.followSocials')}
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
                   {footerSocials.map((item) => (
@@ -65,19 +84,21 @@ export const Footer: React.FC = () => {
 
           {/* Quick Links: Services */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-white">Agency Services</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-white">
+              {t('footer.agencyServices')}
+            </h4>
             <ul className="space-y-2 text-sm font-medium">
               {(footerConfig?.servicesLinks || [
-                { label: 'Digital Marketing & Ads', path: '/services' },
-                { label: 'Social Media Management', path: '/services' },
-                { label: 'Web & E-Commerce Development', path: '/services' },
-                { label: 'Branding & Visual Design', path: '/services' },
-                { label: 'Consultation & Strategy', path: '/services' },
+                { label: t('footer.defaultServiceLinks.digitalMarketingAds'), path: '/services' },
+                { label: t('footer.defaultServiceLinks.socialMediaManagement'), path: '/services' },
+                { label: t('footer.defaultServiceLinks.webEcommerceDev'), path: '/services' },
+                { label: t('footer.defaultServiceLinks.brandingVisualDesign'), path: '/services' },
+                { label: t('footer.defaultServiceLinks.consultationStrategy'), path: '/services' },
               ]).map((link, idx) => (
                 <li key={idx}>
-                  <Link to={link.path} className="text-slate-300 hover:text-[#FFC629] transition-colors">
-                    {link.label}
-                  </Link>
+                  <LocalizedLink to={link.path} className="text-slate-300 hover:text-[#FFC629] transition-colors">
+                    {getFooterLabel(link.label)}
+                  </LocalizedLink>
                 </li>
               ))}
             </ul>
@@ -85,19 +106,21 @@ export const Footer: React.FC = () => {
 
           {/* Digital Products & Solutions */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-white">Resources & Work</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-white">
+              {t('footer.resourcesWork')}
+            </h4>
             <ul className="space-y-2 text-sm font-medium">
               {(footerConfig?.resourcesLinks || [
-                { label: 'Digital Products Store', path: '/products' },
-                { label: 'Client Portfolio', path: '/portfolio' },
-                { label: 'Case Studies', path: '/case-studies' },
-                { label: 'Agency FAQ', path: '/faq' },
-                { label: 'Client Support Desk', path: '/support' },
+                { label: t('footer.defaultResourceLinks.digitalProductsStore'), path: '/products' },
+                { label: t('footer.defaultResourceLinks.clientPortfolio'), path: '/portfolio' },
+                { label: t('footer.defaultResourceLinks.caseStudies'), path: '/case-studies' },
+                { label: t('footer.defaultResourceLinks.agencyFaq'), path: '/faq' },
+                { label: t('footer.defaultResourceLinks.clientSupportDesk'), path: '/support' },
               ]).map((link, idx) => (
                 <li key={idx}>
-                  <Link to={link.path} className="text-slate-300 hover:text-[#FFC629] transition-colors">
-                    {link.label}
-                  </Link>
+                  <LocalizedLink to={link.path} className="text-slate-300 hover:text-[#FFC629] transition-colors">
+                    {getFooterLabel(link.label)}
+                  </LocalizedLink>
                 </li>
               ))}
             </ul>
@@ -105,7 +128,9 @@ export const Footer: React.FC = () => {
 
           {/* Contact Details */}
           <div className="space-y-3">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-white">Direct Connect</h4>
+            <h4 className="text-sm font-bold uppercase tracking-wider text-white">
+              {t('footer.directConnect')}
+            </h4>
             <div className="space-y-2 text-sm font-medium">
               <a
                 href={`mailto:${footerConfig?.contactEmail || settings.businessEmail || 'Tamimnur908@gmail.com'}`}
@@ -137,8 +162,8 @@ export const Footer: React.FC = () => {
                   <span>{footerConfig.operatingHours}</span>
                 </p>
               )}
-              <p>{footerConfig?.timezoneText || 'Operating Timezone: Asia/Dhaka (GMT+6)'}</p>
-              <p>{footerConfig?.currencyText || `Primary Currency: ${settings.currency || 'BDT'} (৳)`}</p>
+              <p>{footerConfig?.timezoneText || t('footer.operatingTimezone')}</p>
+              <p>{footerConfig?.currencyText || t('footer.primaryCurrency')}</p>
             </div>
           </div>
         </div>
@@ -146,17 +171,17 @@ export const Footer: React.FC = () => {
         {/* Bottom Bar & Legal */}
         <div className="mt-12 pt-8 border-t border-[#0D2044] flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 space-y-4 md:space-y-0 text-center md:text-left">
           <div>
-            © {new Date().getFullYear()} {footerConfig?.copyrightText || `${settings.brandName || 'Eagle Eye Digital'}. All rights reserved.`}
+            © {new Date().getFullYear()} {footerConfig?.copyrightText || `${settings.brandName || 'Eagle Eye Digital'}. ${t('common.allRightsReserved')}`}
           </div>
           <div className="flex flex-wrap justify-center md:justify-end gap-x-6 gap-y-2 font-medium">
-            <Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-            <Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link>
-            <Link to="/license-policy" className="hover:text-white transition-colors">License Policy</Link>
-            <Link to="/admin" className="hover:text-[#FFC629] flex items-center space-x-1 font-semibold text-slate-400 transition-colors">
+            <LocalizedLink to="/privacy-policy" className="hover:text-white transition-colors">{t('footer.privacyPolicy')}</LocalizedLink>
+            <LocalizedLink to="/terms" className="hover:text-white transition-colors">{t('footer.termsOfService')}</LocalizedLink>
+            <LocalizedLink to="/refund-policy" className="hover:text-white transition-colors">{t('footer.refundPolicy')}</LocalizedLink>
+            <LocalizedLink to="/license-policy" className="hover:text-white transition-colors">{t('footer.licensePolicy')}</LocalizedLink>
+            <a href="/admin" className="hover:text-[#FFC629] flex items-center space-x-1 font-semibold text-slate-400 transition-colors">
               <Shield className="w-3.5 h-3.5 text-[#FFC629]" />
-              <span>Admin</span>
-            </Link>
+              <span>{t('footer.admin')}</span>
+            </a>
           </div>
         </div>
       </div>

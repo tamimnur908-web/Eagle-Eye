@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../i18n';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -157,6 +159,7 @@ import { EmptyState } from '../components/EmptyState';
 import { getServicePricingDisplay, getProductPricingDisplay } from '../utils/pricing';
 
 export const AdminDashboardPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const { currentUser, isAdmin, adminRole, logout, refreshAdminStatus, syncGoogleProfile, updateUserAvatar, loading: authLoading } = useAuth();
   const [syncingAdminAvatar, setSyncingAdminAvatar] = useState(false);
   const navigate = useNavigate();
@@ -3331,24 +3334,24 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Navigation Links */}
           <nav className="space-y-1">
             {[
-              { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-              { id: 'orders', label: 'Orders & Sales', icon: ShoppingBag, badge: pendingOrdersCount > 0 ? pendingOrdersCount : null },
-              { id: 'products', label: 'Products', icon: Package },
-              { id: 'services', label: 'Agency Services', icon: Layers },
-              { id: 'categories', label: 'Categories', icon: FolderTree },
+              { id: 'dashboard', label: t('admin.sidebar.dashboard'), icon: LayoutDashboard },
+              { id: 'orders', label: t('admin.sidebar.orders'), icon: ShoppingBag, badge: pendingOrdersCount > 0 ? pendingOrdersCount : null },
+              { id: 'products', label: t('admin.sidebar.products'), icon: Package },
+              { id: 'services', label: t('admin.sidebar.services'), icon: Layers },
+              { id: 'categories', label: t('admin.sidebar.categories'), icon: FolderTree },
               {
                 id: 'admins',
-                label: 'Admins & Roles',
+                label: t('admin.sidebar.adminRoles'),
                 icon: ShieldCheck,
                 badge: admins.filter((a) => a.pendingPasswordRequest?.status === 'pending').length > 0
                   ? `🔔 ${admins.filter((a) => a.pendingPasswordRequest?.status === 'pending').length}`
                   : (admins.length || null)
               },
-              { id: 'leads', label: 'Leads & Inquiries', icon: Inbox, badge: leads.filter(l => l.status === 'New').length || null },
-              { id: 'homepage', label: 'Homepage Banners', icon: Image },
-              { id: 'footer', label: 'Header, Footer & Social', icon: Globe },
-              { id: 'appearance', label: 'Appearance & Theme', icon: Palette },
-              { id: 'settings', label: 'Site Settings', icon: Settings },
+              { id: 'leads', label: t('admin.sidebar.leadsInquiries'), icon: Inbox, badge: leads.filter(l => l.status === 'New').length || null },
+              { id: 'homepage', label: t('admin.sidebar.homepageBuilder'), icon: Image },
+              { id: 'footer', label: t('admin.sidebar.footerSocial'), icon: Globe },
+              { id: 'appearance', label: t('admin.sidebar.appearanceTheme'), icon: Palette },
+              { id: 'settings', label: t('admin.sidebar.siteSettings'), icon: Settings },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = activeMenu === item.id;
@@ -3477,13 +3480,19 @@ export const AdminDashboardPage: React.FC = () => {
             </button>
           </div>
 
+          {/* Language Switcher for Admin */}
+          <div className="flex items-center justify-between px-2.5 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('language.language')}</span>
+            <LanguageSwitcher variant="dropdown" />
+          </div>
+
           <Link
             to="/"
             target="_blank"
             className="flex items-center space-x-2 px-3 py-2 text-slate-600 hover:text-[#2563EB] hover:bg-slate-50 rounded-lg transition-colors font-medium"
           >
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-            <span>Customer Storefront</span>
+            <span>{t('admin.sidebar.customerStorefront')}</span>
           </Link>
           <button
             onClick={() => {
@@ -3493,7 +3502,7 @@ export const AdminDashboardPage: React.FC = () => {
             className="w-full flex items-center space-x-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-semibold"
           >
             <LogOut className="w-3.5 h-3.5 text-red-500" />
-            <span>Sign Out Admin</span>
+            <span>{t('admin.common.logout')}</span>
           </button>
         </div>
       </aside>
@@ -3516,9 +3525,12 @@ export const AdminDashboardPage: React.FC = () => {
               <span className="font-black text-sm text-[#08152F]">Eagle Eye Admin</span>
             </div>
           </div>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200 uppercase tracking-wider">
-            {activeMenu}
-          </span>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher variant="header" />
+            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200 uppercase tracking-wider">
+              {activeMenu}
+            </span>
+          </div>
         </div>
         
         {/* ================= PRODUCTS TAB (EXACT VYRQONIX SETUP) ================= */}
@@ -7350,6 +7362,25 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               {/* Left Column: Editable Fields (7 cols) */}
               <div className="xl:col-span-7 space-y-6">
+                {/* Admin Interface Language Preference Card */}
+                <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-[#2563EB]" />
+                      {t('admin.settings.languagePreference')}
+                    </h2>
+                    <span className="text-[10px] bg-blue-50 text-[#2563EB] font-bold px-2 py-0.5 rounded-full border border-blue-200">
+                      {t('admin.settings.isolatedAdmin')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {t('admin.settings.languageDesc')}
+                  </p>
+                  <div className="pt-1 flex items-center gap-4">
+                    <LanguageSwitcher variant="settings" />
+                  </div>
+                </div>
+
                 {/* Brand Identity Card */}
                 <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
                   <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">

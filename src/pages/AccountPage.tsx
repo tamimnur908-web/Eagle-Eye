@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher';
 import { useAuth } from '../context/AuthContext';
 import {
   signInWithEmailAndPassword,
@@ -33,13 +36,14 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { EmptyState } from '../components/EmptyState';
 import { UserAvatar } from '../components/UserAvatar';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
 
 export const AccountPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const { currentUser, logout, syncGoogleProfile, updateUserAvatar } = useAuth();
   const [syncingAvatar, setSyncingAvatar] = useState(false);
   const { wishlist, removeFromWishlist } = useWishlist();
@@ -126,27 +130,27 @@ export const AccountPage: React.FC = () => {
     }
   }, [currentUser]);
 
-  // Map Firebase error codes to Bengali
+  // Map Firebase error codes to localized messages
   const mapAuthError = (err: any): string => {
     const code = err?.code || '';
-    if (code === 'auth/invalid-email') return 'সঠিক ইমেইল ঠিকানা লিখুন।';
+    if (code === 'auth/invalid-email') return t('account.errors.invalidEmail');
     if (
       code === 'auth/user-not-found' ||
       code === 'auth/wrong-password' ||
       code === 'auth/invalid-credential'
     ) {
-      return 'ইমেইল বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে যাচাই করে আবার চেষ্টা করুন।';
+      return t('account.errors.wrongPassword');
     }
     if (code === 'auth/email-already-in-use') {
-      return 'এই ইমেইল ঠিকানায় ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে। লগইন করার চেষ্টা করুন।';
+      return t('account.errors.emailInUse');
     }
     if (code === 'auth/weak-password') {
-      return 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।';
+      return t('account.errors.weakPassword');
     }
     if (code === 'auth/popup-closed-by-user') {
-      return 'গুগল সাইন-ইন সম্পন্ন করার আগে উইন্ডো বন্ধ করা হয়েছে।';
+      return t('account.errors.popupClosed');
     }
-    return err?.message || 'অথেনটিকেশন সম্পন্ন করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।';
+    return err?.message || t('account.errors.default');
   };
 
   // Handle meeting response from user dashboard
@@ -156,20 +160,20 @@ export const AccountPage: React.FC = () => {
       await respondToMeeting(leadId, 'accept');
       await loadUserData();
     } catch (err: any) {
-      alert('মিটিং নিশ্চিত করতে সমস্যা হয়েছে: ' + (err.message || 'অজানা ত্রুটি'));
+      alert(t('account.inquiry.meetingConfirmError') + ' ' + (err.message || 'Error'));
     } finally {
       setActionProcessing(null);
     }
   };
 
   const handleCancelMeeting = async (leadId: string) => {
-    const reason = window.prompt('অনুগ্রহ করে মিটিং বাতিলের কারণ বা আপনার সুবিধাজনক বিকল্প সময় লিখুন:');
+    const reason = window.prompt(t('account.inquiry.meetingCancelPrompt'));
     setActionProcessing(leadId);
     try {
       await respondToMeeting(leadId, 'cancel', reason || undefined);
       await loadUserData();
     } catch (err: any) {
-      alert('মিটিং বাতিল করতে সমস্যা হয়েছে: ' + (err.message || 'অজানা ত্রুটি'));
+      alert(t('account.inquiry.meetingCancelError') + ' ' + (err.message || 'Error'));
     } finally {
       setActionProcessing(null);
     }
@@ -185,16 +189,16 @@ export const AccountPage: React.FC = () => {
     try {
       if (authMode === 'register') {
         if (!fullName.trim()) {
-          throw new Error('অনুগ্রহ করে আপনার সম্পূর্ণ নাম লিখুন।');
+          throw new Error(t('account.errors.nameRequired'));
         }
         if (!phone.trim()) {
-          throw new Error('অনুগ্রহ করে আপনার মোবাইল নম্বর লিখুন।');
+          throw new Error(t('account.errors.phoneRequired'));
         }
         if (password.length < 6) {
-          throw new Error('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+          throw new Error(t('account.errors.passwordLength'));
         }
         if (password !== confirmPassword) {
-          throw new Error('পাসওয়ার্ড দুটি মিলছে না। পুনরায় যাচাই করুন।');
+          throw new Error(t('account.errors.passwordMismatch'));
         }
 
         // 1. Create User
@@ -259,7 +263,7 @@ export const AccountPage: React.FC = () => {
 
   const handlePasswordReset = async () => {
     if (!email) {
-      setAuthError('পাসওয়ার্ড রিসেট করতে অনুগ্রহ করে আপনার ইমেইল ঠিকানা লিখুন।');
+      setAuthError(t('account.errors.resetEmailRequired'));
       return;
     }
     setAuthLoading(true);
@@ -285,12 +289,12 @@ export const AccountPage: React.FC = () => {
               <KeyRound className="w-6 h-6" />
             </div>
             <h2 className="text-2xl font-black text-[#08152F]">
-              {authMode === 'register' ? 'নতুন অ্যাকাউন্ট তৈরি করুন' : 'লগইন করুন'}
+              {authMode === 'register' ? t('account.createAccount') : t('account.loginTitle')}
             </h2>
             <p className="text-xs text-[#667085]">
               {authMode === 'register'
-                ? 'ডিজিটাল প্রোডাক্ট, অর্ডার ও পছন্দের তালিকার সুবিধা পেতে নিবন্ধন করুন।'
-                : 'আপনার অ্যাকাউন্টে প্রবেশ করে অর্ডার, ডাউনলোড ও পছন্দের তালিকা দেখুন।'}
+                ? t('account.createDesc')
+                : t('account.loginDesc')}
             </p>
           </div>
 
@@ -308,7 +312,7 @@ export const AccountPage: React.FC = () => {
                   : 'text-[#667085] hover:text-[#08152F]'
               }`}
             >
-              লগইন করুন
+              {t('account.loginTab')}
             </button>
             <button
               type="button"
@@ -322,7 +326,7 @@ export const AccountPage: React.FC = () => {
                   : 'text-[#667085] hover:text-[#08152F]'
               }`}
             >
-              নিবন্ধন করুন
+              {t('account.registerTab')}
             </button>
           </div>
 
@@ -336,7 +340,7 @@ export const AccountPage: React.FC = () => {
           {resetSent && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs flex items-center space-x-2">
               <CheckCircle className="w-4 h-4 flex-shrink-0" />
-              <span>পাসওয়ার্ড রিসেট লিংক {email} ঠিকানায় পাঠানো হয়েছে। ইনবক্স চেক করুন।</span>
+              <span>{t('account.passwordResetSent')}</span>
             </div>
           )}
 
@@ -365,14 +369,14 @@ export const AccountPage: React.FC = () => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            <span>গুগল দিয়ে সাইন ইন করুন</span>
+            <span>{t('account.googleSignIn')}</span>
           </button>
 
           {/* Divider */}
           <div className="relative flex items-center justify-center">
             <div className="border-t border-slate-200 w-full" />
             <span className="bg-white px-3 text-[11px] uppercase tracking-wider text-slate-400 font-semibold absolute">
-              অথবা ইমেইল দিয়ে
+              {t('account.orWithEmail')}
             </span>
           </div>
 
@@ -383,14 +387,14 @@ export const AccountPage: React.FC = () => {
             {authMode === 'register' && (
               <div>
                 <label className="block text-xs font-semibold text-[#08152F] mb-1">
-                  আপনার সম্পূর্ণ নাম <span className="text-[#2563EB]">*</span>
+                  {t('account.fullNameLabel')}
                 </label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="যেমন: তামিম নূর"
+                  placeholder={t('account.fullNamePlaceholder')}
                   className="w-full bg-[#F8FAFC] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
                 />
               </div>
@@ -399,14 +403,14 @@ export const AccountPage: React.FC = () => {
             {/* Email Address */}
             <div>
               <label className="block text-xs font-semibold text-[#08152F] mb-1">
-                ইমেইল ঠিকানা <span className="text-[#2563EB]">*</span>
+                {t('account.emailLabel')}
               </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="আপনার ইমেইল ঠিকানা লিখুন"
+                placeholder={t('account.emailPlaceholder')}
                 className="w-full bg-[#F8FAFC] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
@@ -415,14 +419,14 @@ export const AccountPage: React.FC = () => {
             {authMode === 'register' && (
               <div>
                 <label className="block text-xs font-semibold text-[#08152F] mb-1">
-                  মোবাইল নম্বর <span className="text-[#2563EB]">*</span>
+                  {t('account.phoneLabel')}
                 </label>
                 <input
                   type="tel"
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="০১XXXXXXXXX"
+                  placeholder="01XXXXXXXXX"
                   className="w-full bg-[#F8FAFC] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
                 />
               </div>
@@ -431,14 +435,14 @@ export const AccountPage: React.FC = () => {
             {/* Password */}
             <div>
               <label className="block text-xs font-semibold text-[#08152F] mb-1">
-                পাসওয়ার্ড <span className="text-[#2563EB]">*</span>
+                {t('account.passwordLabel')}
               </label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={authMode === 'register' ? 'কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড' : 'আপনার পাসওয়ার্ড লিখুন'}
+                placeholder={authMode === 'register' ? t('account.passwordPlaceholderRegister') : t('account.passwordPlaceholderLogin')}
                 className="w-full bg-[#F8FAFC] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
@@ -447,14 +451,14 @@ export const AccountPage: React.FC = () => {
             {authMode === 'register' && (
               <div>
                 <label className="block text-xs font-semibold text-[#08152F] mb-1">
-                  পাসওয়ার্ড নিশ্চিত করুন <span className="text-[#2563EB]">*</span>
+                  {t('account.confirmPasswordLabel')}
                 </label>
                 <input
                   type="password"
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="পুনরায় পাসওয়ার্ড লিখুন"
+                  placeholder={t('account.confirmPasswordPlaceholder')}
                   className="w-full bg-[#F8FAFC] border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
                 />
               </div>
@@ -467,7 +471,7 @@ export const AccountPage: React.FC = () => {
                   onClick={handlePasswordReset}
                   className="text-[#667085] hover:text-[#2563EB] underline font-medium transition-colors cursor-pointer"
                 >
-                  পাসওয়ার্ড ভুলে গেছেন?
+                  {t('account.forgotPassword')}
                 </button>
               </div>
             )}
@@ -477,7 +481,7 @@ export const AccountPage: React.FC = () => {
               disabled={authLoading}
               className="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs transition-colors disabled:opacity-50 shadow-md shadow-[#2563EB]/25 cursor-pointer"
             >
-              {authLoading ? 'প্রসেসিং হচ্ছে...' : authMode === 'register' ? 'নিবন্ধন করুন' : 'লগইন করুন'}
+              {authLoading ? t('cart.processingOrder') : authMode === 'register' ? t('account.registerBtn') : t('account.loginBtn')}
             </button>
           </form>
 
@@ -485,22 +489,22 @@ export const AccountPage: React.FC = () => {
           <div className="pt-2 text-center text-xs text-[#667085]">
             {authMode === 'register' ? (
               <p>
-                ইতোমধ্যে অ্যাকাউন্ট আছে?{' '}
+                {t('account.alreadyHaveAccount')}{' '}
                 <button
                   onClick={() => setAuthMode('login')}
                   className="text-[#2563EB] font-bold hover:underline cursor-pointer"
                 >
-                  লগইন করুন
+                  {t('account.loginHere')}
                 </button>
               </p>
             ) : (
               <p>
-                নতুন ব্যবহারকারী?{' '}
+                {t('account.noAccount')}{' '}
                 <button
                   onClick={() => setAuthMode('register')}
                   className="text-[#2563EB] font-bold hover:underline cursor-pointer"
                 >
-                  নিবন্ধন করুন
+                  {t('account.registerHere')}
                 </button>
               </p>
             )}
@@ -519,7 +523,7 @@ export const AccountPage: React.FC = () => {
             <UserAvatar user={currentUser} size="lg" showBorder />
             <label
               className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#08152F] text-white hover:bg-[#2563EB] transition-colors cursor-pointer shadow-md"
-              title="প্রোফাইল ছবি পরিবর্তন করুন"
+              title="Profile photo"
             >
               <Camera className="w-3.5 h-3.5" />
               <input
@@ -530,7 +534,7 @@ export const AccountPage: React.FC = () => {
                   const file = e.target.files?.[0];
                   if (!file) return;
                   if (file.size > 2 * 1024 * 1024) {
-                    alert('ছবির আকার সর্বোচ্চ ২ মেগাবাইট হতে হবে।');
+                    alert(t('account.dashboard.photoSizeError'));
                     return;
                   }
                   const reader = new FileReader();
@@ -539,7 +543,7 @@ export const AccountPage: React.FC = () => {
                       try {
                         await updateUserAvatar(reader.result);
                       } catch (err: any) {
-                        alert('ছবি সংরক্ষণ করা যায়নি: ' + (err?.message || 'ত্রুটি'));
+                        alert(t('account.dashboard.photoSaveError') + ' ' + (err?.message || 'Error'));
                       }
                     }
                   };
@@ -550,9 +554,9 @@ export const AccountPage: React.FC = () => {
           </div>
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-[#08152F]">
-              {currentUser.displayName || 'সম্মানিত গ্রাহক'}
+              {currentUser.displayName || t('account.dashboard.greeting')}
             </h2>
-            <p className="text-xs text-[#667085]">লগইন করা আছে: {currentUser.email}</p>
+            <p className="text-xs text-[#667085]">{t('account.dashboard.loggedInAs')} {currentUser.email}</p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
                 type="button"
@@ -562,7 +566,7 @@ export const AccountPage: React.FC = () => {
                     await syncGoogleProfile();
                   } catch (err: any) {
                     if (err?.code !== 'auth/popup-closed-by-user') {
-                      alert('গুগল প্রোফাইল সিঙ্ক করা যায়নি: ' + (err?.message || 'অজানা ত্রুটি'));
+                      alert('Google profile sync error: ' + (err?.message || 'Error'));
                     }
                   } finally {
                     setSyncingAvatar(false);
@@ -570,21 +574,25 @@ export const AccountPage: React.FC = () => {
                 }}
                 disabled={syncingAvatar}
                 className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#2563EB] text-[11px] font-bold border border-blue-200 transition-colors cursor-pointer"
-                title="আপনার জিমেইল/গুগল অ্যাকাউন্টের অফিশিয়াল ছবি সরাসরি সিঙ্ক করুন"
+                title="Sync Google profile photo"
               >
                 <RefreshCw className={`w-3 h-3 ${syncingAvatar ? 'animate-spin' : ''}`} />
-                <span>{syncingAvatar ? 'সিঙ্ক হচ্ছে...' : 'গুগল প্রোফাইল ছবি সিঙ্ক করুন'}</span>
+                <span>{syncingAvatar ? t('cart.processingOrder') : t('account.dashboard.syncGooglePhoto')}</span>
               </button>
             </div>
           </div>
         </div>
 
-        <button
-          onClick={logout}
-          className="px-4 py-2 bg-[#F8FAFC] hover:bg-red-50 hover:text-red-600 text-[#08152F] text-xs font-semibold rounded-lg transition-colors border border-slate-200 cursor-pointer"
-        >
-          লগআউট
-        </button>
+        {/* User Language Switcher & Logout */}
+        <div className="flex flex-wrap items-center gap-3">
+          <LanguageSwitcher variant="settings" />
+          <button
+            onClick={logout}
+            className="px-4 py-2 bg-[#F8FAFC] hover:bg-red-50 hover:text-red-600 text-[#08152F] text-xs font-semibold rounded-lg transition-colors border border-slate-200 cursor-pointer"
+          >
+            {t('account.dashboard.logoutBtn')}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -598,10 +606,10 @@ export const AccountPage: React.FC = () => {
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>আমার অনুসন্ধানসমূহ ({userLeads.length})</span>
+          <span>{t('account.tabs.inquiries')} ({userLeads.length})</span>
           {userLeads.filter((l) => l.meetingDetails?.meetingStatus === 'proposed').length > 0 && (
             <span className="px-2 py-0.5 rounded-full bg-[#FFC629]/20 text-[#08152F] border border-[#FFC629]/40 text-[10px] font-black animate-pulse">
-              {userLeads.filter((l) => l.meetingDetails?.meetingStatus === 'proposed').length} অ্যাকশন প্রয়োজন
+              {userLeads.filter((l) => l.meetingDetails?.meetingStatus === 'proposed').length} {t('account.tabs.actionRequired')}
             </span>
           )}
         </button>
@@ -615,7 +623,7 @@ export const AccountPage: React.FC = () => {
           }`}
         >
           <Package className="w-4 h-4" />
-          <span>আমার অর্ডার ({orders.length})</span>
+          <span>{t('account.tabs.orders')} ({orders.length})</span>
         </button>
 
         <button
@@ -627,7 +635,7 @@ export const AccountPage: React.FC = () => {
           }`}
         >
           <Download className="w-4 h-4" />
-          <span>আমার ডাউনলোডসমূহ ({entitlements.length})</span>
+          <span>{t('account.tabs.downloads')} ({entitlements.length})</span>
         </button>
 
         <button
@@ -639,7 +647,7 @@ export const AccountPage: React.FC = () => {
           }`}
         >
           <Heart className="w-4 h-4 text-rose-500" />
-          <span>আমার পছন্দের তালিকা ({wishlist.length})</span>
+          <span>{t('account.tabs.wishlist')} ({wishlist.length})</span>
         </button>
       </div>
 
@@ -660,7 +668,7 @@ export const AccountPage: React.FC = () => {
               const isCancelled = meeting && meeting.meetingStatus === 'cancelled';
 
               const formattedMeetingTime = meeting?.scheduledTime
-                ? new Date(meeting.scheduledTime).toLocaleString('bn-BD', {
+                ? new Date(meeting.scheduledTime).toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US', {
                     weekday: 'short',
                     month: 'short',
                     day: 'numeric',
@@ -686,7 +694,7 @@ export const AccountPage: React.FC = () => {
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        অনুসন্ধান #{lead.id.substring(0, 8)} • জমাদান: {new Date(lead.createdAt).toLocaleDateString()}
+                        {t('account.inquiry.inquiryNum')} #{lead.id.substring(0, 8)} • {t('account.inquiry.submitted')} {new Date(lead.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US')}
                       </span>
                       <h3 className="text-base font-bold text-[#08152F] mt-0.5">
                         {lead.serviceInterest}
@@ -706,11 +714,11 @@ export const AccountPage: React.FC = () => {
                         }`}
                       >
                         {isConfirmed
-                          ? '✓ মিটিং নিশ্চিত হয়েছে'
+                          ? t('account.inquiry.meetingConfirmed')
                           : isProposed
-                          ? '● মিটিং নির্ধারিত (অনুমোদন প্রয়োজন)'
+                          ? t('account.inquiry.meetingScheduled')
                           : isCancelled
-                          ? '✕ মিটিং বাতিল হয়েছে'
+                          ? t('account.inquiry.meetingCancelled')
                           : lead.status}
                       </span>
                     </div>
@@ -730,14 +738,14 @@ export const AccountPage: React.FC = () => {
                       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                         <div className="space-y-0.5">
                           <span className="text-[10px] font-black uppercase tracking-wider text-[#667085] block">
-                            স্ট্র্যাটেজিক ভিডিও কনসাল্টেশন
+                            {t('account.inquiry.videoConsultation')}
                           </span>
                           <div className="text-sm sm:text-base font-black text-[#08152F] flex items-center space-x-2">
                             <Clock className="w-4 h-4 text-[#2563EB]" />
                             <span>{formattedMeetingTime}</span>
                           </div>
                           <span className="text-xs text-[#667085] block">
-                            হোস্ট: {meeting.scheduledBy || 'Eagle Eye Digital স্ট্র্যাটেজিস্ট'}
+                            {t('account.inquiry.host')} {meeting.scheduledBy || t('account.inquiry.hostFallback')}
                           </span>
                         </div>
 
@@ -751,7 +759,7 @@ export const AccountPage: React.FC = () => {
                               className="px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold text-xs rounded-xl shadow-md shadow-[#2563EB]/20 flex items-center space-x-1.5 transition-transform hover:-translate-y-0.5"
                             >
                               <Video className="w-4 h-4" />
-                              <span>মিটিংয়ে যোগ দিন</span>
+                              <span>{t('account.inquiry.joinMeeting')}</span>
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
 
@@ -760,7 +768,7 @@ export const AccountPage: React.FC = () => {
                               disabled={actionProcessing === lead.id}
                               className="px-3 py-2 bg-white hover:bg-red-50 text-[#667085] hover:text-red-600 border border-slate-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                             >
-                              বাতিল করুন
+                              {t('account.inquiry.cancelMeeting')}
                             </button>
                           </div>
                         )}
@@ -774,7 +782,7 @@ export const AccountPage: React.FC = () => {
                               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm flex items-center space-x-1.5 transition-colors cursor-pointer"
                             >
                               <CheckCircle2 className="w-4 h-4" />
-                              <span>{actionProcessing === lead.id ? 'নিশ্চিত করা হচ্ছে...' : 'সময় গ্রহণ / নিশ্চিত করুন'}</span>
+                              <span>{actionProcessing === lead.id ? t('cart.processingOrder') : t('account.inquiry.acceptConfirm')}</span>
                             </button>
 
                             <button
@@ -783,7 +791,7 @@ export const AccountPage: React.FC = () => {
                               className="px-3.5 py-2.5 bg-white hover:bg-red-50 text-[#172033] hover:text-red-700 border border-slate-200 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                             >
                               <XCircle className="w-4 h-4" />
-                              <span>বাতিল করুন</span>
+                              <span>{t('account.inquiry.declineMeeting')}</span>
                             </button>
                           </div>
                         )}
@@ -797,25 +805,25 @@ export const AccountPage: React.FC = () => {
 
                       {isProposed && (
                         <p className="text-[11px] text-[#08152F] font-medium bg-[#FFC629]/20 p-2 rounded-lg border border-[#FFC629]/30">
-                          ⚠️ অ্যাপয়েন্টমেন্ট নিশ্চিত করতে এবং সরাসরি ভিডিও মিটিং লিংক আনলক করতে অনুগ্রহ করে <strong>সময় গ্রহণ / নিশ্চিত করুন</strong> বাটনে ক্লিক করুন।
+                          ⚠️ {t('account.inquiry.confirmInstruction')}
                         </p>
                       )}
 
                       {isCancelled && (
                         <div className="flex items-center justify-between pt-1 text-xs">
                           <span className="text-[#667085]">
-                            মিটিং বাতিল করা হয়েছে {meeting.cancellationReason ? `(${meeting.cancellationReason})` : ''}
+                            {t('account.inquiry.meetingCancelledLabel')} {meeting.cancellationReason ? `(${meeting.cancellationReason})` : ''}
                           </span>
                           <a
                             href={`https://wa.me/88${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                              `হ্যালো Eagle Eye Digital, অনুসন্ধান #${lead.id.substring(0, 8)}-এর জন্য একটি নতুন পরামর্শ সময় নির্ধারণ করতে চাই।`
+                              `Hi Eagle Eye Digital, I would like to propose a new time for Inquiry #${lead.id.substring(0, 8)}.`
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#2563EB] hover:underline font-bold flex items-center space-x-1"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
-                            <span>হোয়াটসঅ্যাপে নতুন সময় প্রস্তাব করুন</span>
+                            <span>{t('account.inquiry.proposeNewTime')}</span>
                           </a>
                         </div>
                       )}
@@ -825,22 +833,22 @@ export const AccountPage: React.FC = () => {
                   {/* Inquiry Spec Details */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-[#F8FAFC]/80 p-3.5 rounded-xl border border-slate-100">
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">বাজেট সীমা</span>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">{t('account.inquiry.budgetRange')}</span>
                       <span className="font-semibold text-[#08152F]">{lead.budgetRange}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">যোগাযোগের মাধ্যম</span>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">{t('account.inquiry.contactMethod')}</span>
                       <span className="font-semibold text-[#08152F]">{lead.preferredContactMethod} ({lead.phoneOrWhatsApp})</span>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 block">লক্ষ্য সময়সীমা</span>
-                      <span className="font-semibold text-[#08152F]">{lead.deadline || 'নমনীয় (Flexible)'}</span>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">{t('account.inquiry.targetDeadline')}</span>
+                      <span className="font-semibold text-[#08152F]">{lead.deadline || t('account.inquiry.flexible')}</span>
                     </div>
                   </div>
 
                   {lead.projectDescription && (
                     <div className="text-xs text-[#667085]">
-                      <span className="font-bold text-[#08152F] block mb-0.5">প্রজেক্টের বিবরণ:</span>
+                      <span className="font-bold text-[#08152F] block mb-0.5">{t('account.inquiry.projectDescription')}</span>
                       <p className="line-clamp-2 text-[#667085]">{lead.projectDescription}</p>
                     </div>
                   )}
@@ -851,9 +859,9 @@ export const AccountPage: React.FC = () => {
         ) : (
           <EmptyState
             icon={Calendar}
-            title="কোনো অনুসন্ধান বা মিটিং নেই"
-            description="আপনি যখন কোনো সার্ভিস অনুসন্ধান বা স্ট্র্যাটেজিক পরামর্শের অনুরোধ করবেন, তখন আপনার অ্যাপয়েন্টমেন্ট ও ভিডিও লিংক এখানে প্রদর্শিত হবে।"
-            actionText="পরামর্শ অনুরোধ করুন"
+            title={t('account.empty.noInquiries')}
+            description={t('account.empty.noInquiriesDesc')}
+            actionText={t('account.empty.requestConsultation')}
             actionLink="/contact"
           />
         )
@@ -867,9 +875,9 @@ export const AccountPage: React.FC = () => {
               >
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 pb-3">
                   <div>
-                    <span className="text-xs font-semibold text-[#08152F]">অর্ডার আইডি: #{order.id}</span>
+                    <span className="text-xs font-semibold text-[#08152F]">{t('cart.orderId')} #{order.id}</span>
                     <span className="text-xs text-slate-400 block">
-                      অর্ডার তারিখ: {new Date(order.createdAt).toLocaleDateString()}
+                      {t('account.orders.orderDate')} {new Date(order.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US')}
                     </span>
                   </div>
                   <div>
@@ -882,7 +890,7 @@ export const AccountPage: React.FC = () => {
                           : 'bg-red-50 text-red-700 border border-red-200'
                       }`}
                     >
-                      পেমেন্ট স্ট্যাটাস: {order.paymentStatus === 'verified' ? 'অনুমোদিত' : order.paymentStatus === 'pending' ? 'যাচাইাধীন' : 'বাতিল'}
+                      {t('account.orders.paymentStatus')} {order.paymentStatus === 'verified' ? t('account.orders.verified') : order.paymentStatus === 'pending' ? t('account.orders.pending') : t('account.orders.failed')}
                     </span>
                   </div>
                 </div>
@@ -897,15 +905,15 @@ export const AccountPage: React.FC = () => {
                 </div>
 
                 <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
-                  <span className="text-[#667085] font-medium">মোট পরিমাণ: ৳{order.totalAmount} BDT</span>
+                  <span className="text-[#667085] font-medium">{t('account.orders.totalAmount')} ৳{order.totalAmount} BDT</span>
                   {order.paymentStatus === 'verified' ? (
                     <span className="text-emerald-700 font-bold flex items-center space-x-1">
                       <CheckCircle className="w-3.5 h-3.5" />
-                      <span>ডাউনলোডে আনলক হয়েছে</span>
+                      <span>{t('account.orders.downloadUnlocked')}</span>
                     </span>
                   ) : (
                     <span className="text-[#08152F] text-[11px] font-medium bg-[#FFC629]/20 px-2 py-0.5 rounded border border-[#FFC629]/30">
-                      পেমেন্ট নিশ্চিতকরণের অপেক্ষায়
+                      {t('account.orders.awaitingPayment')}
                     </span>
                   )}
                 </div>
@@ -915,9 +923,9 @@ export const AccountPage: React.FC = () => {
         ) : (
           <EmptyState
             icon={Package}
-            title="এখনো কোনো অর্ডার নেই"
-            description="আপনি এখনো কোনো অর্ডার করেননি। টেমপ্লেট ও রিসোর্স কিনতে আমাদের ডিজিটাল প্রোডাক্ট শপ ঘুরে দেখুন।"
-            actionText="প্রোডাক্ট শপ দেখুন"
+            title={t('account.empty.noOrders')}
+            description={t('account.empty.noOrdersDesc')}
+            actionText={t('account.empty.browseProducts')}
             actionLink="/products"
           />
         )
@@ -931,7 +939,7 @@ export const AccountPage: React.FC = () => {
               >
                 <div>
                   <h4 className="text-sm font-bold text-[#08152F]">{ent.productName}</h4>
-                  <span className="text-[10px] text-slate-400">অনুমোদিত তারিখ: {new Date(ent.createdAt).toLocaleDateString()}</span>
+                  <span className="text-[10px] text-slate-400">{t('account.downloads.approvedDate')} {new Date(ent.createdAt).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US')}</span>
                 </div>
                 <a
                   href={ent.downloadUrl}
@@ -940,7 +948,7 @@ export const AccountPage: React.FC = () => {
                   className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-lg flex items-center space-x-1.5 shadow-sm transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>ডাউনলোড করুন</span>
+                  <span>{t('account.downloads.downloadBtn')}</span>
                 </a>
               </div>
             ))}
@@ -948,8 +956,8 @@ export const AccountPage: React.FC = () => {
         ) : (
           <EmptyState
             icon={Download}
-            title="কোনো ডিজিটাল ডাউনলোড উপলব্ধ নেই"
-            description="অর্ডার অ্যাডমিন কর্তৃক ভেরিফাই হওয়ার সাথে সাথেই ডাউনলোড ফাইলসমূহ এখানে প্রদর্শিত হবে।"
+            title={t('account.empty.noDownloads')}
+            description={t('account.empty.noDownloadsDesc')}
           />
         )
       ) : (
@@ -996,20 +1004,20 @@ export const AccountPage: React.FC = () => {
 
                 <div className="p-5 pt-0 flex flex-col gap-2">
                   <div className="flex gap-2">
-                    <Link
+                    <LocalizedLink
                       to={`/products/${item.slug || item.id}`}
                       className="flex-1 py-2 px-3 rounded-xl border border-slate-200 hover:border-[#2563EB] text-[#172033] hover:text-[#2563EB] font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>পণ্যটি দেখুন</span>
-                    </Link>
+                      <span>{t('account.wishlist.viewProduct')}</span>
+                    </LocalizedLink>
 
                     <button
                       onClick={() => addToCart(item)}
                       className="flex-1 py-2 px-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs flex items-center justify-center space-x-1.5 transition-colors shadow-xs cursor-pointer"
                     >
                       <ShoppingCart className="w-3.5 h-3.5" />
-                      <span>কার্টে যোগ করুন</span>
+                      <span>{t('account.wishlist.addToCart')}</span>
                     </button>
                   </div>
 
@@ -1018,7 +1026,7 @@ export const AccountPage: React.FC = () => {
                     className="w-full py-1.5 text-center text-red-500 hover:text-red-700 text-xs font-semibold flex items-center justify-center space-x-1 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-3 h-3" />
-                    <span>পছন্দের তালিকা থেকে সরান</span>
+                    <span>{t('account.wishlist.removeFromWishlist')}</span>
                   </button>
                 </div>
               </div>
@@ -1027,9 +1035,9 @@ export const AccountPage: React.FC = () => {
         ) : (
           <EmptyState
             icon={Heart}
-            title="পছন্দের তালিকায় কোনো পণ্য নেই"
-            description="আপনার পছন্দের ডিজিটাল প্রোডাক্ট ও টেমপ্লেটগুলো পছন্দের তালিকায় সংরক্ষণ করতে পারেন।"
-            actionText="পণ্যসমূহ দেখুন"
+            title={t('account.empty.noWishlist')}
+            description={t('account.empty.noWishlistDesc')}
+            actionText={t('account.empty.browseStore')}
             actionLink="/products"
           />
         )

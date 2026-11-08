@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import { Search, ShoppingBag, Heart } from 'lucide-react';
 import { getPublishedProducts } from '../services/firestoreService';
 import { DigitalProduct } from '../types';
@@ -8,6 +9,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 
 export const ProductsPage: React.FC = () => {
+  const { t } = useLanguage();
   const [products, setProducts] = useState<DigitalProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -53,11 +55,11 @@ export const ProductsPage: React.FC = () => {
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
-          Premium Digital Assets
+          {t('productsPage.tag')}
         </span>
-        <h1 className="text-4xl font-extrabold text-[#08152F]">Digital Product Vault</h1>
+        <h1 className="text-4xl font-extrabold text-[#08152F]">{t('productsPage.title')}</h1>
         <p className="text-sm text-[#667085] leading-relaxed">
-          Streamline your workflow with agency-grade UI kits, social media templates, growth blueprints, and operational toolkits.
+          {t('productsPage.description')}
         </p>
       </div>
 
@@ -69,7 +71,7 @@ export const ProductsPage: React.FC = () => {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search templates & assets..."
+            placeholder={t('productsPage.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-[#F8FAFC] border border-slate-300 rounded-lg pl-9 pr-3 py-2 text-xs text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
@@ -83,9 +85,9 @@ export const ProductsPage: React.FC = () => {
             onChange={(e) => setFilterPricing(e.target.value as any)}
             className="bg-[#F8FAFC] border border-slate-300 rounded-lg px-3 py-2 text-xs text-[#08152F] focus:outline-none focus:border-[#2563EB] focus:bg-white font-medium"
           >
-            <option value="all">All Pricing</option>
-            <option value="free">Free Downloads</option>
-            <option value="paid">Premium (Paid)</option>
+            <option value="all">{t('productsPage.allPricing')}</option>
+            <option value="free">{t('productsPage.freeDownloads')}</option>
+            <option value="paid">{t('productsPage.premiumPaid')}</option>
           </select>
 
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full sm:flex-wrap">
@@ -99,7 +101,7 @@ export const ProductsPage: React.FC = () => {
                     : 'bg-[#F8FAFC] text-[#667085] border-slate-200 hover:text-[#08152F] hover:bg-slate-100'
                 }`}
               >
-                {cat}
+                {cat === 'All' ? t('servicesPage.allCategories') : cat}
               </button>
             ))}
           </div>
@@ -144,7 +146,7 @@ export const ProductsPage: React.FC = () => {
                           ? 'bg-rose-50 text-rose-500 border border-rose-200'
                           : 'bg-white/90 text-slate-500 hover:text-rose-500 border border-slate-200'
                       }`}
-                      title={isInWishlist(product.id) ? 'পছন্দের তালিকা থেকে সরান' : 'পছন্দের তালিকায় রাখুন'}
+                      title={isInWishlist(product.id) ? t('productsPage.removeFromWishlist') : t('productsPage.addToWishlist')}
                     >
                       <Heart className={`w-3.5 h-3.5 ${isInWishlist(product.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
                     </button>
@@ -180,7 +182,7 @@ export const ProductsPage: React.FC = () => {
               <div className="p-6 pt-0 border-t border-slate-100 flex items-center justify-between">
                 <div>
                   {product.price === 0 ? (
-                    <span className="text-base font-extrabold text-emerald-600">FREE</span>
+                    <span className="text-base font-extrabold text-emerald-600">{t('common.free')}</span>
                   ) : (
                     <div className="flex items-baseline space-x-2">
                       <span className="text-base font-extrabold text-[#08152F]">
@@ -194,19 +196,19 @@ export const ProductsPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Link
+                  <LocalizedLink
                     to={`/products/${product.slug}`}
                     className="px-3 py-1.5 rounded-lg bg-[#F8FAFC] hover:bg-slate-200 text-xs font-semibold text-[#08152F] transition-colors"
                   >
-                    View
-                  </Link>
+                    {t('productsPage.viewProduct')}
+                  </LocalizedLink>
                   <button
                     onClick={() => addToCart(product)}
                     className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors flex items-center space-x-1 shadow-sm cursor-pointer active:scale-95"
-                    title={product.price === 0 ? 'Get Free Download' : 'Add to Cart'}
+                    title={product.price === 0 ? t('productsPage.getFreeDownload') : t('productsPage.addToCart')}
                   >
                     <ShoppingBag className="w-3.5 h-3.5" />
-                    <span>{product.price === 0 ? 'Get Free' : 'Add to Cart'}</span>
+                    <span>{product.price === 0 ? t('productsPage.getFree') : t('productsPage.addToCart')}</span>
                   </button>
                 </div>
               </div>
@@ -216,9 +218,9 @@ export const ProductsPage: React.FC = () => {
       ) : (
         <EmptyState
           icon={ShoppingBag}
-          title="No Products Found"
-          description="We couldn't find any products matching your selected criteria. Try resetting the filters or check back later."
-          actionText="Reset Filters"
+          title={t('productsPage.noProductsTitle')}
+          description={t('productsPage.noProductsDesc')}
+          actionText={t('productsPage.resetFilters')}
           onAction={() => {
             setSearch('');
             setSelectedCategory('All');

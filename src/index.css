@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Bangla Language Font Support ────────────────────────────────────────── */
+html.lang-bn {
+  font-family: 'Noto Sans Bengali', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+html.lang-bn body,
+html.lang-bn input,
+html.lang-bn textarea,
+html.lang-bn select,
+html.lang-bn button {
+  font-family: 'Noto Sans Bengali', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
 :root {
   /* Eagle Eye Digital Official Brand Palette */
   --color-primary: #2563EB;        /* Electric Blue: primary brand & interaction color */

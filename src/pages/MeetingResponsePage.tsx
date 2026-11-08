@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { getLeadById, respondToMeeting } from '../services/firestoreService';
 import { Lead } from '../types';
 import {
@@ -9,28 +9,29 @@ import {
   Video,
   Clock,
   User,
-  ArrowRight,
   ExternalLink,
   MessageSquare,
   AlertCircle
 } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 
 export const MeetingResponsePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   const initialAction = searchParams.get('action'); // 'accept' | 'cancel'
+  const { t, language } = useLanguage();
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<'idle' | 'confirmed' | 'cancelled'>('idle');
-  const [cancelReason, setCancelReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!leadId) {
-      setError('Invalid meeting link. No inquiry ID provided.');
+      setError(t('meeting.invalidLink'));
       setLoading(false);
       return;
     }
@@ -38,7 +39,7 @@ export const MeetingResponsePage: React.FC = () => {
     getLeadById(leadId)
       .then((data) => {
         if (!data || !data.meetingDetails) {
-          setError('Meeting details not found for this inquiry.');
+          setError(t('meeting.notFound'));
         } else {
           setLead(data);
           if (data.meetingDetails.meetingStatus === 'confirmed') {
@@ -51,7 +52,7 @@ export const MeetingResponsePage: React.FC = () => {
         }
       })
       .catch((err) => {
-        setError(err.message || 'Error loading meeting details.');
+        setError(err.message || t('meeting.loadError'));
       })
       .finally(() => setLoading(false));
   }, [leadId]);
@@ -65,7 +66,7 @@ export const MeetingResponsePage: React.FC = () => {
       const updated = await getLeadById(leadId);
       if (updated) setLead(updated);
     } catch (err: any) {
-      alert('Could not update meeting: ' + (err.message || 'Unknown error'));
+      alert(t('meeting.updateError') + ' ' + (err.message || t('common.error')));
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +76,7 @@ export const MeetingResponsePage: React.FC = () => {
     return (
       <div className="max-w-md mx-auto px-4 py-24 text-center">
         <div className="w-10 h-10 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm font-semibold text-[#667085]">Verifying consultation details...</p>
+        <p className="text-sm font-semibold text-[#667085]">{t('meeting.verifying')}</p>
       </div>
     );
   }
@@ -84,17 +85,18 @@ export const MeetingResponsePage: React.FC = () => {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-        <h2 className="text-xl font-bold text-[#08152F]">Meeting Not Found</h2>
-        <p className="text-xs text-[#667085]">{error || 'Unable to locate this consultation invitation.'}</p>
-        <Link to="/" className="inline-block px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
-          Return to Home
-        </Link>
+        <h2 className="text-xl font-bold text-[#08152F]">{t('meeting.notFoundTitle')}</h2>
+        <p className="text-xs text-[#667085]">{error || t('meeting.notFoundDesc')}</p>
+        <LocalizedLink to="/" className="inline-block px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs rounded-xl shadow-sm transition-colors">
+          {t('meeting.returnHome')}
+        </LocalizedLink>
       </div>
     );
   }
 
   const meeting = lead.meetingDetails;
-  const formattedDate = new Date(meeting.scheduledTime).toLocaleString('en-US', {
+  const locale = language === 'bn' ? 'bn-BD' : 'en-US';
+  const formattedDate = new Date(meeting.scheduledTime).toLocaleString(locale, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -123,17 +125,17 @@ export const MeetingResponsePage: React.FC = () => {
             <Calendar className="w-6 h-6 stroke-[2.2]" />
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-[#08152F] tracking-tight">
-            Consultation Session
+            {t('meeting.consultationSession')}
           </h1>
           <p className="text-xs text-[#667085]">
-            Eagle Eye Digital Strategic Review for <strong>{lead.name}</strong>
+            {t('meeting.strategicReview')} <strong>{lead.name}</strong>
           </p>
         </div>
 
         {/* Schedule Box */}
         <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-5 space-y-3 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Proposed Time</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t('meeting.proposedTime')}</span>
             <span
               className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
                 currentStatus === 'confirmed'
@@ -143,7 +145,7 @@ export const MeetingResponsePage: React.FC = () => {
                   : 'bg-[#FFC629]/25 text-[#08152F] border border-[#FFC629]/50'
               }`}
             >
-              {currentStatus === 'confirmed' ? '✓ Confirmed' : currentStatus === 'cancelled' ? '✕ Cancelled' : '● Awaiting Response'}
+              {currentStatus === 'confirmed' ? t('meeting.confirmed') : currentStatus === 'cancelled' ? t('meeting.cancelled') : t('meeting.awaitingResponse')}
             </span>
           </div>
 
@@ -153,8 +155,8 @@ export const MeetingResponsePage: React.FC = () => {
           </div>
 
           <div className="text-[#08152F] space-y-1 pt-1 border-t border-slate-200/80">
-            <div><strong className="text-[#08152F]">Service:</strong> {lead.serviceInterest}</div>
-            <div><strong className="text-[#08152F]">Host:</strong> {meeting.scheduledBy || 'Strategist'}</div>
+            <div><strong className="text-[#08152F]">{t('meeting.service')}</strong> {lead.serviceInterest}</div>
+            <div><strong className="text-[#08152F]">{t('meeting.host')}</strong> {meeting.scheduledBy || 'Strategist'}</div>
             {meeting.notes && (
               <div className="text-[#667085] italic mt-1 bg-white p-2.5 rounded-lg border border-slate-200/60">
                 "{meeting.notes}"
@@ -163,14 +165,14 @@ export const MeetingResponsePage: React.FC = () => {
           </div>
         </div>
 
-        {/* CONFIRMED STATE (UNLOCKED MEETING LINK) */}
+        {/* CONFIRMED STATE */}
         {currentStatus === 'confirmed' && (
           <div className="space-y-4 animate-fadeIn">
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-1 text-xs text-emerald-900">
               <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto" />
-              <div className="font-bold text-sm text-emerald-800">Meeting Confirmed!</div>
+              <div className="font-bold text-sm text-emerald-800">{t('meeting.meetingConfirmedTitle')}</div>
               <p className="text-emerald-700">
-                Your video consultation is locked in. The meeting link below is now unlocked for you.
+                {t('meeting.meetingConfirmedDesc')}
               </p>
             </div>
 
@@ -182,7 +184,7 @@ export const MeetingResponsePage: React.FC = () => {
               className="w-full py-3.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black text-xs rounded-xl shadow-lg shadow-[#2563EB]/25 flex items-center justify-center space-x-2 transition-all transform hover:-translate-y-0.5"
             >
               <Video className="w-4 h-4" />
-              <span>Join Video Meeting Now</span>
+              <span>{t('meeting.joinVideoMeeting')}</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
 
@@ -194,24 +196,24 @@ export const MeetingResponsePage: React.FC = () => {
                 className="px-4 py-2 bg-[#F8FAFC] hover:bg-slate-200 text-[#08152F] font-bold rounded-lg flex items-center space-x-1.5 transition-colors"
               >
                 <Calendar className="w-3.5 h-3.5 text-[#2563EB]" />
-                <span>Add to Google Calendar</span>
+                <span>{t('meeting.addToCalendar')}</span>
               </a>
 
-              <Link
+              <LocalizedLink
                 to="/account"
                 className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[#08152F] font-bold rounded-lg flex items-center space-x-1.5 transition-colors"
               >
                 <User className="w-3.5 h-3.5 text-[#667085]" />
-                <span>View in Account Portal</span>
-              </Link>
+                <span>{t('meeting.viewInPortal')}</span>
+              </LocalizedLink>
             </div>
 
             <div className="text-center pt-2">
               <button
                 onClick={() => handleAction('cancel', 'Client requested cancellation after initial confirmation')}
-                className="text-[11px] text-[#667085] hover:text-red-600 underline font-medium transition-colors"
+                className="text-[11px] text-[#667085] hover:text-red-600 underline font-medium transition-colors cursor-pointer"
               >
-                Need to cancel or reschedule?
+                {t('meeting.needToCancel')}
               </button>
             </div>
           </div>
@@ -222,9 +224,9 @@ export const MeetingResponsePage: React.FC = () => {
           <div className="space-y-4 animate-fadeIn">
             <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-center space-y-1 text-xs text-red-900">
               <XCircle className="w-6 h-6 text-red-600 mx-auto" />
-              <div className="font-bold text-sm text-red-800">Meeting Cancelled</div>
+              <div className="font-bold text-sm text-red-800">{t('meeting.meetingCancelledTitle')}</div>
               <p className="text-red-700">
-                This meeting request has been cancelled. Our team has been notified.
+                {t('meeting.meetingCancelledDesc')}
               </p>
             </div>
 
@@ -238,15 +240,15 @@ export const MeetingResponsePage: React.FC = () => {
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-2 shadow-sm transition-colors"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>Request New Time on WhatsApp</span>
+                <span>{t('meeting.requestNewTime')}</span>
               </a>
 
               <button
                 onClick={() => handleAction('accept')}
                 disabled={submitting}
-                className="w-full py-2.5 bg-[#F3F5F9] hover:bg-slate-200 text-[#172033] font-bold text-xs rounded-xl transition-colors"
+                className="w-full py-2.5 bg-[#F3F5F9] hover:bg-slate-200 text-[#172033] font-bold text-xs rounded-xl transition-colors cursor-pointer"
               >
-                Re-confirm this meeting time
+                {t('meeting.reconfirm')}
               </button>
             </div>
           </div>
@@ -256,29 +258,29 @@ export const MeetingResponsePage: React.FC = () => {
         {currentStatus === 'idle' && (
           <div className="space-y-4">
             <p className="text-xs text-[#667085] text-center leading-relaxed">
-              Please choose whether this meeting time works for you. Upon confirmation, the video meeting link will unlock immediately.
+              {t('meeting.choosePrompt')}
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={() => handleAction('accept')}
                 disabled={submitting}
-                className="py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-1.5 transition-all"
+                className="py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{submitting ? 'Confirming...' : 'Accept & Confirm'}</span>
+                <span>{submitting ? t('meeting.confirming') : t('meeting.acceptConfirm')}</span>
               </button>
 
               <button
                 onClick={() => {
-                  const reason = prompt('Optional: Reason for declining or preferred alternative time:');
+                  const reason = prompt(t('meeting.declinePrompt'));
                   handleAction('cancel', reason || undefined);
                 }}
                 disabled={submitting}
-                className="py-3.5 bg-[#F3F5F9] hover:bg-red-50 hover:text-red-700 hover:border-red-300 border border-slate-200 disabled:opacity-50 text-[#172033] font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all"
+                className="py-3.5 bg-[#F3F5F9] hover:bg-red-50 hover:text-red-700 hover:border-red-300 border border-slate-200 disabled:opacity-50 text-[#172033] font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
               >
                 <XCircle className="w-4 h-4" />
-                <span>Decline / Cancel</span>
+                <span>{t('meeting.declineCancel')}</span>
               </button>
             </div>
           </div>

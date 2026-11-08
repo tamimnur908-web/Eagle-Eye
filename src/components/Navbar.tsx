@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useSettings } from '../context/SettingsContext';
+import { useLanguage, LanguageSwitcher } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import { UserAvatar } from './UserAvatar';
 import {
   Search,
@@ -36,6 +38,7 @@ export const Navbar: React.FC = () => {
   const { wishlist } = useWishlist();
   const { openLoginModal } = useAuthModal();
   const { settings, headerConfig, socialLinks } = useSettings();
+  const { t, localizedPath } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -45,17 +48,53 @@ export const Navbar: React.FC = () => {
   const headerSocials = (socialLinks || []).filter(
     (s) => s.isActive && s.showInHeader && Boolean(s.url?.trim())
   );
-  const navItems = headerConfig?.navLinks && headerConfig.navLinks.length > 0
+  const rawNavItems = headerConfig?.navLinks && headerConfig.navLinks.length > 0
     ? headerConfig.navLinks
     : [
-        { label: 'Home', path: '/' },
-        { label: 'Shop', path: '/products' },
-        { label: 'Services', path: '/services' },
-        { label: 'Portfolio', path: '/portfolio' },
-        { label: 'Case Studies', path: '/case-studies' },
-        { label: 'About', path: '/about' },
-        { label: 'Our Contacts', path: '/contact' },
+        { label: t('nav.home'), path: '/' },
+        { label: t('nav.shop'), path: '/products' },
+        { label: t('nav.services'), path: '/services' },
+        { label: t('nav.portfolio'), path: '/portfolio' },
+        { label: t('nav.caseStudies'), path: '/case-studies' },
+        { label: t('nav.about'), path: '/about' },
+        { label: t('nav.contact'), path: '/contact' },
       ];
+
+  const standardNavTranslations: Record<string, string> = {
+    '/': 'nav.home',
+    '/products': 'nav.shop',
+    '/services': 'nav.services',
+    '/portfolio': 'nav.portfolio',
+    '/case-studies': 'nav.caseStudies',
+    '/about': 'nav.about',
+    '/contact': 'nav.contact',
+  };
+
+  const getNavLabel = (item: { label: string; path: string }) => {
+    const normalizedPath = item.path.replace(/^\/(en|bn)(\/|$)/, '/').replace(/\/+$/, '') || '/';
+    const translationKey = standardNavTranslations[normalizedPath];
+    if (translationKey) {
+      const lower = item.label.trim().toLowerCase();
+      if (
+        !lower ||
+        lower === 'home' ||
+        lower === 'shop' ||
+        lower === 'products' ||
+        lower === 'services' ||
+        lower === 'portfolio' ||
+        lower === 'case studies' ||
+        lower === 'about' ||
+        lower === 'about us' ||
+        lower === 'contact' ||
+        lower === 'contact us'
+      ) {
+        return t(translationKey);
+      }
+    }
+    return item.label;
+  };
+
+  const navItems = rawNavItems;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -76,13 +115,13 @@ export const Navbar: React.FC = () => {
   const handleLogout = async () => {
     setAccountDropdownOpen(false);
     await logout();
-    navigate('/');
+    navigate(localizedPath('/'));
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(localizedPath(`/products?search=${encodeURIComponent(searchQuery.trim())}`));
     }
   };
 
@@ -91,7 +130,7 @@ export const Navbar: React.FC = () => {
       e.preventDefault();
       openLoginModal({
         actionType: 'cart',
-        redirectPath: '/cart',
+        redirectPath: localizedPath('/cart'),
       });
     }
   };
@@ -101,36 +140,36 @@ export const Navbar: React.FC = () => {
       e.preventDefault();
       openLoginModal({
         actionType: 'wishlist',
-        redirectPath: '/account?tab=wishlist',
+        redirectPath: localizedPath('/account?tab=wishlist'),
       });
     } else {
-      navigate('/account?tab=wishlist');
+      navigate(localizedPath('/account?tab=wishlist'));
     }
   };
 
   const categories = [
-    { name: 'All Agency Services', path: '/services' },
-    { name: 'Digital Marketing Services', path: '/services' },
-    { name: 'Web Development & Creative', path: '/services' },
-    { name: 'AI & Business Automation', path: '/services' },
-    { name: 'Digital Products Store', path: '/products' },
-    { name: 'Portfolio & Case Studies', path: '/case-studies' }
+    { name: t('nav.allAgencyServices'), path: '/services' },
+    { name: t('nav.digitalMarketingServices'), path: '/services' },
+    { name: t('nav.webDevCreative'), path: '/services' },
+    { name: t('nav.aiBusinessAutomation'), path: '/services' },
+    { name: t('nav.digitalProductsStore'), path: '/products' },
+    { name: t('nav.portfolioCaseStudies'), path: '/case-studies' }
   ];
 
   const agencyServiceCategories = [
     {
-      title: 'Digital Marketing',
-      desc: 'Social media, Meta & Google ads, SEO, email & content',
+      title: t('nav.digitalMarketing'),
+      desc: t('nav.digitalMarketingDesc'),
       path: '/services'
     },
     {
-      title: 'Web Development and Creative Services',
-      desc: 'Custom business websites, e-commerce, UI/UX, and branding',
+      title: t('nav.webDevCreativeServices'),
+      desc: t('nav.webDevCreativeDesc'),
       path: '/services'
     },
     {
-      title: 'AI and Business Automation',
-      desc: 'Smart workflows, lead routing, and customer support chatbots',
+      title: t('nav.aiAutomation'),
+      desc: t('nav.aiAutomationDesc'),
       path: '/services'
     }
   ];
@@ -142,22 +181,22 @@ export const Navbar: React.FC = () => {
         <div className="bg-[#08152F] text-white text-[11px] sm:text-xs py-2 px-4 text-center font-medium tracking-wide relative z-50 flex items-center justify-center space-x-2 border-b border-[#0D2044]">
           <span>{headerConfig.announcementText}</span>
           {headerConfig.announcementLink && (
-            <Link
+            <LocalizedLink
               to={headerConfig.announcementLink}
               className="underline text-[#FFC629] hover:text-[#FFD359] ml-1.5 transition-colors font-bold"
             >
-              Explore Now →
-            </Link>
+              {t('nav.exploreNow')}
+            </LocalizedLink>
           )}
         </div>
       )}
 
-      {/* Top Main Bar (Vyrqonix Style) */}
+      {/* Top Main Bar */}
       <div className="w-full px-3.5 sm:px-8 lg:px-12 xl:px-16 py-2.5 sm:py-3.5">
         <div className="flex items-center justify-between gap-2.5 sm:gap-4">
           
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 group">
+          <LocalizedLink to="/" className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0 group">
             <img
               src={settings.logoUrl || '/logo.jpg'}
               alt={settings.brandName || 'Eagle Eye Digital'}
@@ -171,12 +210,12 @@ export const Navbar: React.FC = () => {
                 {settings.brandName || 'EAGLE EYE'}
               </span>
               <span className="text-[8px] sm:text-[10px] tracking-wider sm:tracking-widest text-[#2563EB] font-extrabold uppercase mt-0.5">
-                {settings.tagline || 'YOUR DIGITAL WORLD'}
+                {settings.tagline || t('common.taglineFallback')}
               </span>
             </div>
-          </Link>
+          </LocalizedLink>
 
-          {/* Central Rounded Search Bar with Action Pill */}
+          {/* Central Rounded Search Bar */}
           <form
             onSubmit={handleSearch}
             className="hidden md:flex flex-1 max-w-2xl mx-6 relative items-center"
@@ -185,21 +224,21 @@ export const Navbar: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for services or products..."
+              placeholder={t('nav.searchPlaceholder')}
               className="w-full h-11 pl-5 pr-12 rounded-full border border-slate-200 focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:outline-none text-xs sm:text-sm text-[#172033] bg-[#F3F5F9] focus:bg-white transition-all shadow-xs"
             />
             <button
               type="submit"
               className="absolute right-1.5 w-8 h-8 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center transition-colors shadow-xs"
-              title="Search"
+              title={t('common.search')}
             >
               <Search className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Right Side: Header Socials & WhatsApp Chat Support Pill (Desktop), Mobile Actions (Mobile) */}
+          {/* Right Side */}
           <div className="flex items-center space-x-2.5 sm:space-x-3.5 flex-shrink-0">
-            {/* Header Social Icons (If Enabled in Placement) */}
+            {/* Header Social Icons */}
             {headerSocials.length > 0 && (
               <div className="hidden xl:flex items-center space-x-1.5 border-r border-slate-200 pr-3">
                 {headerSocials.map((item) => (
@@ -217,6 +256,11 @@ export const Navbar: React.FC = () => {
               </div>
             )}
 
+            {/* Language Switcher (Desktop) */}
+            <div className="hidden sm:block">
+              <LanguageSwitcher variant="header" />
+            </div>
+
             {/* Dynamic WhatsApp Chat Support Pill */}
             {headerConfig?.showChatSupport !== false && (
               <a
@@ -230,7 +274,7 @@ export const Navbar: React.FC = () => {
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-[11px] text-[#172033] font-bold leading-tight">
-                    {headerConfig?.chatSupportText || 'Chat Support'}
+                    {headerConfig?.chatSupportText || t('nav.chatSupport')}
                   </span>
                   <span className="text-xs font-black text-[#10B981] leading-tight">
                     {headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791'}
@@ -239,11 +283,11 @@ export const Navbar: React.FC = () => {
               </a>
             )}
 
-            {/* Mobile Actions: Compact Wishlist, Cart & User Icon on Small Screens Only */}
+            {/* Mobile Actions */}
             <button
               onClick={handleWishlistClick}
               className="lg:hidden p-1.5 rounded-full border border-slate-200 text-[#667085] hover:text-[#2563EB] relative cursor-pointer"
-              title="আমার পছন্দের তালিকা"
+              title={t('nav.wishlistTooltip')}
             >
               <Heart className="w-3.5 h-3.5" />
               {currentUser && wishlist.length > 0 && (
@@ -253,33 +297,33 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            <Link
+            <LocalizedLink
               to="/cart"
               onClick={handleCartClick}
               className="lg:hidden flex items-center space-x-1.5 px-2.5 py-1.5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
-              title="কার্ট"
+              title={t('nav.cartTooltip')}
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>{currentUser ? cart.length : 0}</span>
-            </Link>
+            </LocalizedLink>
 
-            <Link
+            <LocalizedLink
               to="/account"
               className="lg:hidden p-1 rounded-full border border-slate-200 text-[#172033]"
-              title="অ্যাকাউন্ট"
+              title={t('nav.accountTooltip')}
             >
               {currentUser ? (
                 <UserAvatar user={currentUser} size="sm" />
               ) : (
                 <UserIcon className="w-4 h-4 text-slate-600" />
               )}
-            </Link>
+            </LocalizedLink>
 
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-1.5 rounded-lg border border-slate-200 text-[#172033] lg:hidden hover:bg-slate-100"
-              aria-label="Toggle Navigation"
+              aria-label={t('nav.toggleNavigation')}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -292,7 +336,7 @@ export const Navbar: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search products or services..."
+            placeholder={t('nav.searchPlaceholderMobile')}
             className="w-full h-10 pl-4 pr-12 rounded-full border border-slate-300 text-xs text-[#172033] bg-[#F3F5F9] focus:outline-none focus:border-[#2563EB]"
           />
           <button
@@ -304,45 +348,45 @@ export const Navbar: React.FC = () => {
         </form>
       </div>
 
-      {/* Sub Header Navigation Bar (Desktop Only: All Categories Pill + Nav Links + Right Wishlist, Account, Cart Pill) */}
+      {/* Sub Header Navigation Bar (Desktop) */}
       <div className="hidden lg:block w-full px-4 sm:px-8 lg:px-12 xl:px-16 border-t border-slate-100 bg-white">
         <div className="flex items-center justify-between h-14">
           
-          {/* Left: "All Categories" Corporate Navy Pill Button + Nav Items */}
+          {/* Left: "All Categories" + Nav Items */}
           <div className="flex items-center space-x-4 xl:space-x-6">
-            {/* "All Categories" Pill Button with Dropdown (Clean Deep Navy Corporate Pill) */}
+            {/* "All Categories" Pill Button */}
             <div className="relative" ref={catRef}>
               <button
                 onClick={() => setCategoriesOpen(!categoriesOpen)}
                 className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-[#08152F] hover:bg-[#0D2044] text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
               >
                 <Menu className="w-4 h-4 text-white" />
-                <span>All Categories</span>
+                <span>{t('nav.allCategories')}</span>
                 <ChevronDown className="w-3 h-3 ml-0.5 text-slate-300" />
               </button>
 
               {categoriesOpen && (
                 <div className="absolute left-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-2 z-50 text-xs">
                   {categories.map((cat, idx) => (
-                    <Link
+                    <LocalizedLink
                       key={idx}
                       to={cat.path}
                       onClick={() => setCategoriesOpen(false)}
                       className="block px-4 py-2.5 text-[#172033] hover:bg-slate-50 hover:text-[#2563EB] font-semibold transition-colors"
                     >
                       {cat.name}
-                    </Link>
+                    </LocalizedLink>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Dynamic Horizontal Links (Header Config) */}
+            {/* Dynamic Horizontal Links */}
             <nav className="flex items-center space-x-1.5 xl:space-x-2 text-xs sm:text-sm">
               {navItems.map((item, idx) => {
-                const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                const isActive = location.pathname === localizedPath(item.path) || (item.path !== '/' && location.pathname.includes(item.path));
                 
-                if (item.label.toLowerCase() === 'services') {
+                if (item.label.toLowerCase() === 'services' || item.label === t('nav.services') || item.path === '/services') {
                   return (
                     <div key={idx} className="relative" ref={servicesRef}>
                       <button
@@ -353,25 +397,25 @@ export const Navbar: React.FC = () => {
                             : 'text-[#172033] hover:text-[#2563EB] hover:bg-slate-50'
                         }`}
                       >
-                        <span>Services</span>
+                        <span>{getNavLabel(item)}</span>
                         <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                       </button>
 
                       {servicesDropdownOpen && (
                         <div className="absolute left-0 mt-1 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl p-3 z-50 text-xs space-y-1">
-                          <Link
+                          <LocalizedLink
                             to="/services"
                             onClick={() => setServicesDropdownOpen(false)}
                             className="block p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 text-[#2563EB] font-bold transition-colors"
                           >
                             <div className="flex items-center justify-between">
-                              <span>All Agency Services (14)</span>
-                              <span className="text-[10px] uppercase tracking-wider font-extrabold">View All →</span>
+                              <span>{t('nav.allAgencyServicesCount')}</span>
+                              <span className="text-[10px] uppercase tracking-wider font-extrabold">{t('nav.viewAllServices')}</span>
                             </div>
-                          </Link>
+                          </LocalizedLink>
                           <div className="border-t border-slate-100 my-1"></div>
                           {agencyServiceCategories.map((c, cIdx) => (
-                            <Link
+                            <LocalizedLink
                               key={cIdx}
                               to={c.path}
                               onClick={() => setServicesDropdownOpen(false)}
@@ -379,7 +423,7 @@ export const Navbar: React.FC = () => {
                             >
                               <span className="font-bold text-[#08152F] block">{c.title}</span>
                               <span className="text-[11px] text-[#667085] leading-tight block mt-0.5">{c.desc}</span>
-                            </Link>
+                            </LocalizedLink>
                           ))}
                         </div>
                       )}
@@ -388,7 +432,7 @@ export const Navbar: React.FC = () => {
                 }
 
                 return (
-                  <Link
+                  <LocalizedLink
                     key={idx}
                     to={item.path}
                     className={`px-3.5 py-1.5 rounded-lg transition-all text-xs font-bold ${
@@ -397,20 +441,20 @@ export const Navbar: React.FC = () => {
                         : 'text-[#172033] hover:text-[#2563EB] hover:bg-slate-50'
                     }`}
                   >
-                    {item.label}
-                  </Link>
+                    {getNavLabel(item)}
+                  </LocalizedLink>
                 );
               })}
             </nav>
           </div>
 
-          {/* Right: Wishlist Heart -> Cart Button -> User Profile Avatar (At the far right) */}
+          {/* Right: Wishlist → Cart → User Profile */}
           <div className="flex items-center space-x-3">
-            {/* 1. Wishlist Heart Icon Button */}
+            {/* Wishlist */}
             <button
               onClick={handleWishlistClick}
               className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#2563EB] text-[#667085] hover:text-[#2563EB] flex items-center justify-center transition-colors shadow-2xs hover:bg-slate-50 cursor-pointer relative"
-              title="আমার পছন্দের তালিকা"
+              title={t('nav.wishlistTooltip')}
             >
               <Heart className="w-4 h-4" />
               {currentUser && wishlist.length > 0 && (
@@ -420,12 +464,12 @@ export const Navbar: React.FC = () => {
               )}
             </button>
 
-            {/* 2. Cart Button (Right next to Wishlist, with 0 badge and Tk removed) */}
-            <Link
+            {/* Cart */}
+            <LocalizedLink
               to="/cart"
               onClick={handleCartClick}
               className="w-10 h-10 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center justify-center shadow-md shadow-[#2563EB]/25 transition-all relative group cursor-pointer"
-              title="শপিং কার্ট"
+              title={t('nav.cartTooltip')}
             >
               <ShoppingBag className="w-5 h-5 text-white" />
               {currentUser && cart.length > 0 && (
@@ -433,15 +477,15 @@ export const Navbar: React.FC = () => {
                   {cart.length}
                 </span>
               )}
-            </Link>
+            </LocalizedLink>
 
-            {/* 3. User Profile Avatar / Dropdown (At the far right) */}
+            {/* User Profile */}
             {currentUser ? (
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setAccountDropdownOpen(!accountDropdownOpen)}
                   className="flex items-center space-x-1.5 p-1 rounded-full border border-slate-200 hover:border-[#2563EB] transition-colors focus:outline-none cursor-pointer"
-                  title="আমার অ্যাকাউন্ট"
+                  title={t('nav.accountTooltip')}
                 >
                   <UserAvatar user={currentUser} size="sm" showBorder />
                   <ChevronDown className="w-3.5 h-3.5 text-[#667085] mr-1" />
@@ -453,13 +497,13 @@ export const Navbar: React.FC = () => {
                       <UserAvatar user={currentUser} size="md" showBorder />
                       <div className="overflow-hidden">
                         <p className="font-bold text-[#172033] truncate leading-tight">
-                          {currentUser.displayName || 'লগইন করা আছে'}
+                          {currentUser.displayName || t('nav.loggedInAs')}
                         </p>
                         <p className="text-[11px] text-[#667085] truncate mt-0.5">{currentUser.email}</p>
                       </div>
                     </div>
 
-                    {/* Google Avatar Sync & Upload Action */}
+                    {/* Google Avatar Sync & Upload */}
                     <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 space-y-1.5">
                       <button
                         type="button"
@@ -469,7 +513,7 @@ export const Navbar: React.FC = () => {
                             await syncGoogleProfile();
                           } catch (err: any) {
                             if (err?.code !== 'auth/popup-closed-by-user') {
-                              alert('গুগল প্রোফাইল ছবি সিঙ্ক করা যায়নি: ' + (err?.message || 'অজানা ত্রুটি'));
+                              alert(t('nav.googleSyncError') + (err?.message || t('nav.unknownError')));
                             }
                           } finally {
                             setSyncingAvatar(false);
@@ -477,15 +521,15 @@ export const Navbar: React.FC = () => {
                         }}
                         disabled={syncingAvatar}
                         className="w-full flex items-center justify-center space-x-2 py-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-[11px] font-bold text-[#08152F] hover:text-[#2563EB] transition-all shadow-2xs cursor-pointer"
-                        title="জিমেইল/গুগল প্রোফাইল ছবি সরাসরি সংযুক্ত করুন"
+                        title={t('nav.syncGooglePhoto')}
                       >
                         <RefreshCw className={`w-3.5 h-3.5 text-[#2563EB] ${syncingAvatar ? 'animate-spin' : ''}`} />
-                        <span>{syncingAvatar ? 'সিঙ্ক হচ্ছে...' : 'গুগল প্রোফাইল ছবি সিঙ্ক'}</span>
+                        <span>{syncingAvatar ? t('nav.syncingPhoto') : t('nav.syncGooglePhoto')}</span>
                       </button>
 
                       <label className="w-full flex items-center justify-center space-x-1.5 py-1 px-2 text-[10px] text-[#667085] hover:text-[#08152F] transition-colors cursor-pointer text-center">
                         <Camera className="w-3 h-3 text-[#2563EB]" />
-                        <span>ছবি আপলোড / পরিবর্তন</span>
+                        <span>{t('nav.uploadChangePhoto')}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -494,7 +538,7 @@ export const Navbar: React.FC = () => {
                             const file = e.target.files?.[0];
                             if (!file) return;
                             if (file.size > 2 * 1024 * 1024) {
-                              alert('ছবির আকার সর্বোচ্চ ২ মেগাবাইট হতে হবে।');
+                              alert(t('nav.photoSizeError'));
                               return;
                             }
                             const reader = new FileReader();
@@ -503,7 +547,7 @@ export const Navbar: React.FC = () => {
                                 try {
                                   await updateUserAvatar(reader.result);
                                 } catch (err: any) {
-                                  alert('ছবি সংরক্ষণ করা যায়নি: ' + (err?.message || 'ত্রুটি'));
+                                  alert(t('nav.photoSaveError') + (err?.message || t('nav.unknownError')));
                                 }
                               }
                             };
@@ -514,33 +558,33 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {isAdmin && (
-                      <Link
-                        to="/admin"
+                      <a
+                        href="/admin"
                         onClick={() => setAccountDropdownOpen(false)}
                         className="flex items-center space-x-2 px-4 py-2.5 text-[#2563EB] hover:bg-blue-50 font-bold transition-colors"
                       >
                         <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
-                        <span>অ্যাডমিন ড্যাশবোর্ড</span>
-                      </Link>
+                        <span>{t('nav.adminDashboard')}</span>
+                      </a>
                     )}
 
-                    <Link
+                    <LocalizedLink
                       to="/account"
                       onClick={() => setAccountDropdownOpen(false)}
                       className="flex items-center space-x-2 px-4 py-2.5 text-[#172033] hover:bg-slate-50 font-medium transition-colors"
                     >
                       <UserIcon className="w-4 h-4 text-[#667085]" />
-                      <span>আমার অ্যাকাউন্ট ও অর্ডার</span>
-                    </Link>
+                      <span>{t('nav.myAccountAndOrders')}</span>
+                    </LocalizedLink>
 
-                    <Link
+                    <LocalizedLink
                       to="/account?tab=wishlist"
                       onClick={() => setAccountDropdownOpen(false)}
                       className="flex items-center space-x-2 px-4 py-2.5 text-[#172033] hover:bg-slate-50 font-medium transition-colors"
                     >
                       <Heart className="w-4 h-4 text-rose-500" />
-                      <span>আমার পছন্দের তালিকা {wishlist.length > 0 && `(${wishlist.length})`}</span>
-                    </Link>
+                      <span>{t('nav.myWishlist')} {wishlist.length > 0 && `(${wishlist.length})`}</span>
+                    </LocalizedLink>
 
                     <div className="border-t border-slate-100 my-1"></div>
 
@@ -549,19 +593,19 @@ export const Navbar: React.FC = () => {
                       className="w-full flex items-center space-x-2 px-4 py-2 text-left text-red-600 hover:bg-red-50 font-semibold transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4 text-red-500" />
-                      <span>লগআউট</span>
+                      <span>{t('nav.logout')}</span>
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <Link
+              <LocalizedLink
                 to="/account"
                 className="w-10 h-10 rounded-full border border-slate-200 hover:border-[#2563EB] flex items-center justify-center text-[#667085] hover:text-[#2563EB] transition-colors shadow-2xs hover:bg-slate-50"
-                title="লগইন / অ্যাকাউন্ট"
+                title={t('nav.loginSignup')}
               >
                 <UserIcon className="w-4 h-4" />
-              </Link>
+              </LocalizedLink>
             )}
           </div>
 
@@ -581,7 +625,7 @@ export const Navbar: React.FC = () => {
           <div className="relative z-10 bg-white border-b border-slate-200 shadow-2xl max-h-[85vh] overflow-y-auto px-5 pt-4 pb-8 space-y-4 animate-in slide-in-from-top duration-200">
             {/* Top Close Row */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <span className="text-xs font-black uppercase tracking-wider text-[#2563EB]">Navigation Menu</span>
+              <span className="text-xs font-black uppercase tracking-wider text-[#2563EB]">{t('nav.navigationMenu')}</span>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
@@ -591,7 +635,10 @@ export const Navbar: React.FC = () => {
               </button>
             </div>
 
-            {/* Direct WhatsApp Callout Pill inside Mobile Menu */}
+            {/* Language Switcher (Mobile) */}
+            <LanguageSwitcher variant="mobile" className="w-full" />
+
+            {/* Direct WhatsApp Callout Pill */}
             {headerConfig?.showChatSupport !== false && (
               <a
                 href={`https://wa.me/88${(headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791').replace(/[^0-9]/g, '')}`}
@@ -605,14 +652,14 @@ export const Navbar: React.FC = () => {
                     <MessageCircle className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold block">{headerConfig?.chatSupportText || 'Chat on WhatsApp'}</span>
+                    <span className="text-xs font-bold block">{headerConfig?.chatSupportText || t('nav.chatOnWhatsApp')}</span>
                     <span className="text-[11px] font-mono text-emerald-600 block">
                       {headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791'}
                     </span>
                   </div>
                 </div>
                 <span className="text-[10px] bg-emerald-600 text-white font-bold px-2 py-1 rounded-full">
-                  Connect →
+                  {t('nav.connect')}
                 </span>
               </a>
             )}
@@ -620,25 +667,25 @@ export const Navbar: React.FC = () => {
             {/* Nav links */}
             <div className="space-y-1">
               {navItems.map((item, idx) => (
-                <Link
+                <LocalizedLink
                   key={idx}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 text-[#172033] hover:text-[#2563EB] font-bold text-sm transition-colors min-h-[44px]"
                 >
-                  <span>{item.label}</span>
+                  <span>{getNavLabel(item)}</span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
-                </Link>
+                </LocalizedLink>
               ))}
             </div>
 
             {/* Agency Categories */}
             <div className="pt-3 border-t border-slate-100 space-y-1.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block px-3">
-                Agency Disciplines
+                {t('nav.agencyDisciplines')}
               </span>
               {agencyServiceCategories.map((c, cIdx) => (
-                <Link
+                <LocalizedLink
                   key={cIdx}
                   to={c.path}
                   onClick={() => setMobileMenuOpen(false)}
@@ -646,27 +693,27 @@ export const Navbar: React.FC = () => {
                 >
                   <span className="font-bold text-xs text-[#08152F] block">{c.title}</span>
                   <span className="text-[10px] text-[#667085] block mt-0.5">{c.desc}</span>
-                </Link>
+                </LocalizedLink>
               ))}
             </div>
 
             {/* Quick Links to Admin and Account */}
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-              <Link
+              <LocalizedLink
                 to="/account"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-center font-bold text-xs transition-colors"
               >
-                {currentUser ? 'আমার অ্যাকাউন্ট' : 'লগইন করুন'}
-              </Link>
-              <Link
-                to="/admin"
+                {currentUser ? t('nav.myAccount') : t('nav.loginNow')}
+              </LocalizedLink>
+              <a
+                href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex-1 py-2.5 px-3 rounded-xl bg-[#08152F] hover:bg-[#162033] text-[#FFC629] text-center font-bold text-xs transition-colors flex items-center justify-center space-x-1"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin Panel</span>
-              </Link>
+                <span>{t('nav.adminPanel')}</span>
+              </a>
             </div>
           </div>
         </div>

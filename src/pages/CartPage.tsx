@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Trash2, ShoppingBag, ShieldCheck, CheckCircle2, Lock, LogIn, ArrowLeft } from 'lucide-react';
@@ -8,6 +10,7 @@ import { EmptyState } from '../components/EmptyState';
 import { WHATSAPP_NUMBER } from '../lib/firebase';
 
 export const CartPage: React.FC = () => {
+  const { t } = useLanguage();
   const { cart, removeFromCart, clearCart, totalPrice } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -34,22 +37,22 @@ export const CartPage: React.FC = () => {
 
         <div className="space-y-2">
           <span className="text-[10px] font-black uppercase tracking-wider text-[#2563EB] block">
-            Eagle Eye Digital • সুরক্ষিত কার্ট
+            {t('cart.secureCart')}
           </span>
-          <h2 className="text-2xl font-black text-[#08152F]">লগইন প্রয়োজন</h2>
+          <h2 className="text-2xl font-black text-[#08152F]">{t('cart.loginRequired')}</h2>
           <p className="text-xs sm:text-sm text-[#667085] leading-relaxed max-w-sm mx-auto">
-            পণ্যটি কার্টে যোগ করতে এবং কেনাকাটা চালিয়ে যেতে অনুগ্রহ করে আপনার অ্যাকাউন্টে লগইন করুন।
+            {t('cart.loginMessage')}
           </p>
         </div>
 
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
+          <LocalizedLink
             to="/account?mode=login&redirect=/cart"
             className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs sm:text-sm shadow-md shadow-[#2563EB]/25 transition-all flex items-center justify-center space-x-2 active:scale-[0.99]"
           >
             <LogIn className="w-4 h-4" />
-            <span>লগইন করুন</span>
-          </Link>
+            <span>{t('cart.loginBtn')}</span>
+          </LocalizedLink>
           <button
             type="button"
             onClick={() => {
@@ -61,15 +64,15 @@ export const CartPage: React.FC = () => {
             }}
             className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#F3F5F9] hover:bg-slate-200 text-[#172033] font-bold text-xs sm:text-sm border border-slate-200 transition-all flex items-center justify-center cursor-pointer active:scale-[0.99]"
           >
-            <span>বাতিল</span>
+            <span>{t('cart.cancelBtn')}</span>
           </button>
         </div>
 
         <div className="pt-4 border-t border-slate-200 flex items-center justify-center space-x-1.5 text-[11px] text-[#667085]">
           <ArrowLeft className="w-3.5 h-3.5" />
-          <Link to="/products" className="hover:text-[#2563EB] font-medium transition-colors">
-            ডিজিটাল প্রোডাক্ট স্টোরে গেস্ট হিসেবে ব্রাউজ চালিয়ে যান
-          </Link>
+          <LocalizedLink to="/products" className="hover:text-[#2563EB] font-medium transition-colors">
+            {t('cart.guestBrowse')}
+          </LocalizedLink>
         </div>
       </div>
     );
@@ -78,12 +81,12 @@ export const CartPage: React.FC = () => {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerEmail || !customerName) {
-      alert('অনুগ্রহ করে আপনার নাম ও ইমেইল ঠিকানা লিখুন।');
+      alert(t('cart.nameEmailRequired'));
       return;
     }
 
     if (!currentUser) {
-      alert('অর্ডার সম্পন্ন করতে অনুগ্রহ করে আপনার অ্যাকাউন্টে লগইন করুন।');
+      alert(t('cart.loginMessage'));
       navigate('/account?mode=login&redirect=/cart');
       return;
     }
@@ -111,7 +114,7 @@ export const CartPage: React.FC = () => {
       setOrderCompleteId(orderId);
     } catch (err) {
       console.error('Failed to create order:', err);
-      alert('অর্ডার প্রসেস করার সময় একটি ত্রুটি ঘটেছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      alert(t('cart.orderError'));
     } finally {
       setSubmitting(false);
     }
@@ -122,33 +125,33 @@ export const CartPage: React.FC = () => {
       <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-6">
         <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto" />
         <h2 className="text-3xl font-extrabold text-[#08152F]">
-          {isFreeOrder ? 'ডাউনলোড প্রস্তুত!' : 'অর্ডার সফলভাবে জমা হয়েছে (যাচাইাধীন)'}
+          {isFreeOrder ? t('cart.downloadReady') : t('cart.orderSubmitted')}
         </h2>
         <p className="text-sm text-[#172033]">
-          অর্ডার আইডি: <span className="font-mono text-[#2563EB] font-bold">{orderCompleteId}</span>
+          {t('cart.orderId')} <span className="font-mono text-[#2563EB] font-bold">{orderCompleteId}</span>
         </p>
         <p className="text-xs text-[#667085] max-w-lg mx-auto">
           {isFreeOrder
-            ? 'আপনার ফ্রি ডাউনলোড অনুমোদন সম্পন্ন হয়েছে। আপনি আপনার কাস্টমার অ্যাকাউন্টে ফাইলসমূহ দেখতে পাবেন।'
-            : 'পেইড ডাউনলোডসমূহ পেমেন্ট ভেরিফিকেশনের পর আনলক হবে। আমাদের টিম দ্রুত আপনার লেনদেনের তথ্য যাচাই করে ডাউনলোড লিংক আনলক করে দেবে।'}
+            ? t('cart.freeDownloadMsg')
+            : t('cart.paidOrderMsg')}
         </p>
 
         <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
-          <Link
+          <LocalizedLink
             to="/account?tab=orders"
             className="px-6 py-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs shadow-sm transition-colors"
           >
-            আমার অ্যাকাউন্টে যান
-          </Link>
+            {t('cart.goToAccount')}
+          </LocalizedLink>
           <a
             href={`https://wa.me/88${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-              `হ্যালো Eagle Eye Digital, আমি একটি অর্ডার জমা দিয়েছি। অর্ডার আইডি: ${orderCompleteId}`
+              `Hi Eagle Eye Digital, I submitted an order. Order ID: ${orderCompleteId}`
             )}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-colors"
           >
-            হোয়াটসঅ্যাপে নিশ্চিত করুন
+            {t('cart.confirmWhatsApp')}
           </a>
         </div>
       </div>
@@ -160,9 +163,9 @@ export const CartPage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-20">
         <EmptyState
           icon={ShoppingBag}
-          title="আপনার কার্ট বর্তমানে খালি"
-          description="আপনি এখনো কোনো ডিজিটাল প্রোডাক্ট বা টেমপ্লেট কার্টে যোগ করেননি।"
-          actionText="ডিজিটাল প্রোডাক্টসমূহ দেখুন"
+          title={t('cart.emptyCartTitle')}
+          description={t('cart.emptyCartDesc')}
+          actionText={t('cart.browseProducts')}
           onAction={() => navigate('/products')}
         />
       </div>
@@ -171,7 +174,7 @@ export const CartPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-      <h1 className="text-3xl font-extrabold text-[#08152F]">শপিং কার্ট ও চেকআউট</h1>
+      <h1 className="text-3xl font-extrabold text-[#08152F]">{t('cart.pageTitle')}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
@@ -199,10 +202,10 @@ export const CartPage: React.FC = () => {
                   <button
                     onClick={() => removeFromCart(product.id)}
                     className="text-xs text-slate-400 hover:text-red-500 p-1.5 transition-colors flex items-center space-x-1 cursor-pointer"
-                    title="পণ্যটি সরান"
+                    title={t('cart.removeItem')}
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span className="sm:hidden text-[11px] font-medium text-red-500">সরান</span>
+                    <span className="sm:hidden text-[11px] font-medium text-red-500">{t('cart.removeBtn')}</span>
                   </button>
                 </div>
               </div>
@@ -210,31 +213,31 @@ export const CartPage: React.FC = () => {
           </div>
 
           <div className="flex justify-between items-center text-xs text-[#667085]">
-            <span>মোট পণ্য: {cart.length}টি</span>
+            <span>{t('cart.totalItems')} {cart.length}{t('cart.itemSuffix')}</span>
             <button
               onClick={clearCart}
               className="text-red-500 hover:underline font-medium cursor-pointer"
             >
-              কার্ট খালি করুন
+              {t('cart.clearCart')}
             </button>
           </div>
         </div>
 
         {/* Checkout Form */}
         <div className="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
-          <h3 className="text-lg font-bold text-[#08152F] border-b border-slate-100 pb-3">অর্ডারের সারসংক্ষেপ</h3>
+          <h3 className="text-lg font-bold text-[#08152F] border-b border-slate-100 pb-3">{t('cart.orderSummary')}</h3>
 
           <div className="space-y-2 text-xs">
             <div className="flex justify-between text-[#667085]">
-              <span>উপমোট:</span>
+              <span>{t('cart.subtotal')}</span>
               <span className="text-[#172033] font-medium">৳{totalPrice}</span>
             </div>
             <div className="flex justify-between text-[#667085]">
-              <span>ডিসকাউন্ট:</span>
+              <span>{t('cart.discount')}</span>
               <span className="text-emerald-600 font-medium">৳০</span>
             </div>
             <div className="flex justify-between text-sm font-bold pt-2 border-t border-slate-100">
-              <span className="text-[#08152F]">সর্বমোট:</span>
+              <span className="text-[#08152F]">{t('cart.grandTotal')}</span>
               <span className="text-[#2563EB] font-extrabold">
                 {isFreeOrder ? 'FREE' : `৳${totalPrice} BDT`}
               </span>
@@ -243,19 +246,19 @@ export const CartPage: React.FC = () => {
 
           <form onSubmit={handleCheckout} className="space-y-4 pt-4 border-t border-slate-100">
             <div>
-              <label className="block text-xs font-semibold text-[#172033] mb-1">আপনার নাম *</label>
+              <label className="block text-xs font-semibold text-[#172033] mb-1">{t('cart.yourName')}</label>
               <input
                 type="text"
                 required
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="সম্পূর্ণ নাম"
+                placeholder={t('cart.fullNamePlaceholder')}
                 className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-xs text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#172033] mb-1">ইমেইল ঠিকানা (ডাউনলোড অ্যাক্সেসের জন্য) *</label>
+              <label className="block text-xs font-semibold text-[#172033] mb-1">{t('cart.emailLabel')}</label>
               <input
                 type="email"
                 required
@@ -269,7 +272,7 @@ export const CartPage: React.FC = () => {
             {!isFreeOrder && (
               <>
                 <div className="pt-2">
-                  <label className="block text-xs font-semibold text-[#172033] mb-1">পেমেন্ট মাধ্যম</label>
+                  <label className="block text-xs font-semibold text-[#172033] mb-1">{t('cart.paymentMethod')}</label>
                   <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {(['bKash', 'Nagad', 'Bank Transfer'] as const).map((method) => (
                       <button
@@ -282,40 +285,39 @@ export const CartPage: React.FC = () => {
                             : 'bg-[#F3F5F9] text-[#667085] border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        {method === 'bKash' ? 'বিকাশ' : method === 'Nagad' ? 'নগদ' : 'ব্যাংক'}
+                        {method === 'bKash' ? t('cart.bkash') : method === 'Nagad' ? t('cart.nagad') : t('cart.bank')}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="p-3 bg-blue-50 rounded-lg border border-blue-200 text-[11px] text-[#172033] space-y-1">
-                  <span className="font-bold text-[#08152F]">ম্যানুয়াল পেমেন্ট নির্দেশনা:</span>
-                  <p>বিকাশ বা নগদ পার্সোনাল/মার্চেন্ট নম্বরে ৳{totalPrice} টাকা সেন্ড মানি করুন: <strong className="text-[#08152F]">01836126791</strong></p>
-                  <p className="text-[#667085]">রেফারেন্স: Digital Product Order</p>
+                  <span className="font-bold text-[#08152F]">{paymentMethod === 'bKash' ? t('cart.paymentInstructions.bkash') : paymentMethod === 'Nagad' ? t('cart.paymentInstructions.nagad') : t('cart.paymentInstructions.bank')}</span>
+                  <p className="text-[#667085]">Reference: Digital Product Order</p>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-[#172033] mb-1">
-                    প্রেরকের মোবাইল বা অ্যাকাউন্ট নম্বর
+                    {t('cart.senderAccount')}
                   </label>
                   <input
                     type="text"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="০১XXXXXXXXX"
+                    placeholder="01XXXXXXXXX"
                     className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-xs text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-[#172033] mb-1">
-                    ট্রানজেকশন আইডি (TrxID)
+                    {t('cart.transactionId')}
                   </label>
                   <input
                     type="text"
                     value={transactionId}
                     onChange={(e) => setTransactionId(e.target.value)}
-                    placeholder="যেমন: 9J8K2LA19"
+                    placeholder="e.g. 9J8K2LA19"
                     className="w-full bg-[#F3F5F9] border border-slate-300 rounded-lg px-3 py-2 text-xs text-[#172033] focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] focus:bg-white transition-colors"
                   />
                 </div>
@@ -327,13 +329,13 @@ export const CartPage: React.FC = () => {
               disabled={submitting}
               className="w-full py-3.5 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black text-xs transition-all disabled:opacity-50 shadow-md shadow-[#2563EB]/25 cursor-pointer active:scale-[0.99]"
             >
-              {submitting ? 'প্রসেসিং হচ্ছে...' : isFreeOrder ? 'ফ্রি অর্ডার সম্পন্ন করুন' : 'অর্ডার নিশ্চিতকরণ জমা দিন'}
+              {submitting ? t('cart.processingOrder') : isFreeOrder ? t('cart.completeFreeOrder') : t('cart.submitOrder')}
             </button>
           </form>
 
           <div className="flex items-center space-x-2 text-[10px] text-[#667085]">
             <ShieldCheck className="w-4 h-4 text-[#2563EB] flex-shrink-0" />
-            <span>ফাইলসমূহ Eagle Eye Digital কমার্শিয়াল লাইসেন্সের অধীনে সুরক্ষিতভাবে প্রদান করা হয়।</span>
+            <span>{t('cart.commercialLicense')}</span>
           </div>
         </div>
 

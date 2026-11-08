@@ -57,7 +57,12 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (isAdmin() || request.auth.uid == adminId);
 
       // Only Super Admin can promote users, assign roles, or change status
-      allow create, update: if isSuperAdmin();
+      // Admins can update their own personal preference (languagePreference, avatar, password request)
+      allow create: if isSuperAdmin();
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && request.auth.uid == adminId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['languagePreference', 'updatedAt', 'avatarUrl', 'photoURL', 'pendingPasswordRequest'])
+      );
 
       // Only Super Admin can delete an admin (Super Admin document is protected)
       allow delete: if isSuperAdmin() && 
@@ -81,7 +86,7 @@ service cloud.firestore {
                     (!('role' in request.resource.data) || request.resource.data.role == 'customer');
 
       allow update: if (isOwner(userId) && 
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'phone', 'avatarUrl', 'updatedAt', 'address']))
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fullName', 'phone', 'avatarUrl', 'updatedAt', 'address', 'languagePreference']))
                     || isSuperAdmin();
 
       allow delete: if isSuperAdmin();

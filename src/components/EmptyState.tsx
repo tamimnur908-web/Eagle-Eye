@@ -1,5 +1,6 @@
 import React from 'react';
 import { LucideIcon, Inbox } from 'lucide-react';
+import { LocalizedLink } from '../i18n';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -27,12 +28,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <p className="text-sm text-[#667085] max-w-md mb-6">{description}</p>
       {actionText && (actionLink || onAction) && (
         actionLink ? (
-          <a
-            href={actionLink}
+          <LocalizedLink
+            to={actionLink}
             className="px-4 py-2 bg-[#2563EB] text-white font-bold text-xs rounded-lg hover:bg-[#1D4ED8] transition-colors shadow-sm inline-block"
           >
             {actionText}
-          </a>
+          </LocalizedLink>
         ) : (
           <button
             onClick={onAction}

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useLanguage } from '../i18n';
+import { LocalizedLink } from '../i18n/LocalizedLink';
 import { getProductBySlug } from '../services/firestoreService';
 import { DigitalProduct } from '../types';
 import { useCart } from '../context/CartContext';
@@ -9,6 +11,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { ArrowLeft, ShoppingBag, Download, ShieldCheck, Key, BookOpen, Copy, Check, Heart, MessageCircle } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { slug } = useParams<{ slug: string }>();
   const [product, setProduct] = useState<DigitalProduct | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,18 +49,18 @@ export const ProductDetailPage: React.FC = () => {
   if (!product) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-2xl font-bold text-[#08152F]">Product Not Found</h2>
-        <p className="text-sm text-[#667085]">The product you are looking for has not been published or does not exist.</p>
-        <Link to="/products" className="inline-block px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
-          Back to Store
-        </Link>
+        <h2 className="text-2xl font-bold text-[#08152F]">{t('productDetail.notFoundTitle')}</h2>
+        <p className="text-sm text-[#667085]">{t('productDetail.notFoundDesc')}</p>
+        <LocalizedLink to="/products" className="inline-block px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold rounded-lg shadow-sm transition-colors">
+          {t('productDetail.backToStore')}
+        </LocalizedLink>
       </div>
     );
   }
 
   const isFree = product.price === 0 || product.isFree;
   const downloadUrl = product.googleDriveLink || product.downloadableFileUrl;
-  const buttonText = product.customDownloadBtnText || (isFree ? 'Instant Google Drive Download' : 'Add to Cart / Purchase');
+  const buttonText = product.customDownloadBtnText || (isFree ? t('productDetail.defaultDriveBtn') : t('productDetail.defaultCartBtn'));
 
   const handleAction = () => {
     if (!currentUser) {
@@ -103,10 +106,10 @@ export const ProductDetailPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div>
-        <Link to="/products" className="inline-flex items-center space-x-1.5 text-xs font-medium text-[#667085] hover:text-[#2563EB] transition-colors">
+        <LocalizedLink to="/products" className="inline-flex items-center space-x-1.5 text-xs font-medium text-[#667085] hover:text-[#2563EB] transition-colors">
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Digital Store</span>
-        </Link>
+          <span>{t('productDetail.backToDigitalStore')}</span>
+        </LocalizedLink>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -135,7 +138,7 @@ export const ProductDetailPage: React.FC = () => {
             <div className="bg-[#F8FAFC] border border-slate-200 rounded-xl p-6 space-y-3 shadow-sm">
               <div className="flex items-center space-x-2 text-[#2563EB]">
                 <BookOpen className="w-5 h-5" />
-                <h3 className="text-base font-bold text-[#08152F]">Installation & Setup Guide</h3>
+                <h3 className="text-base font-bold text-[#08152F]">{t('productDetail.installGuide')}</h3>
               </div>
               <div className="text-xs text-[#08152F] leading-relaxed whitespace-pre-line bg-white p-4 rounded-lg border border-slate-200 font-mono">
                 {product.installGuide}
@@ -145,7 +148,7 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Description */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 shadow-sm">
-            <h3 className="text-lg font-bold text-[#08152F]">Product Overview</h3>
+            <h3 className="text-lg font-bold text-[#08152F]">{t('productDetail.productOverview')}</h3>
             <p className="text-sm text-[#08152F] leading-relaxed whitespace-pre-line">
               {product.description}
             </p>
@@ -175,9 +178,9 @@ export const ProductDetailPage: React.FC = () => {
             <div className="flex items-baseline space-x-3 border-y border-slate-200 py-4">
               {isFree ? (
                 <div className="flex items-center space-x-2">
-                  <span className="text-3xl font-black text-emerald-600">FREE</span>
+                  <span className="text-3xl font-black text-emerald-600">{t('common.free')}</span>
                   <span className="text-xs font-bold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    GIVEAWAY
+                    {t('productDetail.giveaway')}
                   </span>
                 </div>
               ) : (
@@ -190,7 +193,7 @@ export const ProductDetailPage: React.FC = () => {
                   )}
                   {product.showDiscountBadge && (
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">
-                      ON SALE
+                      {t('productDetail.onSale')}
                     </span>
                   )}
                 </>
@@ -203,7 +206,7 @@ export const ProductDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between text-xs font-bold text-[#08152F]">
                   <span className="flex items-center space-x-1.5">
                     <Key className="w-3.5 h-3.5 text-[#2563EB]" />
-                    <span>Archive / ZIP Password:</span>
+                    <span>{t('productDetail.archivePassword')}</span>
                   </span>
                   <button
                     type="button"
@@ -213,12 +216,12 @@ export const ProductDetailPage: React.FC = () => {
                     {copiedPass ? (
                       <>
                         <Check className="w-3 h-3 text-emerald-700" />
-                        <span className="text-emerald-700">Copied!</span>
+                        <span className="text-emerald-700">{t('common.copied')}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="w-3 h-3" />
-                        <span>Copy</span>
+                        <span>{t('common.copy')}</span>
                       </>
                     )}
                   </button>
@@ -247,7 +250,7 @@ export const ProductDetailPage: React.FC = () => {
                 ) : (
                   <>
                     <ShoppingBag className="w-4 h-4 text-white" />
-                    <span>কার্টে যোগ করুন / অর্ডার করুন</span>
+                    <span>{t('productDetail.addToCartOrder')}</span>
                   </>
                 )}
               </button>
@@ -263,7 +266,7 @@ export const ProductDetailPage: React.FC = () => {
                   }`}
                 >
                   <Heart className={`w-3.5 h-3.5 ${isInWishlist(product.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                  <span>{isInWishlist(product.id) ? 'পছন্দের তালিকাভুক্ত' : 'পছন্দের তালিকায় রাখুন'}</span>
+                  <span>{isInWishlist(product.id) ? t('productDetail.inWishlist') : t('productDetail.addToWishlistBtn')}</span>
                 </button>
 
                 <button
@@ -272,39 +275,39 @@ export const ProductDetailPage: React.FC = () => {
                   className="py-2.5 px-3 rounded-xl font-bold text-xs bg-white border border-slate-200 hover:border-[#2563EB] text-[#172033] hover:text-[#2563EB] transition-colors flex items-center justify-center space-x-1.5 cursor-pointer"
                 >
                   <MessageCircle className="w-3.5 h-3.5 text-[#2563EB]" />
-                  <span>পণ্য সম্পর্কে জিজ্ঞাসা</span>
+                  <span>{t('productDetail.askAboutProduct')}</span>
                 </button>
               </div>
 
               <p className="text-[11px] text-center text-[#667085]">
                 {isFree
-                  ? 'উচ্চগতির ইনস্ট্যান্ট ডাউনলোড লিংক উপলব্ধ।'
-                  : 'পেমেন্ট নিশ্চিতকরণের সাথে সাথে ডাউনলোড লিংক স্বয়ংক্রিয়ভাবে আনলক হবে।'}
+                  ? t('productDetail.instantDownload')
+                  : t('productDetail.paymentUnlock')}
               </p>
             </div>
 
             {/* Technical Specs */}
             <div className="space-y-3 pt-4 border-t border-slate-200 text-xs text-[#667085]">
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-[#667085]">Format:</span>
-                <span className="font-semibold text-[#08152F]">{product.format || 'Digital Archive (.ZIP)'}</span>
+                <span className="text-[#667085]">{t('productDetail.format')}</span>
+                <span className="font-semibold text-[#08152F]">{product.format || t('productDetail.formatFallback')}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-[#667085]">Delivery:</span>
+                <span className="text-[#667085]">{t('productDetail.delivery')}</span>
                 <span className="font-semibold text-[#08152F]">
-                  {product.googleDriveLink ? 'Direct Google Drive' : 'Digital Cloud Download'}
+                  {product.googleDriveLink ? t('productDetail.deliveryDrive') : t('productDetail.deliveryCloud')}
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-[#667085]">License:</span>
-                <span className="font-semibold text-[#08152F]">{product.license || 'Standard Commercial'}</span>
+                <span className="text-[#667085]">{t('productDetail.license')}</span>
+                <span className="font-semibold text-[#08152F]">{product.license || t('productDetail.licenseFallback')}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-[#667085]">Version:</span>
-                <span className="font-semibold text-[#08152F]">{product.version || '1.0.0'}</span>
+                <span className="text-[#667085]">{t('productDetail.version')}</span>
+                <span className="font-semibold text-[#08152F]">{product.version || t('productDetail.versionFallback')}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-[#667085]">Product Type:</span>
+                <span className="text-[#667085]">{t('productDetail.productType')}</span>
                 <span className="font-semibold text-[#08152F] capitalize">{(product.productType || 'digital').replace('_', ' ')}</span>
               </div>
             </div>
@@ -313,7 +316,7 @@ export const ProductDetailPage: React.FC = () => {
             <div className="p-3 bg-[#F8FAFC] rounded-lg border border-slate-200 text-[11px] text-[#667085] flex items-start space-x-2">
               <ShieldCheck className="w-4 h-4 text-[#2563EB] flex-shrink-0 mt-0.5" />
               <span>
-                Licensed for personal and commercial projects. Resale, sub-licensing, or redistribution of the raw source files is strictly prohibited.
+                {t('productDetail.licenseNote')}
               </span>
             </div>
           </div>

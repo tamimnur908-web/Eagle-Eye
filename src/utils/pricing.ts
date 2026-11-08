@@ -11,7 +11,15 @@ import { Service, DigitalProduct } from '../types';
 export function getServicePricingDisplay(
   service: Partial<Service> | null | undefined,
   currencySymbol: string = '৳',
-  fallbackText: string = 'Price on Request'
+  fallbackText: string = 'Price on Request',
+  labels?: {
+    priceOnRequest?: string;
+    discussRequirements?: string;
+    perMonth?: string;
+    starting?: string;
+    billedMonthly?: string;
+    fixedScope?: string;
+  }
 ): {
   displayText: string;
   hasExactPrice: boolean;
@@ -19,12 +27,15 @@ export function getServicePricingDisplay(
   subtext: string;
   isPriceOnRequest: boolean;
 } {
+  const actualFallback = labels?.priceOnRequest || fallbackText;
+  const defaultSubtext = labels?.discussRequirements || "Let's Discuss Your Requirements";
+
   if (!service) {
     return {
-      displayText: fallbackText,
+      displayText: actualFallback,
       hasExactPrice: false,
       numericPrice: null,
-      subtext: "Let's Discuss Your Requirements",
+      subtext: defaultSubtext,
       isPriceOnRequest: true,
     };
   }
@@ -41,25 +52,25 @@ export function getServicePricingDisplay(
     const num = Number(rawPrice);
     const billingSuffix =
       service.pricingType === 'monthly'
-        ? '/ month'
+        ? (labels?.perMonth || '/ month')
         : service.pricingType === 'custom'
-        ? '(Starting)'
+        ? (labels?.starting || '(Starting)')
         : '';
 
     return {
       displayText: `${currencySymbol}${num.toLocaleString()}${billingSuffix ? ` ${billingSuffix}` : ''}`,
       hasExactPrice: true,
       numericPrice: num,
-      subtext: billingSuffix ? 'Billed monthly' : 'Fixed engagement scope',
+      subtext: billingSuffix ? (labels?.billedMonthly || 'Billed monthly') : (labels?.fixedScope || 'Fixed engagement scope'),
       isPriceOnRequest: false,
     };
   }
 
   return {
-    displayText: fallbackText,
+    displayText: actualFallback,
     hasExactPrice: false,
     numericPrice: null,
-    subtext: "Let's Discuss Your Requirements",
+    subtext: defaultSubtext,
     isPriceOnRequest: true,
   };
 }
