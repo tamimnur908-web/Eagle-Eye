@@ -73,6 +73,7 @@ const bn = {
     caseStudies: 'কেস স্টাডিজ',
     about: 'আমাদের সম্পর্কে',
     contact: 'যোগাযোগ',
+    ourContacts: 'যোগাযোগ',
     products: 'প্রোডাক্টসমূহ',
     allCategories: 'সকল ক্যাটাগরি',
     allAgencyServices: 'সকল এজেন্সি সার্ভিস',

@@ -40,7 +40,8 @@ function LanguageRedirect() {
     const stored = localStorage.getItem('eed_language');
     if (stored === 'en' || stored === 'bn') savedLang = stored;
   } catch {}
-  return <Navigate to={`/${savedLang}${location.pathname}${location.search}${location.hash}`} replace />;
+  const target = location.pathname === '/' ? `/${savedLang}/` : `/${savedLang}${location.pathname}`;
+  return <Navigate to={`${target}${location.search}${location.hash}`} replace />;
 }
 
 // ── Localized routes wrapper ───────────────────────────────────────────────
@@ -104,10 +105,6 @@ function AppLayout() {
 
       <main className={isAdminRoute ? "h-full w-full overflow-hidden" : "flex-grow"}>
         <Routes>
-          {/* Direct language root redirects */}
-          <Route path="/en" element={<Navigate to="/en/" replace />} />
-          <Route path="/bn" element={<Navigate to="/bn/" replace />} />
-
           {/* Language-prefixed routes: /en/... and /bn/... */}
           <Route path="/en/*" element={<LocalizedRoutes />} />
           <Route path="/bn/*" element={<LocalizedRoutes />} />

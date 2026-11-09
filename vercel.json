@@ -1,7 +1,15 @@
 {
   "rewrites": [
     {
+      "source": "/en",
+      "destination": "/index.html"
+    },
+    {
       "source": "/en/(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/bn",
       "destination": "/index.html"
     },
     {

@@ -73,6 +73,7 @@ const en = {
     caseStudies: 'Case Studies',
     about: 'About',
     contact: 'Our Contacts',
+    ourContacts: 'Our Contacts',
     products: 'Products',
     allCategories: 'All Categories',
     allAgencyServices: 'All Agency Services',

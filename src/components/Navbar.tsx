@@ -86,12 +86,22 @@ export const Navbar: React.FC = () => {
         lower === 'about' ||
         lower === 'about us' ||
         lower === 'contact' ||
-        lower === 'contact us'
+        lower === 'contact us' ||
+        lower === 'our contacts' ||
+        lower === 'contacts'
       ) {
         return t(translationKey);
       }
     }
     return item.label;
+  };
+
+  const getChatSupportText = () => {
+    const raw = headerConfig?.chatSupportText?.trim();
+    if (!raw || raw.toLowerCase() === 'chat support' || raw.toLowerCase() === 'চ্যাট সাপোর্ট') {
+      return t('nav.chatSupport');
+    }
+    return raw;
   };
 
   const navItems = rawNavItems;
@@ -274,7 +284,7 @@ export const Navbar: React.FC = () => {
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-[11px] text-[#172033] font-bold leading-tight">
-                    {headerConfig?.chatSupportText || t('nav.chatSupport')}
+                    {getChatSupportText()}
                   </span>
                   <span className="text-xs font-black text-[#10B981] leading-tight">
                     {headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791'}
@@ -652,7 +662,7 @@ export const Navbar: React.FC = () => {
                     <MessageCircle className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold block">{headerConfig?.chatSupportText || t('nav.chatOnWhatsApp')}</span>
+                    <span className="text-xs font-bold block">{getChatSupportText()}</span>
                     <span className="text-[11px] font-mono text-emerald-600 block">
                       {headerConfig?.chatSupportNumber || settings.whatsappNumber || '01836126791'}
                     </span>
